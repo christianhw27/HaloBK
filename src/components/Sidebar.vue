@@ -264,7 +264,7 @@ function toggleDarkMode() {
           </span>
         </router-link>
 
-        <!-- 5. Import / Export Excel -->
+        <!-- 5. Kelola Data & Excel (CRUD, Import, Export) -->
         <router-link
           to="/import-export"
           class="w-full px-3 py-2.5 rounded-lg text-xs font-semibold flex items-center gap-3 transition-colors"
@@ -272,8 +272,8 @@ function toggleDarkMode() {
             ? 'bg-blue-600 text-white shadow-sm'
             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'"
         >
-          <i class="fa-solid fa-file-excel text-sm w-4 text-center" aria-hidden="true"></i>
-          <span>Import & Export Excel</span>
+          <i class="fa-solid fa-database text-sm w-4 text-center" aria-hidden="true"></i>
+          <span>Kelola Data & Excel</span>
         </router-link>
       </nav>
     </div>

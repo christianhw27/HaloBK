@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import DetailModal from '@/components/DetailModal.vue'
 import { CATEGORY_COLORS } from '@/lib/initialData'
+import { getInstitutionLogo } from '@/lib/campusList'
 import Chart from 'chart.js/auto'
 
 const router = useRouter()
@@ -342,19 +343,36 @@ watch(() => alumniStore.alumniList.length, () => {
           @keydown.space.prevent="openDetail(alumni)"
         >
           <div class="flex items-center gap-3.5 min-w-0">
-            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-200 dark:border-slate-700 shrink-0">
+            <img
+              v-if="alumni.photo"
+              :src="alumni.photo"
+              :alt="`Foto ${alumni.name}`"
+              class="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+              loading="lazy"
+            />
+            <div
+              v-else
+              class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-200 dark:border-slate-700 shrink-0"
+            >
               {{ alumni.name.charAt(0) }}
             </div>
             <div class="min-w-0">
               <div class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                 {{ alumni.name }}
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                <span>{{ alumni.institution }}</span>
-                <span class="mx-1.5 text-slate-300 dark:text-slate-600">&bull;</span>
-                <span>{{ alumni.major }}</span>
-                <span class="mx-1.5 text-slate-300 dark:text-slate-600">&bull;</span>
-                <span>Angkatan {{ alumni.cohort }}</span>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center">
+                <img
+                  v-if="getInstitutionLogo(alumni.institution)"
+                  :src="getInstitutionLogo(alumni.institution)"
+                  :alt="alumni.institution"
+                  class="w-3.5 h-3.5 rounded object-contain inline-block mr-1 bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                  loading="lazy"
+                />
+                <span class="truncate">{{ alumni.institution }}</span>
+                <span class="mx-1.5 text-slate-300 dark:text-slate-600 shrink-0">&bull;</span>
+                <span class="truncate">{{ alumni.major }}</span>
+                <span class="mx-1.5 text-slate-300 dark:text-slate-600 shrink-0">&bull;</span>
+                <span class="shrink-0">Angkatan {{ alumni.cohort }}</span>
               </div>
             </div>
           </div>

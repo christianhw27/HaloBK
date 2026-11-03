@@ -31,6 +31,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       institution: item.instansi || item.institution || '',
       major: item.jurusan_posisi || item.major || '-',
       message: item.pesan || item.message || '',
+      photo: item.foto_url || item.photo || null,
       timestamp: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
@@ -162,15 +163,23 @@ export const useAlumniStore = defineStore('alumni', () => {
           instansi: form.institution,
           jurusan_posisi: form.major,
           pesan: form.message || null,
-          is_verified: false,
-          user_id: authStore.authUser?.id || null
+          foto_url: form.photo || null,
+          is_verified: false
         }
 
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('alumni')
           .insert(payload)
           .select()
           .single()
+
+        // Fallback jika kolom foto_url belum dibuat di database Supabase
+        if (error && error.message.includes('foto_url')) {
+          delete payload.foto_url
+          const retry = await supabase.from('alumni').insert(payload).select().single()
+          data = retry.data
+          error = retry.error
+        }
 
         if (error) throw error
 
@@ -193,6 +202,7 @@ export const useAlumniStore = defineStore('alumni', () => {
         institution: form.institution,
         major: form.major,
         message: form.message,
+        photo: form.photo || null,
         timestamp: 'Baru saja diajukan'
       }
 
@@ -339,6 +349,152 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
+  // Admin Action: Tambah Alumni Manual (Langsung Terverifikasi)
+  async function addAlumni(form) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload = {
+          nama_lengkap: form.name,
+          kelas_terakhir: form.classRoom,
+          tahun_lulus: parseInt(form.cohort) || 2026,
+          no_wa: form.phone || null,
+          kategori: form.category,
+          jalur_masuk: form.pathway,
+          instansi: form.institution,
+          jurusan_posisi: form.major,
+          pesan: form.message || null,
+          foto_url: form.photo || null,
+          is_verified: true
+        }
+
+        let { data, error } = await supabase
+          .from('alumni')
+          .insert(payload)
+          .select()
+          .single()
+
+        if (error && error.message.includes('foto_url')) {
+          delete payload.foto_url
+          const retry = await supabase.from('alumni').insert(payload).select().single()
+          data = retry.data
+          error = retry.error
+        }
+
+        if (error) throw error
+
+        alumniList.value.unshift(mapDbToAlumni(data))
+        return { success: true }
+      } catch (err) {
+        console.error('Error insert alumni:', err)
+        return { success: false, message: err.message }
+      }
+    } else {
+      const newAlumni = {
+        id: 'ALUMNI-' + Date.now().toString().slice(-4),
+        name: form.name,
+        classRoom: form.classRoom,
+        cohort: String(form.cohort),
+        phone: form.phone || '-',
+        category: form.category,
+        pathway: form.pathway,
+        institution: form.institution,
+        major: form.major,
+        message: form.message || '',
+        photo: form.photo || null,
+        timestamp: 'Baru saja ditambahkan'
+      }
+      alumniList.value.unshift(newAlumni)
+      saveToLocalStorage()
+      return { success: true }
+    }
+  }
+
+  // Admin Action: Update Alumni
+  async function updateAlumni(id, form) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const payload = {
+          nama_lengkap: form.name,
+          kelas_terakhir: form.classRoom,
+          tahun_lulus: parseInt(form.cohort) || 2026,
+          no_wa: form.phone || null,
+          kategori: form.category,
+          jalur_masuk: form.pathway,
+          instansi: form.institution,
+          jurusan_posisi: form.major,
+          pesan: form.message || null,
+          foto_url: form.photo !== undefined ? (form.photo || null) : undefined,
+          updated_at: new Date().toISOString()
+        }
+
+        let { error } = await supabase
+          .from('alumni')
+          .update(payload)
+          .eq('id', id)
+
+        if (error && error.message.includes('foto_url')) {
+          delete payload.foto_url
+          const retry = await supabase.from('alumni').update(payload).eq('id', id)
+          error = retry.error
+        }
+
+        if (error) throw error
+        await fetchData()
+        return { success: true }
+      } catch (err) {
+        console.error('Error update alumni:', err)
+        return { success: false, message: err.message }
+      }
+    } else {
+      const idx = alumniList.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        alumniList.value[idx] = {
+          ...alumniList.value[idx],
+          name: form.name,
+          classRoom: form.classRoom,
+          cohort: String(form.cohort),
+          phone: form.phone || '-',
+          category: form.category,
+          pathway: form.pathway,
+          institution: form.institution,
+          major: form.major,
+          message: form.message || '',
+          photo: form.photo !== undefined ? form.photo : alumniList.value[idx].photo
+        }
+        saveToLocalStorage()
+        return { success: true }
+      }
+      return { success: false, message: 'Data tidak ditemukan' }
+    }
+  }
+
+  // Admin Action: Hapus Alumni
+  async function deleteAlumni(id) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase
+          .from('alumni')
+          .delete()
+          .eq('id', id)
+
+        if (error) throw error
+        await fetchData()
+        return { success: true }
+      } catch (err) {
+        console.error('Error delete alumni:', err)
+        return { success: false, message: err.message }
+      }
+    } else {
+      const idx = alumniList.value.findIndex(a => a.id === id)
+      if (idx !== -1) {
+        alumniList.value.splice(idx, 1)
+        saveToLocalStorage()
+        return { success: true }
+      }
+      return { success: false, message: 'Data tidak ditemukan' }
+    }
+  }
+
   return {
     alumniList,
     pendingList,
@@ -350,6 +506,9 @@ export const useAlumniStore = defineStore('alumni', () => {
     statistics,
     fetchData,
     submitLaporDiri,
+    addAlumni,
+    updateAlumni,
+    deleteAlumni,
     approvePending,
     rejectPending,
     exportExcel,

@@ -2,6 +2,9 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlumniStore } from '@/stores/alumni'
+import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
+import { compressImage } from '@/lib/imageHelper'
+import CampusCombobox from '@/components/CampusCombobox.vue'
 
 const router = useRouter()
 const alumniStore = useAlumniStore()
@@ -15,12 +18,45 @@ const form = reactive({
   pathway: 'SNBP',
   institution: '',
   major: '',
-  message: ''
+  message: '',
+  photo: ''
 })
 
 const isSubmitted = ref(false)
 const isSubmitting = ref(false)
+const isUploadingPhoto = ref(false)
+const photoUploadError = ref('')
 const errorMessage = ref('')
+
+async function handlePhotoUpload(e) {
+  const file = e.target.files[0]
+  if (!file) return
+
+  photoUploadError.value = ''
+
+  if (isCloudinaryConfigured()) {
+    isUploadingPhoto.value = true
+    try {
+      const url = await processAndUploadPhoto(file)
+      form.photo = url
+    } catch (err) {
+      photoUploadError.value = err.message
+      alert(err.message)
+    } finally {
+      isUploadingPhoto.value = false
+    }
+  } else {
+    // Fallback lokal sementara jika konfigurasi Cloudinary belum diisi di .env
+    try {
+      const compressed = await compressImage(file, 400, 0.75)
+      form.photo = compressed
+      photoUploadError.value = 'Perhatian: Kredensial Cloudinary belum diatur di .env (foto disimpan sementara di memori).'
+    } catch (err) {
+      photoUploadError.value = err.message
+      alert(err.message)
+    }
+  }
+}
 
 const pathwaysByCategory = {
   'PTN': ['SNBP', 'SNBT', 'Mandiri PTN', 'Beasiswa KIP-Kuliah', 'Jalur Prestasi'],
@@ -174,6 +210,64 @@ async function handleSubmit() {
               Nomor ini akan digunakan adik kelas untuk bertanya seputar tips seleksi di kampus Anda.
             </p>
           </div>
+
+          <!-- Foto Profil / Almamater (Opsional) -->
+          <div class="sm:col-span-2">
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                Foto Profil / Almamater (Opsional)
+              </label>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">
+                Cloudinary Storage
+              </span>
+            </div>
+
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <!-- Pratinjau Foto -->
+              <div
+                v-if="form.photo"
+                class="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-300 dark:border-slate-700 shrink-0 bg-slate-100 dark:bg-slate-800"
+              >
+                <img :src="form.photo" alt="Pratinjau Foto" class="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  @click="form.photo = ''"
+                  class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] hover:bg-rose-700 transition-colors"
+                  title="Hapus foto"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div v-if="form.photo.includes('cloudinary.com')" class="absolute bottom-0 inset-x-0 bg-blue-700/85 text-white text-[8px] text-center py-0.5 font-medium tracking-tight">
+                  Cloudinary
+                </div>
+              </div>
+
+              <!-- Indikator Loading Upload -->
+              <div
+                v-else-if="isUploadingPhoto"
+                class="w-16 h-16 rounded-lg border border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/40 shrink-0 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400"
+              >
+                <i class="fa-solid fa-spinner fa-spin text-sm" aria-hidden="true"></i>
+                <span class="text-[9px] font-semibold mt-1">Unggah...</span>
+              </div>
+
+              <div class="flex-1">
+                <input
+                  type="file"
+                  accept="image/png, image/jpeg, image/jpg, image/webp"
+                  :disabled="isUploadingPhoto"
+                  @change="handlePhotoUpload"
+                  class="block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 dark:hover:file:bg-slate-700 cursor-pointer disabled:opacity-50"
+                />
+                <p v-if="!photoUploadError" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                  Format gambar .jpg, .png, .webp (Otomatis dioptimasi dan disimpan ke Cloudinary CDN).
+                </p>
+                <p v-else class="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                  {{ photoUploadError }}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </fieldset>
 
@@ -223,13 +317,17 @@ async function handleSubmit() {
             <label for="input-institution" class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Nama Kampus / Perusahaan / Instansi <span class="text-rose-500">*</span>
             </label>
-            <input
+            <CampusCombobox
               id="input-institution"
               v-model="form.institution"
-              type="text"
+              placeholder="Cari atau ketik nama kampus (contoh: UNESA, UGM, ITS, UI)..."
               required
-              placeholder="Contoh: Universitas Gadjah Mada (UGM) atau PT Telkom Indonesia"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
+              @select="(campus) => {
+                if (['PTN', 'PTS', 'Kedinasan', 'TNI/Polri'].includes(campus.category)) {
+                  form.category = campus.category
+                  onCategoryChange()
+                }
+              }"
             />
           </div>
 
@@ -274,11 +372,11 @@ async function handleSubmit() {
 
         <button
           type="submit"
-          :disabled="isSubmitting"
+          :disabled="isSubmitting || isUploadingPhoto"
           class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
         >
-          <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
-          <span>{{ isSubmitting ? 'Mengirim Data...' : 'Kirim Laporan' }}</span>
+          <i v-if="isSubmitting || isUploadingPhoto" class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+          <span>{{ isUploadingPhoto ? 'Mengunggah Foto...' : (isSubmitting ? 'Mengirim Data...' : 'Kirim Laporan') }}</span>
         </button>
       </div>
     </form>

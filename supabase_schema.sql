@@ -4,6 +4,9 @@
 -- Jalankan skrip ini di menu SQL Editor pada dashboard Supabase
 -- ========================================================
 
+-- PERBARUI TABEL YANG SUDAH ADA (Tambahkan kolom foto jika belum ada):
+alter table public.alumni add column if not exists foto_url text;
+
 -- 1. TABEL DATA ALUMNI (ALUMNI)
 create table if not exists public.alumni (
   id uuid primary key default gen_random_uuid(),
@@ -16,6 +19,7 @@ create table if not exists public.alumni (
   instansi text not null,        -- Nama Perguruan Tinggi / Perusahaan / Lembaga
   jurusan_posisi text,           -- Jurusan kuliah atau Posisi pekerjaan
   pesan text,                    -- Tips dan pesan untuk adik kelas SMADA
+  foto_url text,                 -- Foto profil atau almamater alumni (opsional)
   is_verified boolean default false, -- Status ACC dari Guru BK (false = pending, true = verified)
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())

@@ -1,9 +1,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import DetailModal from '@/components/DetailModal.vue'
+import EditModal from '@/components/EditModal.vue'
 import { CATEGORY_COLORS } from '@/lib/initialData'
+import { getInstitutionLogo } from '@/lib/campusList'
 
+const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
 
 onMounted(() => {
@@ -12,12 +16,36 @@ onMounted(() => {
 
 const selectedAlumni = ref(null)
 const isModalOpen = ref(false)
+
+const selectedEditAlumni = ref(null)
+const isEditModalOpen = ref(false)
+
 const currentPage = ref(1)
 const itemsPerPage = 12
 const viewMode = ref('grid') // 'grid' | 'table'
 
 const cohorts = ['ALL', '2026', '2025', '2024', '2023', '2022', '2021', '2020']
 const categories = ['ALL', 'PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan / LPK', 'Masa Tunggu']
+
+const hasActiveFilters = computed(() => {
+  return (
+    alumniStore.selectedCohort !== 'ALL' ||
+    alumniStore.selectedCategory !== 'ALL' ||
+    Boolean(alumniStore.searchQuery && alumniStore.searchQuery.trim())
+  )
+})
+
+const categoryCounts = computed(() => {
+  const baseList = alumniStore.selectedCohort === 'ALL'
+    ? alumniStore.alumniList
+    : alumniStore.alumniList.filter(a => String(a.cohort) === String(alumniStore.selectedCohort))
+
+  const counts = { ALL: baseList.length }
+  for (const a of baseList) {
+    counts[a.category] = (counts[a.category] || 0) + 1
+  }
+  return counts
+})
 
 const totalPages = computed(() => {
   return Math.ceil(alumniStore.filteredAlumni.length / itemsPerPage) || 1
@@ -50,6 +78,20 @@ function openDetail(item) {
   isModalOpen.value = true
 }
 
+function openEdit(item) {
+  selectedEditAlumni.value = item
+  isEditModalOpen.value = true
+}
+
+async function handleDelete(alumni) {
+  if (confirm(`Hapus data alumni "${alumni.name}" secara permanen dari database?`)) {
+    const res = await alumniStore.deleteAlumni(alumni.id)
+    if (!res.success) {
+      alert('Gagal menghapus data: ' + res.message)
+    }
+  }
+}
+
 function openWhatsApp(phone, name, inst) {
   if (!phone || phone === '-') return
   let cleanNumber = phone.replace(/[^0-9]/g, '')
@@ -62,11 +104,13 @@ function openWhatsApp(phone, name, inst) {
 <template>
   <div class="space-y-6 w-full">
     
-    <!-- Header Halaman & Filter Pengendali Direktori (Full Width) -->
-    <section class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5" aria-labelledby="directory-heading">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+    <!-- Header Halaman & Filter Pengendali Direktori (Desain Ringkas & Terpadu) -->
+    <section class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden" aria-labelledby="directory-heading">
+      
+      <!-- Baris 1: Header Judul & Tombol Aksi -->
+      <div class="p-4 sm:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-100 dark:border-slate-800">
         <div>
-          <h1 id="directory-heading" class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white">
+          <h1 id="directory-heading" class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
             Direktori Alumni Terverifikasi
           </h1>
           <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -74,14 +118,14 @@ function openWhatsApp(phone, name, inst) {
           </p>
         </div>
 
-        <div class="flex items-center gap-2 self-start sm:self-auto">
+        <div class="flex items-center gap-2 self-start md:self-auto shrink-0">
           <!-- Toggle Tampilan: Kartu vs Tabel -->
           <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
             <button
               @click="viewMode = 'grid'"
               type="button"
               class="px-2.5 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1.5"
-              :class="viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'"
+              :class="viewMode === 'grid' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
               aria-label="Tampilan Kartu"
             >
               <i class="fa-solid fa-grip" aria-hidden="true"></i>
@@ -91,7 +135,7 @@ function openWhatsApp(phone, name, inst) {
               @click="viewMode = 'table'"
               type="button"
               class="px-2.5 py-1.5 rounded-md font-medium transition-colors flex items-center gap-1.5"
-              :class="viewMode === 'table' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'"
+              :class="viewMode === 'table' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-semibold' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
               aria-label="Tampilan Tabel"
             >
               <i class="fa-solid fa-table-list" aria-hidden="true"></i>
@@ -103,7 +147,7 @@ function openWhatsApp(phone, name, inst) {
           <button
             @click="alumniStore.exportExcel"
             type="button"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-sm transition-colors"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs transition-colors"
           >
             <i class="fa-solid fa-file-excel text-xs" aria-hidden="true"></i>
             <span>Export Excel</span>
@@ -111,86 +155,89 @@ function openWhatsApp(phone, name, inst) {
         </div>
       </div>
 
-      <!-- Bilah Pencarian -->
-      <div class="relative">
-        <label for="alumni-search" class="sr-only">Pencarian Alumni</label>
-        <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 text-xs" aria-hidden="true"></i>
-        <input
-          id="alumni-search"
-          v-model="alumniStore.searchQuery"
-          @input="currentPage = 1"
-          type="text"
-          placeholder="Cari berdasarkan nama alumni, kampus, perusahaan, jurusan, atau kelas..."
-          class="w-full pl-9 pr-9 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 transition-colors"
-        />
+      <!-- Baris 2: Toolbar Pencarian & Dropdown Angkatan -->
+      <div class="p-3.5 sm:px-5 sm:py-3 bg-slate-50/70 dark:bg-slate-900/60 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 max-w-2xl">
+          
+          <!-- Search Bar (Lebar Proporsional & Ramping) -->
+          <div class="relative flex-1 min-w-[220px]">
+            <label for="alumni-search" class="sr-only">Pencarian Alumni</label>
+            <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-xs" aria-hidden="true"></i>
+            <input
+              id="alumni-search"
+              v-model="alumniStore.searchQuery"
+              @input="currentPage = 1"
+              type="text"
+              placeholder="Cari nama alumni, kampus, posisi, prodi..."
+              class="w-full pl-8 pr-8 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
+            />
+            <button
+              v-if="alumniStore.searchQuery"
+              @click="alumniStore.searchQuery = ''; currentPage = 1"
+              type="button"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+              aria-label="Bersihkan pencarian"
+            >
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <!-- Dropdown Filter Angkatan (Menggantikan deretan tombol panjang) -->
+          <div class="relative min-w-[170px] sm:w-48 shrink-0">
+            <i class="fa-regular fa-calendar text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-xs pointer-events-none" aria-hidden="true"></i>
+            <select
+              v-model="alumniStore.selectedCohort"
+              @change="currentPage = 1"
+              class="w-full appearance-none pl-8 pr-8 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent cursor-pointer"
+            >
+              <option value="ALL">Semua Angkatan</option>
+              <option v-for="c in cohorts.filter(x => x !== 'ALL')" :key="c" :value="c">
+                Angkatan {{ c }}
+              </option>
+            </select>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true"></i>
+          </div>
+        </div>
+
+        <!-- Ringkasan Hasil & Reset -->
+        <div class="flex items-center gap-2 self-start sm:self-auto text-xs text-slate-500 dark:text-slate-400 shrink-0">
+          <span>Menemukan <strong class="text-slate-800 dark:text-slate-200 font-semibold">{{ alumniStore.filteredAlumni.length }}</strong> alumni</span>
+          <button
+            v-if="hasActiveFilters"
+            @click="clearFilters"
+            type="button"
+            class="px-2 py-0.5 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 text-[11px] font-medium transition-colors flex items-center gap-1"
+          >
+            <i class="fa-solid fa-rotate-left text-[10px]" aria-hidden="true"></i>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Baris 3: Segmented Tab Bar Kategori Jalur & Karir -->
+      <div class="px-3 sm:px-5 py-2 overflow-x-auto flex items-center gap-1.5 scrollbar-none">
         <button
-          v-if="alumniStore.searchQuery"
-          @click="alumniStore.searchQuery = ''; currentPage = 1"
+          v-for="cat in categories"
+          :key="cat"
+          @click="setCategory(cat)"
           type="button"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
-          aria-label="Bersihkan pencarian"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0"
+          :class="alumniStore.selectedCategory === cat
+            ? 'bg-blue-600 text-white font-semibold shadow-xs'
+            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'"
         >
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          <span>{{ cat === 'ALL' ? 'Semua Kategori' : cat }}</span>
+          <span
+            class="px-1.5 py-0.5 rounded-full text-[10px] font-semibold"
+            :class="alumniStore.selectedCategory === cat
+              ? 'bg-blue-700 text-white'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'"
+          >
+            {{ categoryCounts[cat] || 0 }}
+          </span>
         </button>
       </div>
 
-      <!-- Filter Angkatan (Cohort) -->
-      <div class="space-y-1.5">
-        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          Tahun Angkatan Lulusan:
-        </div>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="c in cohorts"
-            :key="c"
-            @click="setCohort(c)"
-            type="button"
-            class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-            :class="alumniStore.selectedCohort === c
-              ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-sm'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'"
-          >
-            {{ c === 'ALL' ? 'Semua Angkatan' : c }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Filter Kategori Karir / Studi Lanjut -->
-      <div class="space-y-1.5">
-        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          Kategori Jalur & Karir:
-        </div>
-        <div class="flex flex-wrap gap-1.5">
-          <button
-            v-for="cat in categories"
-            :key="cat"
-            @click="setCategory(cat)"
-            type="button"
-            class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
-            :class="alumniStore.selectedCategory === cat
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'"
-          >
-            {{ cat === 'ALL' ? 'Semua Kategori' : cat }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Ringkasan Hasil Filter -->
-      <div class="text-xs text-slate-500 dark:text-slate-400 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span>Menemukan <strong>{{ alumniStore.filteredAlumni.length }}</strong> alumni terverifikasi</span>
-          <button
-            v-if="alumniStore.selectedCohort !== 'ALL' || alumniStore.selectedCategory !== 'ALL' || alumniStore.searchQuery"
-            @click="clearFilters"
-            type="button"
-            class="text-blue-600 dark:text-blue-400 hover:underline text-[11px] font-medium ml-2"
-          >
-            Reset Filter
-          </button>
-        </div>
-        <span v-if="totalPages > 1">Halaman {{ currentPage }} dari {{ totalPages }}</span>
-      </div>
     </section>
 
     <!-- KONTEN: Tampilan Grid Kartu (Lebar Optimal 3–4 Kolom di Layar Lebar) -->
@@ -206,7 +253,10 @@ function openWhatsApp(phone, name, inst) {
         <div class="space-y-3">
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-200 dark:border-slate-700 shrink-0">
+              <div v-if="alumni.photo" class="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
+                <img :src="alumni.photo" :alt="'Foto ' + alumni.name" class="w-full h-full object-cover" />
+              </div>
+              <div v-else class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-200 dark:border-slate-700 shrink-0">
                 {{ alumni.name ? alumni.name.charAt(0) : 'A' }}
               </div>
               <div>
@@ -228,13 +278,20 @@ function openWhatsApp(phone, name, inst) {
           </div>
 
           <!-- Kotak Rincian Instansi & Program -->
-          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1">
-            <div class="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-              <i class="fa-solid fa-building-columns text-slate-400 text-xs" aria-hidden="true"></i>
+          <div class="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1.5">
+            <div class="font-semibold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <img
+                v-if="getInstitutionLogo(alumni.institution)"
+                :src="getInstitutionLogo(alumni.institution)"
+                :alt="`Logo ${alumni.institution}`"
+                class="w-5 h-5 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
+                loading="lazy"
+              />
+              <i v-else class="fa-solid fa-building-columns text-slate-400 text-xs shrink-0" aria-hidden="true"></i>
               <span class="truncate">{{ alumni.institution }}</span>
             </div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-graduation-cap text-slate-400 text-xs" aria-hidden="true"></i>
+              <i class="fa-solid fa-graduation-cap text-slate-400 text-xs shrink-0" aria-hidden="true"></i>
               <span class="truncate">{{ alumni.major }} (Jalur {{ alumni.pathway }})</span>
             </div>
           </div>
@@ -246,25 +303,46 @@ function openWhatsApp(phone, name, inst) {
         </div>
 
         <!-- Tombol Aksi -->
-        <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+        <div class="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
           <button
             @click="openDetail(alumni)"
             type="button"
-            class="flex-1 py-1.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+            class="flex-1 py-1.5 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
           >
             <i class="fa-regular fa-eye text-xs" aria-hidden="true"></i>
-            <span>Lihat Detail</span>
+            <span>Detail</span>
           </button>
 
           <button
             v-if="alumni.phone && alumni.phone !== '-'"
             @click="openWhatsApp(alumni.phone, alumni.name, alumni.institution)"
             type="button"
-            class="py-1.5 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+            class="py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
             :title="'Hubungi ' + alumni.name + ' via WhatsApp'"
           >
             <i class="fa-brands fa-whatsapp text-emerald-600" aria-hidden="true"></i>
-            <span>Konsultasi</span>
+            <span>Chat</span>
+          </button>
+
+          <!-- Aksi Khusus Guru BK (Edit & Hapus) -->
+          <button
+            v-if="authStore.userRole === 'admin'"
+            @click="openEdit(alumni)"
+            type="button"
+            class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 text-xs transition-colors"
+            title="Edit data alumni"
+          >
+            <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+          </button>
+
+          <button
+            v-if="authStore.userRole === 'admin'"
+            @click="handleDelete(alumni)"
+            type="button"
+            class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 text-xs transition-colors"
+            title="Hapus data alumni"
+          >
+            <i class="fa-solid fa-trash" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -291,7 +369,15 @@ function openWhatsApp(phone, name, inst) {
             class="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
           >
             <td class="p-3 font-semibold text-slate-900 dark:text-white">
-              {{ alumni.name }}
+              <div class="flex items-center gap-2.5">
+                <div v-if="alumni.photo" class="w-7 h-7 rounded-md overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
+                  <img :src="alumni.photo" :alt="alumni.name" class="w-full h-full object-cover" />
+                </div>
+                <div v-else class="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-xs shrink-0 border border-slate-200 dark:border-slate-700">
+                  {{ alumni.name.charAt(0) }}
+                </div>
+                <span>{{ alumni.name }}</span>
+              </div>
             </td>
             <td class="p-3 text-slate-600 dark:text-slate-300">
               {{ alumni.classRoom }} ({{ alumni.cohort }})
@@ -305,7 +391,17 @@ function openWhatsApp(phone, name, inst) {
               </span>
             </td>
             <td class="p-3 text-slate-800 dark:text-slate-200 font-medium">
-              {{ alumni.institution }}
+              <div class="flex items-center gap-2">
+                <img
+                  v-if="getInstitutionLogo(alumni.institution)"
+                  :src="getInstitutionLogo(alumni.institution)"
+                  :alt="`Logo ${alumni.institution}`"
+                  class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                  loading="lazy"
+                />
+                <i v-else class="fa-solid fa-building-columns text-slate-400 text-xs shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ alumni.institution }}</span>
+              </div>
             </td>
             <td class="p-3 text-slate-600 dark:text-slate-300">
               {{ alumni.major }}
@@ -317,7 +413,7 @@ function openWhatsApp(phone, name, inst) {
               <button
                 @click="openDetail(alumni)"
                 type="button"
-                class="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors mr-1.5"
+                class="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold transition-colors mr-1"
               >
                 Detail
               </button>
@@ -325,10 +421,28 @@ function openWhatsApp(phone, name, inst) {
                 v-if="alumni.phone && alumni.phone !== '-'"
                 @click="openWhatsApp(alumni.phone, alumni.name, alumni.institution)"
                 type="button"
-                class="px-2.5 py-1 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                class="px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition-colors mr-1"
                 title="Hubungi via WhatsApp"
               >
                 <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+              </button>
+              <button
+                v-if="authStore.userRole === 'admin'"
+                @click="openEdit(alumni)"
+                type="button"
+                class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-blue-400 text-xs font-semibold transition-colors mr-1"
+                title="Edit data alumni"
+              >
+                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+              </button>
+              <button
+                v-if="authStore.userRole === 'admin'"
+                @click="handleDelete(alumni)"
+                type="button"
+                class="px-2 py-1 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs font-semibold transition-colors"
+                title="Hapus data alumni"
+              >
+                <i class="fa-solid fa-trash" aria-hidden="true"></i>
               </button>
             </td>
           </tr>
@@ -389,6 +503,13 @@ function openWhatsApp(phone, name, inst) {
       :is-open="isModalOpen"
       :alumni="selectedAlumni"
       @close="isModalOpen = false"
+    />
+
+    <!-- Modal Edit Alumni (Khusus Guru BK) -->
+    <EditModal
+      :is-open="isEditModalOpen"
+      :alumni="selectedEditAlumni"
+      @close="isEditModalOpen = false"
     />
 
   </div>
