@@ -36,7 +36,7 @@ import Sidebar from '@/components/Sidebar.vue'
             <span>Bimbingan Konseling Tracer Study</span>
           </div>
           <div>
-            <span>Jl. Suryo No. 47, Grudo, Kec. Ngawi, Kabupaten Ngawi, Jawa Timur</span>
+            <span>Jalan Ahmad Yani Tromol Pos 7, Klitik, Kecamatan Geneng, Kabupaten Ngawi, Jawa Timur 63217</span>
           </div>
         </div>
       </footer>
