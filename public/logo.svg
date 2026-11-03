@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer Rounded Square -->
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bgGrad)" stroke="#334155" stroke-width="3"/>
+  
+  <!-- Inner Ring Accent -->
+  <circle cx="64" cy="64" r="50" fill="none" stroke="#2563eb" stroke-width="2" opacity="0.4" stroke-dasharray="4 4"/>
+  
+  <!-- Graduation Cap Icon -->
+  <path d="M64 30 L98 46 L64 62 L30 46 Z" fill="url(#goldGrad)" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.4))"/>
+  <path d="M42 53 V72 C42 80, 86 80, 86 72 V53 L64 64 Z" fill="#d97706"/>
+  <!-- Tassel -->
+  <path d="M88 47 V74 C88 77, 85 79, 83 79 C81 79, 78 77, 78 74 V47" fill="none" stroke="#fef08a" stroke-width="2"/>
+  <circle cx="80.5" cy="79" r="2.5" fill="#fef08a"/>
+
+  <!-- Badge Text BK SMADA -->
+  <rect x="22" y="86" width="84" height="22" rx="6" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="64" y="101" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="1">BK SMADA</text>
+</svg>

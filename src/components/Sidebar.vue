@@ -64,7 +64,13 @@ function toggleDarkMode() {
       </button>
 
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-sm">
+        <img
+          src="/logo.png"
+          alt="Logo BK SMADA"
+          class="w-8 h-8 rounded-lg object-cover bg-slate-900 border border-slate-700 shrink-0"
+          onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
+        />
+        <div class="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-800 text-amber-400 flex items-center justify-center font-bold text-sm hidden">
           <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
         </div>
         <div>
@@ -135,7 +141,13 @@ function toggleDarkMode() {
       <!-- Brand & Identitas Sekolah -->
       <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
         <router-link to="/dashboard" class="flex items-center gap-3 group focus-visible:rounded-lg">
-          <div class="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shrink-0">
+          <img
+            src="/logo.png"
+            alt="Logo BK SMADA"
+            class="w-10 h-10 rounded-xl object-cover bg-slate-900 border border-slate-700 shrink-0 shadow-xs"
+            onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
+          />
+          <div class="w-10 h-10 rounded-xl bg-slate-900 dark:bg-slate-800 border border-slate-700 flex items-center justify-center text-amber-400 shrink-0 hidden">
             <i class="fa-solid fa-graduation-cap text-lg" aria-hidden="true"></i>
           </div>
           <div>
