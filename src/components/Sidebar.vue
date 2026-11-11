@@ -90,14 +90,14 @@ function toggleDarkMode() {
         @click="authStore.toggleRole()"
         type="button"
         class="px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs"
-        :title="'Mode: ' + (authStore.userRole === 'admin' ? 'Guru BK' : 'Alumni')"
+        :title="'Mode: ' + (authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung')"
       >
         <span
           class="w-2 h-2 rounded-full"
           :class="authStore.userRole === 'admin' ? 'bg-emerald-500' : 'bg-[#0284C7]'"
           aria-hidden="true"
         ></span>
-        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : 'Alumni' }}</span>
+        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}</span>
       </button>
 
       <button
@@ -191,7 +191,7 @@ function toggleDarkMode() {
               ? 'bg-[#D1FAE5] text-[#047857] border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
               : 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800'"
           >
-            {{ authStore.userRole === 'admin' ? 'Guru BK' : 'Alumni' }}
+            {{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}
           </span>
         </div>
 
@@ -199,7 +199,7 @@ function toggleDarkMode() {
           @click="authStore.toggleRole()"
           type="button"
           class="w-full py-2.5 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between border transition-all bg-white dark:bg-slate-900 border-sky-200/80 dark:border-slate-700 hover:border-[#0284C7] hover:bg-sky-50/60 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xs"
-          title="Klik untuk beralih antara akun Guru BK dan Alumni"
+          title="Klik untuk beralih antara akun Guru BK dan Pengunjung"
         >
           <div class="flex items-center gap-2 truncate">
             <span
@@ -362,12 +362,24 @@ function toggleDarkMode() {
     </div>
 
     <!-- SISI BAWAH: TEMA & INFO SISTEM -->
-    <div class="p-4 border-t border-sky-100 dark:border-slate-800 space-y-3 bg-gradient-to-br from-sky-50/50 via-white to-amber-50/40 dark:from-slate-900 dark:to-slate-900">
+    <div class="p-4 border-t border-sky-100 dark:border-slate-800 space-y-2.5 bg-gradient-to-br from-sky-50/50 via-white to-amber-50/40 dark:from-slate-900 dark:to-slate-900">
+      <!-- Tombol Navigasi ke Halaman Login / Ganti Akun -->
+      <router-link
+        to="/login"
+        class="w-full py-2 px-3.5 rounded-2xl border border-sky-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-sky-50/60 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-between transition-colors shadow-2xs"
+      >
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-arrow-right-to-bracket text-[#0284C7] dark:text-sky-400" aria-hidden="true"></i>
+          <span>Ganti Akun / Keluar</span>
+        </div>
+        <span class="text-[11px] text-slate-400">&rsaquo;</span>
+      </router-link>
+
       <!-- Tombol Pengubah Tema -->
       <button
         @click="toggleDarkMode"
         type="button"
-        class="w-full py-2.5 px-3.5 rounded-2xl border border-sky-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-50/60 dark:hover:bg-slate-700/60 text-sm font-semibold flex items-center justify-between transition-colors shadow-2xs"
+        class="w-full py-2 px-3.5 rounded-2xl border border-sky-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-amber-50/60 dark:hover:bg-slate-700/60 text-xs font-semibold flex items-center justify-between transition-colors shadow-2xs"
       >
         <div class="flex items-center gap-2.5">
           <i v-if="isDark" class="fa-solid fa-sun text-amber-400 text-sm" aria-hidden="true"></i>

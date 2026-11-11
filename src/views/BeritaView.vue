@@ -155,13 +155,14 @@ function resetNewsFilters() {
             <span>Kelola Berita</span>
           </router-link>
 
-          <!-- Tombol Utama Masuk Tracer Study -->
+          <!-- Tombol Masuk / Login (Pojok Kanan Atas Portal Berita) -->
           <router-link
-            to="/dashboard"
+            to="/login"
             class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold shadow-sm transition-colors duration-150 min-h-[44px]"
+            title="Masuk sebagai Guru BK atau Pengunjung"
           >
-            <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-            <span>Masuk Tracer Study</span>
+            <i class="fa-solid fa-arrow-right-to-bracket text-sm" aria-hidden="true"></i>
+            <span>Masuk / Login</span>
           </router-link>
 
           <!-- Tombol Menu Mobile -->
@@ -246,17 +247,25 @@ function resetNewsFilters() {
 
           <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
             <router-link
+              to="/login"
+              @click="isMobileMenuOpen = false"
+              class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px] transition-colors shadow-sm"
+            >
+              <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
+              <span>Masuk / Login</span>
+            </router-link>
+            <router-link
               to="/dashboard"
               @click="isMobileMenuOpen = false"
-              class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px] transition-colors"
+              class="w-full py-3 px-4 rounded-xl bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
             >
               <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-              <span>Masuk Tracer Study</span>
+              <span>Buka Tracer Study</span>
             </router-link>
             <router-link
               to="/lapor"
               @click="isMobileMenuOpen = false"
-              class="w-full py-3 px-4 rounded-xl bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
+              class="w-full py-3 px-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
             >
               <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
               <span>Lapor Diri Alumni</span>

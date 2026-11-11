@@ -7,6 +7,7 @@ import FormLaporView from '@/views/FormLaporView.vue'
 import VerifikasiView from '@/views/VerifikasiView.vue'
 import ImportExportView from '@/views/ImportExportView.vue'
 import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
+import LoginView from '@/views/LoginView.vue'
 
 const routes = [
   {
@@ -18,6 +19,12 @@ const routes = [
   {
     path: '/berita',
     redirect: '/'
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginView,
+    meta: { layout: 'public' }
   },
   {
     path: '/dashboard',

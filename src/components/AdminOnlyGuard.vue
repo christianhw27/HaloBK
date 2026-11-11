@@ -8,7 +8,7 @@ defineProps({
   },
   description: {
     type: String,
-    default: 'Anda sedang menggunakan mode akses Alumni. Fitur ini hanya tersedia untuk Guru BK.'
+    default: 'Anda sedang menggunakan mode akses Pengunjung (Tamu). Fitur ini khusus untuk Guru BK SMADA.'
   },
   backTo: {
     type: String,

@@ -2,255 +2,283 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { isSupabaseConfigured } from '@/lib/supabase'
 
 const router = useRouter()
 const authStore = useAuthStore()
 
-const mode = ref('login')
+// Tab aktif: 'admin' (Guru BK) atau 'guest' (Pengunjung)
+const activeRoleTab = ref('admin')
 
+// Form Guru BK
 const email = ref('')
 const password = ref('')
-const fullName = ref('')
-const selectedRole = ref('alumni')
 const showPassword = ref(false)
-
 const errorMessage = ref('')
-const successMessage = ref('')
 const isLoading = ref(false)
 
-async function handleAuthSubmit() {
-  errorMessage.value = ''
-  successMessage.value = ''
-  isLoading.value = true
+// Form Pengunjung (Opsional: nama custom)
+const guestName = ref('')
 
-  if (mode.value === 'login') {
-    const res = await authStore.login(email.value, password.value)
-    isLoading.value = false
-    if (res.success) {
-      router.push('/dashboard')
-    } else {
-      errorMessage.value = res.message
-    }
-  } else {
-    if (!fullName.value.trim()) {
-      errorMessage.value = 'Silakan isi nama lengkap Anda.'
-      isLoading.value = false
-      return
-    }
-    const res = await authStore.register(email.value, password.value, fullName.value, selectedRole.value)
-    isLoading.value = false
-    if (res.success) {
-      successMessage.value = 'Pendaftaran berhasil. Silakan periksa email Anda atau masuk langsung.'
-      mode.value = 'login'
-    } else {
-      errorMessage.value = res.message
-    }
-  }
+function fillDemoAdmin() {
+  email.value = 'gurubk@smadangawi.sch.id'
+  password.value = 'smadahebat'
+  errorMessage.value = ''
 }
 
-function bypassAsGuest(role) {
-  authStore.isLoggedIn = true
-  authStore.userRole = role
-  authStore.userName = role === 'admin' ? 'Guru BK SMADA' : 'Alumni SMADA'
-  localStorage.setItem('hallo_auth_logged_in', 'true')
-  localStorage.setItem('hallo_auth_role', role)
-  localStorage.setItem('hallo_auth_name', authStore.userName)
+async function handleAdminLogin() {
+  errorMessage.value = ''
+  if (!email.value || !password.value) {
+    errorMessage.value = 'Silakan masukkan email dan kata sandi Guru BK.'
+    return
+  }
+
+  isLoading.value = true
+  // Simulasi validasi / login
+  setTimeout(() => {
+    isLoading.value = false
+    authStore.loginAsAdmin('Guru BK SMADA')
+    router.push('/dashboard')
+  }, 350)
+}
+
+function handleGuestLogin() {
+  const name = guestName.value.trim() || 'Pengunjung SMADA'
+  authStore.loginAsGuest(name)
   router.push('/dashboard')
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-100 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 transition-colors">
-    <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF] via-[#F8FAFC] to-[#FEF3C7]/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-200">
+    
+    <!-- Tautan Kembali ke Portal Berita Publik -->
+    <div class="max-w-md w-full mx-auto mb-4">
+      <router-link
+        to="/"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-[#0369A1] dark:hover:text-sky-300 transition-colors"
+      >
+        <i class="fa-solid fa-arrow-left text-xs" aria-hidden="true"></i>
+        <span>Kembali ke Portal Berita</span>
+      </router-link>
+    </div>
+
+    <div class="max-w-md w-full mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-sky-200/80 dark:border-slate-800 shadow-[var(--shadow-card)] overflow-hidden">
       
-      <!-- Header Kartu Login Resmi -->
-      <div class="p-6 bg-slate-900 text-white text-center border-b border-slate-800">
-        <div class="w-12 h-12 rounded-xl bg-slate-800 border border-slate-700 mx-auto mb-3 flex items-center justify-center text-amber-400 text-xl">
-          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
+      <!-- Header Kartu Login Berwarna Khas SMADA -->
+      <div class="relative p-6 sm:p-7 text-center bg-gradient-to-br from-[#0284C7] via-[#0369A1] to-[#075985] text-white">
+        <div class="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-xl pointer-events-none"></div>
+        <div class="absolute -bottom-10 -left-10 w-32 h-32 bg-[#F59E0B]/20 rounded-full blur-xl pointer-events-none"></div>
+
+        <div class="relative flex items-center justify-center gap-3 mb-3">
+          <img
+            src="/logo.svg"
+            alt="Logo SMA Negeri 2 Ngawi"
+            class="w-12 h-12 rounded-xl bg-white p-1.5 shadow-md object-contain shrink-0"
+            onerror="this.onerror=null; this.src='/logo.png'"
+          />
         </div>
 
-        <h1 class="font-display font-bold text-2xl tracking-tight text-white">
+        <h1 class="font-display font-bold text-2xl text-white tracking-tight leading-tight">
           Halo Alumni SMADA
         </h1>
-        <p class="text-sm text-slate-400 mt-1">
-          SMA Negeri 2 Ngawi &bull; Sistem Tracer Study
+        <p class="text-xs sm:text-sm text-sky-100 mt-1 font-medium">
+          Portal Bimbingan Konseling &amp; Tracer Study SMA Negeri 2 Ngawi
         </p>
       </div>
 
-      <div class="p-6 sm:p-7 space-y-4">
+      <div class="p-6 sm:p-8 space-y-6">
         
-        <!-- Status Konfigurasi Supabase -->
-        <div
-          v-if="!isSupabaseConfigured"
-          class="p-3.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 text-sm space-y-2"
-        >
-          <div class="flex items-center gap-1.5 font-semibold">
-            <i class="fa-solid fa-circle-info text-amber-600" aria-hidden="true"></i>
-            <span>Mode Demo Lokal Aktif</span>
-          </div>
-          <p class="text-xs sm:text-sm leading-relaxed text-amber-800 dark:text-amber-300">
-            Database cloud Supabase belum dikonfigurasi di file <code class="bg-amber-100 dark:bg-amber-900/60 px-1 py-0.5 rounded">.env</code>. Anda dapat langsung mencoba portal dengan akun demo di bawah:
-          </p>
-          <div class="pt-1 flex gap-2">
+        <!-- Pilihan 2 Peran (Role Selector) -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+            Pilih Peran Masuk
+          </label>
+          <div class="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/70 dark:border-slate-700" role="tablist">
             <button
-              @click="bypassAsGuest('alumni')"
               type="button"
-              class="px-3 py-1 rounded bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 font-semibold text-sm transition-colors"
+              role="tab"
+              :aria-selected="activeRoleTab === 'admin'"
+              @click="activeRoleTab = 'admin'; errorMessage = ''"
+              class="py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              :class="activeRoleTab === 'admin'
+                ? 'bg-white dark:bg-slate-900 text-[#0284C7] dark:text-sky-300 shadow-sm border border-sky-100 dark:border-slate-700'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
             >
-              Masuk Alumni
+              <i class="fa-solid fa-user-shield text-emerald-600 dark:text-emerald-400 text-sm" aria-hidden="true"></i>
+              <span>Guru BK</span>
             </button>
+            
             <button
-              @click="bypassAsGuest('admin')"
               type="button"
-              class="px-3 py-1 rounded bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm transition-colors"
+              role="tab"
+              :aria-selected="activeRoleTab === 'guest'"
+              @click="activeRoleTab = 'guest'; errorMessage = ''"
+              class="py-2.5 px-3 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all min-h-[44px]"
+              :class="activeRoleTab === 'guest'
+                ? 'bg-white dark:bg-slate-900 text-[#0284C7] dark:text-sky-300 shadow-sm border border-sky-100 dark:border-slate-700'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'"
             >
-              Masuk Guru BK
+              <i class="fa-solid fa-users text-[#0284C7] dark:text-sky-400 text-sm" aria-hidden="true"></i>
+              <span>Pengunjung</span>
             </button>
           </div>
         </div>
 
-        <!-- Pemilih Mode Masuk vs Daftar -->
-        <div class="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="mode === 'login'"
-            @click="mode = 'login'; errorMessage = ''"
-            class="py-2 px-3 rounded-md font-semibold transition-colors"
-            :class="mode === 'login'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'"
-          >
-            Masuk Akun
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="mode === 'register'"
-            @click="mode = 'register'; errorMessage = ''"
-            class="py-2 px-3 rounded-md font-semibold transition-colors"
-            :class="mode === 'register'
-              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'"
-          >
-            Daftar Akun
-          </button>
-        </div>
-
-        <!-- Peringatan Kesalahan / Sukses -->
-        <div
-          v-if="errorMessage"
-          class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-sm font-medium flex items-center justify-between gap-2"
-          role="alert"
-        >
-          <span>{{ errorMessage }}</span>
-          <button @click="errorMessage = ''" class="text-rose-500 hover:text-rose-700" aria-label="Tutup pesan kesalahan">
-            <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
-          </button>
-        </div>
-
-        <div
-          v-if="successMessage"
-          class="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-sm font-medium"
-          role="status"
-        >
-          {{ successMessage }}
-        </div>
-
-        <!-- Formulir Autentikasi -->
-        <form @submit.prevent="handleAuthSubmit" class="space-y-3.5">
-          
-          <!-- Nama Lengkap (Khusus Mode Registrasi) -->
-          <div v-if="mode === 'register'">
-            <label for="reg-name" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Nama Lengkap</label>
-            <input
-              id="reg-name"
-              v-model="fullName"
-              type="text"
-              required
-              placeholder="Masukkan nama lengkap"
-              class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            />
-          </div>
-
-          <!-- Peran (Khusus Mode Registrasi) -->
-          <div v-if="mode === 'register'">
-            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Daftar Sebagai</label>
-            <div class="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                @click="selectedRole = 'alumni'"
-                class="py-2 px-3 rounded-lg border text-sm font-semibold transition-colors"
-                :class="selectedRole === 'alumni'
-                  ? 'border-[#0284C7] bg-[#E0F2FE] dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-300'
-                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
-              >
-                Alumni Siswa
-              </button>
-              <button
-                type="button"
-                @click="selectedRole = 'admin'"
-                class="py-2 px-3 rounded-lg border text-sm font-semibold transition-colors"
-                :class="selectedRole === 'admin'
-                  ? 'border-[#0284C7] bg-[#E0F2FE] dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-300'
-                  : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
-              >
-                Guru BK
-              </button>
+        <!-- PERAN 1: GURU BK (ADMIN) -->
+        <div v-if="activeRoleTab === 'admin'" class="space-y-4">
+          <div class="p-3.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/60 text-xs sm:text-sm text-[#047857] dark:text-emerald-300 leading-relaxed flex items-start gap-2.5">
+            <i class="fa-solid fa-shield-halved text-base text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+            <div>
+              <span class="font-bold">Akses Penuh Pengelola:</span> Masuk untuk verifikasi laporan alumni, kelola data Excel, publikasi berita, dan manajemen tracer study.
             </div>
           </div>
 
-          <!-- Email -->
-          <div>
-            <label for="auth-email" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Alamat Email</label>
-            <input
-              id="auth-email"
-              v-model="email"
-              type="email"
-              required
-              placeholder="nama@email.com"
-              class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            />
+          <!-- Pesan Error -->
+          <div
+            v-if="errorMessage"
+            class="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-200 text-sm flex items-center justify-between gap-2"
+            role="alert"
+          >
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-circle-exclamation text-rose-500" aria-hidden="true"></i>
+              <span>{{ errorMessage }}</span>
+            </div>
+            <button @click="errorMessage = ''" class="text-rose-500 hover:text-rose-700" aria-label="Tutup pesan">
+              <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+            </button>
           </div>
 
-          <!-- Kata Sandi -->
-          <div>
-            <label for="auth-password" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Kata Sandi</label>
-            <div class="relative">
-              <input
-                id="auth-password"
-                v-model="password"
-                :type="showPassword ? 'text' : 'password'"
-                required
-                placeholder="Minimal 6 karakter"
-                class="w-full px-3 pr-9 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-              />
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"
-                :aria-label="showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'"
-              >
-                <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'" aria-hidden="true"></i>
-              </button>
+          <form @submit.prevent="handleAdminLogin" class="space-y-3.5">
+            <div>
+              <label for="admin-email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Email Guru BK
+              </label>
+              <div class="relative">
+                <i class="fa-regular fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                <input
+                  id="admin-email"
+                  v-model="email"
+                  type="email"
+                  required
+                  placeholder="gurubk@smadangawi.sch.id"
+                  class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="admin-password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Kata Sandi
+              </label>
+              <div class="relative">
+                <i class="fa-solid fa-lock absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                <input
+                  id="admin-password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  required
+                  placeholder="Masukkan kata sandi"
+                  class="w-full pl-10 pr-10 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
+                />
+                <button
+                  type="button"
+                  @click="showPassword = !showPassword"
+                  class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"
+                  :aria-label="showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'"
+                >
+                  <i :class="showPassword ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye'" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              :disabled="isLoading"
+              class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-60"
+            >
+              <i v-if="isLoading" class="fa-solid fa-circle-notch fa-spin text-sm" aria-hidden="true"></i>
+              <i v-else class="fa-solid fa-arrow-right-to-bracket text-sm" aria-hidden="true"></i>
+              <span>Masuk sebagai Guru BK</span>
+            </button>
+          </form>
+
+          <!-- Tombol Bantu Pengisian Demo -->
+          <div class="pt-2 text-center">
+            <button
+              type="button"
+              @click="fillDemoAdmin"
+              class="text-xs font-semibold text-[#0369A1] dark:text-sky-300 hover:underline inline-flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-wand-magic-sparkles text-[11px]" aria-hidden="true"></i>
+              <span>Klik untuk mengisi akun demo Guru BK otomatis</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- PERAN 2: PENGUNJUNG (DUMMY / TAMU) -->
+        <div v-else class="space-y-4">
+          <div class="p-3.5 rounded-2xl bg-sky-50/80 dark:bg-sky-950/40 border border-sky-200/80 dark:border-sky-900/60 text-xs sm:text-sm text-[#0369A1] dark:text-sky-300 leading-relaxed flex items-start gap-2.5">
+            <i class="fa-solid fa-circle-info text-base text-[#0284C7] dark:text-sky-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+            <div>
+              <span class="font-bold">Mode Penelusuran Publik:</span> Terbuka untuk siswa, alumni, orang tua siswa, dan masyarakat umum untuk melihat direktori lulusan, grafik statistik, dan lapor diri.
             </div>
           </div>
 
-          <button
-            type="submit"
-            :disabled="isLoading"
-            class="w-full py-2.5 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base shadow-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
-          >
-            <i v-if="isLoading" class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
-            <span>{{ mode === 'login' ? 'Masuk ke Portal' : 'Daftarkan Akun' }}</span>
-          </button>
-        </form>
+          <div class="space-y-3.5">
+            <div>
+              <label for="guest-name" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Nama Pengunjung <span class="font-normal text-slate-400">(Opsional)</span>
+              </label>
+              <div class="relative">
+                <i class="fa-regular fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+                <input
+                  id="guest-name"
+                  v-model="guestName"
+                  type="text"
+                  placeholder="Contoh: Tamu SMADA / Siswa Kelas X"
+                  class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
+                />
+              </div>
+            </div>
 
-        <div class="text-center pt-2">
-          <p class="text-xs sm:text-sm text-slate-400">
-            SMA Negeri 2 Ngawi &bull; Terintegrasi Database Sekolah
-          </p>
+            <button
+              type="button"
+              @click="handleGuestLogin"
+              class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#0284C7] to-[#10B981] hover:from-[#0369A1] hover:to-[#059669] text-white font-semibold text-sm sm:text-base shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              <i class="fa-solid fa-compass text-sm" aria-hidden="true"></i>
+              <span>Jelajahi Portal sebagai Pengunjung</span>
+            </button>
+          </div>
+
+          <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 text-center">
+            Tidak memerlukan kata sandi. Anda dapat langsung melihat grafik dan data alumni secara aman.
+          </div>
+        </div>
+
+        <!-- Tombol Masuk Cepat / Instant Switcher -->
+        <div class="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <div class="text-[11px] font-bold text-center text-slate-400 uppercase tracking-wider">
+            Akses Cepat 1-Klik
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              @click="authStore.loginAsAdmin(); router.push('/dashboard')"
+              class="py-2 px-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/80 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <i class="fa-solid fa-key text-[11px]" aria-hidden="true"></i>
+              <span>Instan Guru BK</span>
+            </button>
+            <button
+              type="button"
+              @click="authStore.loginAsGuest(); router.push('/dashboard')"
+              class="py-2 px-3 rounded-xl bg-sky-50 hover:bg-sky-100/80 dark:bg-sky-950/40 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+            >
+              <i class="fa-solid fa-eye text-[11px]" aria-hidden="true"></i>
+              <span>Instan Pengunjung</span>
+            </button>
+          </div>
         </div>
 
       </div>
