@@ -24,7 +24,8 @@ async function handleLogin() {
   isLoading.value = false
 
   if (res.success) {
-    router.push('/dashboard')
+    const target = router.currentRoute.value.query.redirect || '/dashboard'
+    router.push(target)
   } else {
     errorMessage.value = res.message || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
   }

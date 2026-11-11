@@ -15,29 +15,32 @@ const ADMIN_PASSWORDS = [
   'admin'
 ]
 
-// Akun Resmi Peran Pengunjung (Tamu / Dummy)
-const GUEST_ACCOUNTS = [
+// Akun Resmi Peran Pengunjung (User / Tamu)
+const USER_ACCOUNTS = [
   'pengunjung@smadangawi.sch.id',
   'pengunjung@smada.id',
   'tamu@smadangawi.sch.id',
   'tamu@smada.id',
+  'user@smada.id',
+  'user@smadangawi.sch.id',
   'pengunjung@gmail.com'
 ]
-const GUEST_PASSWORDS = [
+const USER_PASSWORDS = [
   'pengunjung123',
   'smada123',
   'tamu123',
+  'user123',
   'pengunjung'
 ]
 
 export const useAuthStore = defineStore('auth', () => {
   const savedLoggedIn = localStorage.getItem('hallo_auth_logged_in')
-  const savedRole = localStorage.getItem('hallo_auth_role') || 'guest'
+  const savedRole = localStorage.getItem('hallo_auth_role') || 'user'
   const savedName = localStorage.getItem('hallo_auth_name')
 
-  // Status autentikasi
+  // Status autentikasi ketat: default false jika belum login
   const isLoggedIn = ref(savedLoggedIn === 'true')
-  const userRole = ref(savedRole) // 'admin' (Guru BK) atau 'guest' (Pengunjung)
+  const userRole = ref(savedRole) // 'admin' (Guru BK) atau 'user' (Pengunjung)
   const userName = ref(savedName || (savedRole === 'admin' ? 'Guru BK SMADA' : 'Pengunjung SMADA'))
 
   /**
@@ -54,16 +57,16 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Masuk sebagai Pengunjung / Tamu
+   * Masuk sebagai Pengunjung / User (Tamu)
    */
-  function loginAsGuest(customName = 'Pengunjung SMADA') {
+  function loginAsUser(customName = 'Pengunjung SMADA') {
     isLoggedIn.value = true
-    userRole.value = 'guest'
+    userRole.value = 'user'
     userName.value = customName
     localStorage.setItem('hallo_auth_logged_in', 'true')
-    localStorage.setItem('hallo_auth_role', 'guest')
+    localStorage.setItem('hallo_auth_role', 'user')
     localStorage.setItem('hallo_auth_name', customName)
-    localStorage.setItem('hallo_temp_role', 'guest')
+    localStorage.setItem('hallo_temp_role', 'user')
   }
 
   /**
@@ -88,25 +91,25 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // 2. Cek kredensial Pengunjung (Dummy / Tamu)
-    const isGuestEmail = GUEST_ACCOUNTS.includes(cleanEmail) || cleanEmail.startsWith('pengunjung') || cleanEmail.startsWith('tamu')
-    if (isGuestEmail) {
-      if (GUEST_PASSWORDS.includes(cleanPass) || cleanPass.length >= 4) {
-        loginAsGuest('Pengunjung SMADA')
-        return { success: true, role: 'guest' }
+    // 2. Cek kredensial Pengunjung (User)
+    const isUserEmail = USER_ACCOUNTS.includes(cleanEmail) || cleanEmail.startsWith('pengunjung') || cleanEmail.startsWith('tamu') || cleanEmail.startsWith('user')
+    if (isUserEmail) {
+      if (USER_PASSWORDS.includes(cleanPass) || cleanPass.length >= 4) {
+        loginAsUser('Pengunjung SMADA')
+        return { success: true, role: 'user' }
       } else {
         return { success: false, message: 'Kata sandi akun Pengunjung salah. Silakan coba lagi.' }
       }
     }
 
-    // 3. Jika pengguna memasukkan email umum lainnya
+    // 3. Email umum lainnya otomatis masuk sebagai Pengunjung (User) jika password valid
     if (cleanPass.length < 4) {
       return { success: false, message: 'Kata sandi minimal 4 karakter.' }
     }
 
-    const guestDisplayName = cleanEmail.split('@')[0]
-    loginAsGuest(guestDisplayName)
-    return { success: true, role: 'guest' }
+    const displayName = cleanEmail.split('@')[0]
+    loginAsUser(displayName)
+    return { success: true, role: 'user' }
   }
 
   /**
@@ -114,12 +117,12 @@ export const useAuthStore = defineStore('auth', () => {
    */
   function logout() {
     isLoggedIn.value = false
-    userRole.value = 'guest'
+    userRole.value = 'user'
     userName.value = 'Pengunjung SMADA'
     localStorage.removeItem('hallo_auth_logged_in')
-    localStorage.setItem('hallo_auth_role', 'guest')
+    localStorage.setItem('hallo_auth_role', 'user')
     localStorage.setItem('hallo_auth_name', 'Pengunjung SMADA')
-    localStorage.setItem('hallo_temp_role', 'guest')
+    localStorage.setItem('hallo_temp_role', 'user')
   }
 
   return {
@@ -127,7 +130,7 @@ export const useAuthStore = defineStore('auth', () => {
     userRole,
     userName,
     loginAsAdmin,
-    loginAsGuest,
+    loginAsUser,
     loginWithCredentials,
     logout
   }

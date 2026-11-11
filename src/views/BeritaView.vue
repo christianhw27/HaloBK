@@ -127,9 +127,6 @@ function resetNewsFilters() {
           <a href="#arsip-berita" class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors py-2">
             Daftar Berita
           </a>
-          <a href="#tentang-tracer" class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors py-2">
-            Tentang Tracer Study
-          </a>
         </nav>
 
         <!-- Aksi Kanan Navbar -->
@@ -155,8 +152,9 @@ function resetNewsFilters() {
             <span>Kelola Berita</span>
           </router-link>
 
-          <!-- Tombol Masuk / Login (Pojok Kanan Atas Portal Berita) -->
+          <!-- Tombol Masuk / Login (Jika Belum Login) -->
           <router-link
+            v-if="!authStore.isLoggedIn"
             to="/login"
             class="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold shadow-sm transition-colors duration-150 min-h-[44px]"
             title="Masuk sebagai Guru BK atau Pengunjung"
@@ -164,6 +162,27 @@ function resetNewsFilters() {
             <i class="fa-solid fa-arrow-right-to-bracket text-sm" aria-hidden="true"></i>
             <span>Masuk / Login</span>
           </router-link>
+
+          <!-- Menu Akses Tracer Study (Jika Sudah Login) -->
+          <div v-else class="hidden sm:flex items-center gap-2">
+            <router-link
+              to="/dashboard"
+              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold shadow-sm transition-colors duration-150 min-h-[44px]"
+            >
+              <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+              <span>Tracer Study</span>
+            </router-link>
+
+            <button
+              @click="authStore.logout()"
+              type="button"
+              class="w-11 h-11 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-900 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
+              title="Keluar dari akun"
+              aria-label="Keluar dari akun"
+            >
+              <i class="fa-solid fa-arrow-right-from-bracket text-sm" aria-hidden="true"></i>
+            </button>
+          </div>
 
           <!-- Tombol Menu Mobile -->
           <button
@@ -227,13 +246,6 @@ function resetNewsFilters() {
               >
                 Daftar Berita
               </a>
-              <a
-                href="#tentang-tracer"
-                @click="isMobileMenuOpen = false"
-                class="block px-3.5 py-3 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Tentang Tracer Study
-              </a>
               <router-link
                 v-if="authStore.userRole === 'admin'"
                 to="/kelola-berita"
@@ -245,8 +257,9 @@ function resetNewsFilters() {
             </nav>
           </div>
 
-          <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2.5">
+          <div class="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <router-link
+              v-if="!authStore.isLoggedIn"
               to="/login"
               @click="isMobileMenuOpen = false"
               class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px] transition-colors shadow-sm"
@@ -254,46 +267,41 @@ function resetNewsFilters() {
               <i class="fa-solid fa-arrow-right-to-bracket" aria-hidden="true"></i>
               <span>Masuk / Login</span>
             </router-link>
-            <router-link
-              to="/dashboard"
-              @click="isMobileMenuOpen = false"
-              class="w-full py-3 px-4 rounded-xl bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-              <span>Buka Tracer Study</span>
-            </router-link>
-            <router-link
-              to="/lapor"
-              @click="isMobileMenuOpen = false"
-              class="w-full py-3 px-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
-              <span>Lapor Diri Alumni</span>
-            </router-link>
+
+            <div v-else class="space-y-2">
+              <router-link
+                to="/dashboard"
+                @click="isMobileMenuOpen = false"
+                class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold flex items-center justify-center gap-2 min-h-[44px]"
+              >
+                <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+                <span>Tracer Study</span>
+              </router-link>
+              <button
+                @click="authStore.logout(); isMobileMenuOpen = false"
+                type="button"
+                class="w-full py-2.5 px-4 rounded-xl bg-slate-100 dark:bg-slate-800 text-rose-600 dark:text-rose-400 text-sm font-semibold flex items-center justify-center gap-2"
+              >
+                <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+                <span>Keluar dari Akun</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- STRIP INFORMASI CEPAT (HANGAT & RAMAH) -->
+    <!-- STRIP INFORMASI CEPAT -->
     <div class="bg-gradient-to-r from-[#FEF3C7]/70 via-[#FFFBEB]/85 to-[#E0F2FE]/70 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/60 border-b border-amber-200/70 dark:border-slate-800 text-[#334155] dark:text-slate-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs sm:text-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-2 text-xs sm:text-sm">
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="px-2.5 py-0.5 rounded-full bg-[#F59E0B] text-slate-950 border border-amber-400 dark:bg-amber-900/80 dark:text-amber-200 dark:border-amber-700 font-bold text-xs uppercase tracking-wider shrink-0">
-            Info Hangat
+            Info Terkini
           </span>
           <span class="truncate text-[#0F172A] dark:text-slate-100 font-medium">
-            {{ newsStore.featuredNews ? newsStore.featuredNews.title : 'Cerita Studi Lanjut, Karir & Jejaring Alumni SMA Negeri 2 Ngawi' }}
+            {{ newsStore.featuredNews ? newsStore.featuredNews.title : 'Portal Bimbingan Konseling & Kabar Prestasi Siswa SMA Negeri 2 Ngawi' }}
           </span>
         </div>
-
-        <router-link
-          to="/lapor"
-          class="text-[#0369A1] hover:text-[#075985] dark:text-sky-300 dark:hover:text-sky-200 font-semibold shrink-0 inline-flex items-center gap-1.5"
-        >
-          <span>Isi Formulir Lapor Diri</span>
-          <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
-        </router-link>
       </div>
     </div>
 
@@ -428,21 +436,13 @@ function resetNewsFilters() {
                 Portal Informasi BK SMA Negeri 2 Ngawi
               </h1>
               <p class="text-sm sm:text-base text-[#334155] dark:text-slate-400 leading-[1.6]">
-                Belum ada artikel berita yang diterbitkan saat ini. Silakan masuk ke Tracer Study atau tambahkan berita melalui panel Admin BK.
+                Belum ada artikel berita yang diterbitkan saat ini. Kunjungi kembali secara berkala untuk update informasi terbaru.
               </p>
             </div>
-            <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <div v-if="authStore.userRole === 'admin'" class="flex flex-wrap items-center justify-center gap-3 pt-2">
               <router-link
-                to="/dashboard"
-                class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold min-h-[44px] inline-flex items-center gap-2 transition-colors"
-              >
-                <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-                <span>Masuk Tracer Study</span>
-              </router-link>
-              <router-link
-                v-if="authStore.userRole === 'admin'"
                 to="/kelola-berita"
-                class="px-5 py-2.5 rounded-xl bg-[#F1F5F9] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm sm:text-base font-semibold min-h-[44px] inline-flex items-center gap-2 transition-colors"
+                class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold min-h-[44px] inline-flex items-center gap-2 transition-colors shadow-sm"
               >
                 <i class="fa-solid fa-plus" aria-hidden="true"></i>
                 <span>Tulis Berita Pertama</span>
@@ -488,23 +488,9 @@ function resetNewsFilters() {
                 </div>
               </div>
 
-              <div class="space-y-2.5 pt-1">
-                <router-link
-                  to="/dashboard"
-                  class="w-full py-3 px-4 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold transition-colors duration-150 flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
-                >
-                  <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-                  <span>Masuk Dashboard Tracer Study</span>
-                </router-link>
-
-                <router-link
-                  to="/lapor"
-                  class="w-full py-2.5 px-4 rounded-xl bg-[#D1FAE5]/80 hover:bg-[#D1FAE5] dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors duration-150 flex items-center justify-center gap-2 min-h-[44px]"
-                >
-                  <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
-                  <span>Yuk, Isi Formulir Lapor Diri</span>
-                </router-link>
-              </div>
+              <p class="text-xs text-slate-500 dark:text-slate-400 pt-1 leading-relaxed">
+                Data statistik penelusuran lulusan dan studi lanjut dihimpun oleh tim Bimbingan Konseling SMA Negeri 2 Ngawi.
+              </p>
             </div>
           </div>
 
@@ -754,40 +740,6 @@ function resetNewsFilters() {
 
       </section>
 
-      <!-- SEKSI 3: AJAKAN MASUK TRACER STUDY (CERAH & OPTIMISTIS) -->
-      <section id="tentang-tracer" class="rounded-3xl bg-gradient-to-br from-[#E0F2FE]/85 via-[#FFFBEB]/85 to-[#FFE4E6]/65 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/40 border border-sky-200/80 dark:border-slate-800 p-6 sm:p-10 shadow-[var(--shadow-card)] flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-        <div class="max-w-2xl space-y-2.5">
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#D1FAE5] text-[#047857] border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
-            <i class="fa-solid fa-heart text-[11px]" aria-hidden="true"></i>
-            <span>Partisipasi Alumni SMA Negeri 2 Ngawi</span>
-          </span>
-          <h2 class="font-display font-bold text-2xl sm:text-[1.75rem] text-[#0F172A] dark:text-white leading-[1.3]">
-            Sudah Lulus dari SMADA? Yuk, Bagi Cerita Kuliah &amp; Karirmu!
-          </h2>
-          <p class="text-sm sm:text-base text-[#334155] dark:text-slate-300 leading-[1.6]">
-            Satu cerita yang kamu bagikan bakal jadi penyemangat sekaligus panduan nyata buat adik-adik kelas dalam memilih jurusan kuliah dan jalur karir.
-          </p>
-        </div>
-
-        <div class="flex flex-col sm:flex-row gap-3 shrink-0">
-          <router-link
-            to="/dashboard"
-            class="px-6 py-3 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold transition-colors duration-150 inline-flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
-          >
-            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-            <span>Masuk ke Tracer Study</span>
-          </router-link>
-
-          <router-link
-            to="/data"
-            class="px-5 py-3 rounded-xl bg-[#D1FAE5]/85 hover:bg-[#D1FAE5] dark:bg-emerald-950/50 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-200 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors duration-150 inline-flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <i class="fa-solid fa-users" aria-hidden="true"></i>
-            <span>Lihat Direktori Alumni</span>
-          </router-link>
-        </div>
-      </section>
-
     </main>
 
     <!-- FOOTER INSTITUSIONAL -->
@@ -803,18 +755,27 @@ function resetNewsFilters() {
         </div>
 
         <div class="flex flex-wrap items-center gap-4 text-sm font-semibold">
-          <router-link to="/dashboard" class="text-[#0369A1] dark:text-sky-400 hover:underline">
-            Dashboard Tracer Study
+          <router-link
+            v-if="!authStore.isLoggedIn"
+            to="/login"
+            class="text-[#0369A1] dark:text-sky-400 hover:underline"
+          >
+            Masuk / Login
           </router-link>
-          <router-link to="/lapor" class="text-[#334155] dark:text-slate-300 hover:underline">
-            Formulir Lapor Diri
+          <router-link
+            v-else
+            to="/dashboard"
+            class="text-[#0369A1] dark:text-sky-400 hover:underline"
+          >
+            Tracer Study
           </router-link>
+
           <router-link
             v-if="authStore.userRole === 'admin'"
             to="/kelola-berita"
             class="text-[#047857] dark:text-emerald-400 hover:underline"
           >
-            Admin Berita
+            Kelola Berita
           </router-link>
         </div>
       </div>
