@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
@@ -30,11 +30,17 @@ function openDetail(alumni) {
 }
 
 function initCharts() {
-  if (donutChart) donutChart.destroy()
-  if (barChart) barChart.destroy()
+  if (donutChart) {
+    donutChart.destroy()
+    donutChart = null
+  }
+  if (barChart) {
+    barChart.destroy()
+    barChart = null
+  }
 
   const stats = alumniStore.statistics
-  if (stats.total === 0) return
+  if (!stats || stats.total === 0) return
 
   // Donut Chart: Komposisi Kategori (Hanya Menampilkan Yang Sudah Lapor Pilihan Jalur)
   if (donutCanvas.value) {
@@ -46,13 +52,13 @@ function initCharts() {
         labels: ['PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan'],
         datasets: [{
           data: [
-            stats.ptnCount,
-            stats.ptsCount,
-            stats.kedinasanCount,
-            stats.tniPolriCount,
-            stats.kerjaCount,
-            stats.wirausahaCount,
-            stats.pelatihanCount
+            stats.ptnCount || 0,
+            stats.ptsCount || 0,
+            stats.kedinasanCount || 0,
+            stats.tniPolriCount || 0,
+            stats.kerjaCount || 0,
+            stats.wirausahaCount || 0,
+            stats.pelatihanCount || 0
           ],
           backgroundColor: [
             '#0284C7', // PTN - Trust Blue
@@ -71,59 +77,68 @@ function initCharts() {
         {
           id: 'donutSliceLabelsPlugin',
           afterDatasetsDraw(chart) {
-            const { ctx, data } = chart
-            const dataset = data.datasets[0]
-            const meta = chart.getDatasetMeta(0)
-            if (!meta || !meta.data) return
+            try {
+              const { ctx, data } = chart
+              const dataset = data.datasets[0]
+              const meta = chart.getDatasetMeta(0)
+              if (!meta || !meta.data) return
 
-            const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0)
-            if (total === 0) return
+              const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0)
+              if (total === 0) return
 
-            ctx.save()
-            ctx.font = 'bold 11px Poppins, sans-serif'
-            ctx.fillStyle = '#ffffff'
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
+              ctx.save()
+              ctx.font = 'bold 11px Poppins, sans-serif'
+              ctx.fillStyle = '#ffffff'
+              ctx.textAlign = 'center'
+              ctx.textBaseline = 'middle'
 
-            meta.data.forEach((element, i) => {
-              const val = Number(dataset.data[i]) || 0
-              const pct = (val / total) * 100
-              if (pct >= 5 && element && typeof element.tooltipPosition === 'function') {
-                const pos = element.tooltipPosition()
-                ctx.save()
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'
-                ctx.shadowBlur = 4
-                ctx.fillText(`${pct.toFixed(1)}%`, pos.x, pos.y)
-                ctx.restore()
-              }
-            })
-            ctx.restore()
+              meta.data.forEach((element, i) => {
+                const val = Number(dataset.data[i]) || 0
+                const pct = (val / total) * 100
+                if (pct >= 5 && element && typeof element.tooltipPosition === 'function') {
+                  const pos = element.tooltipPosition()
+                  if (pos && typeof pos.x === 'number' && !isNaN(pos.x)) {
+                    ctx.save()
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'
+                    ctx.shadowBlur = 4
+                    ctx.fillText(`${pct.toFixed(1)}%`, pos.x, pos.y)
+                    ctx.restore()
+                  }
+                }
+              })
+              ctx.restore()
+            } catch (e) {
+              console.warn('donutSliceLabelsPlugin error:', e)
+            }
           }
         },
         {
           id: 'centerTextPlugin',
           beforeDraw(chart) {
-            const { width, height, ctx } = chart
-            const meta = chart.getDatasetMeta(0)
-            if (!meta || !meta.data || !meta.data[0]) return
+            try {
+              const { width, height, ctx } = chart
+              const meta = chart.getDatasetMeta(0)
+              const centerX = (meta && meta.data && meta.data[0]) ? meta.data[0].x : width / 2
+              const centerY = (meta && meta.data && meta.data[0]) ? meta.data[0].y : height / 2
 
-            const total = chart.data.datasets[0].data.reduce((sum, v) => sum + (Number(v) || 0), 0)
-            const centerX = meta.data[0].x || width / 2
-            const centerY = meta.data[0].y || height / 2
+              const total = chart.data.datasets[0].data.reduce((sum, v) => sum + (Number(v) || 0), 0)
 
-            ctx.save()
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'middle'
+              ctx.save()
+              ctx.textAlign = 'center'
+              ctx.textBaseline = 'middle'
 
-            ctx.font = '500 11px Poppins, sans-serif'
-            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
-            ctx.fillText('Sudah Lapor', centerX, centerY - 10)
+              ctx.font = '500 11px Poppins, sans-serif'
+              ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
+              ctx.fillText('Sudah Lapor', centerX, centerY - 10)
 
-            ctx.font = 'bold 20px Poppins, sans-serif'
-            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a'
-            ctx.fillText(total.toString(), centerX, centerY + 12)
+              ctx.font = 'bold 20px Poppins, sans-serif'
+              ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a'
+              ctx.fillText(total.toString(), centerX, centerY + 12)
 
-            ctx.restore()
+              ctx.restore()
+            } catch (e) {
+              console.warn('centerTextPlugin error:', e)
+            }
           }
         }
       ],
@@ -219,25 +234,29 @@ function initCharts() {
         {
           id: 'barLabelsPlugin',
           afterDatasetsDraw(chart) {
-            const { ctx, data } = chart
-            const dataset = data.datasets[0]
-            const meta = chart.getDatasetMeta(0)
-            if (!meta || !meta.data) return
+            try {
+              const { ctx, data } = chart
+              const dataset = data.datasets[0]
+              const meta = chart.getDatasetMeta(0)
+              if (!meta || !meta.data) return
 
-            ctx.save()
-            ctx.textAlign = 'center'
-            ctx.textBaseline = 'bottom'
-            ctx.font = 'bold 12px Poppins, sans-serif'
-            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a'
+              ctx.save()
+              ctx.textAlign = 'center'
+              ctx.textBaseline = 'bottom'
+              ctx.font = 'bold 12px Poppins, sans-serif'
+              ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a'
 
-            meta.data.forEach((bar, index) => {
-              const val = dataset.data[index]
-              if (val > 0) {
-                const pct = totalTopCampus > 0 ? ((val / totalTopCampus) * 100).toFixed(1) + '%' : ''
-                ctx.fillText(`${val} (${pct})`, bar.x, bar.y - 6)
-              }
-            })
-            ctx.restore()
+              meta.data.forEach((bar, index) => {
+                const val = dataset.data[index]
+                if (val > 0 && bar && typeof bar.x === 'number') {
+                  const pct = totalTopCampus > 0 ? ((val / totalTopCampus) * 100).toFixed(1) + '%' : ''
+                  ctx.fillText(`${val} (${pct})`, bar.x, bar.y - 6)
+                }
+              })
+              ctx.restore()
+            } catch (e) {
+              console.warn('barLabelsPlugin error:', e)
+            }
           }
         }
       ],
@@ -253,7 +272,7 @@ function initCharts() {
         scales: {
           y: {
             beginAtZero: true,
-            grace: '18%', // Ruang bernafas di atas bar agar label angka dan % tidak terpotong
+            grace: '18%',
             ticks: { precision: 0, font: { size: 12, family: 'Poppins' } },
             grid: { color: 'rgba(148, 163, 184, 0.15)' }
           },
@@ -271,12 +290,14 @@ function initCharts() {
   }
 }
 
-onMounted(() => {
-  alumniStore.fetchData()
+onMounted(async () => {
+  await alumniStore.fetchData()
+  await nextTick()
   initCharts()
 })
 
-watch(() => alumniStore.alumniList.length, () => {
+watch(() => alumniStore.alumniList.length, async () => {
+  await nextTick()
   initCharts()
 })
 </script>
@@ -434,12 +455,15 @@ watch(() => alumniStore.alumniList.length, () => {
           </span>
         </div>
         
-        <div v-if="(alumniStore.statistics.total - alumniStore.statistics.belumLaporCount) > 0" class="relative h-80 sm:h-96 w-full mt-auto">
+        <div class="relative h-80 sm:h-96 w-full mt-auto">
           <canvas ref="donutCanvas" aria-label="Grafik donat sebaran kategori"></canvas>
-        </div>
-        <div v-else class="h-80 sm:h-96 flex flex-col items-center justify-center text-center p-6 text-slate-400">
-          <i class="fa-solid fa-chart-pie text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
-          <p class="text-sm">Belum ada data grafik. Isi formulir lapor diri untuk memulai pemetaan.</p>
+          <div
+            v-if="(alumniStore.statistics.total - alumniStore.statistics.belumLaporCount) <= 0"
+            class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-400 bg-white/95 dark:bg-slate-900/95 z-10"
+          >
+            <i class="fa-solid fa-chart-pie text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
+            <p class="text-sm">Belum ada data grafik pilihan alumni. Silakan isi formulir lapor diri.</p>
+          </div>
         </div>
       </div>
 
@@ -459,12 +483,15 @@ watch(() => alumniStore.alumniList.length, () => {
           </div>
         </div>
         
-        <div v-if="alumniStore.statistics.total > 0" class="relative h-80 sm:h-96 w-full mt-auto">
+        <div class="relative h-80 sm:h-96 w-full mt-auto">
           <canvas ref="barCanvas" aria-label="Grafik batang kampus favorit"></canvas>
-        </div>
-        <div v-else class="h-80 sm:h-96 flex flex-col items-center justify-center text-center p-6 text-slate-400">
-          <i class="fa-solid fa-graduation-cap text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
-          <p class="text-sm">Data kampus belum tersedia.</p>
+          <div
+            v-if="alumniStore.statistics.total <= 0"
+            class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-400 bg-white/95 dark:bg-slate-900/95 z-10"
+          >
+            <i class="fa-solid fa-graduation-cap text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
+            <p class="text-sm">Data kampus belum tersedia.</p>
+          </div>
         </div>
       </div>
 
