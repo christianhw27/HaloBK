@@ -6,3 +6,17 @@ dist-ssr
 .env.*.local
 .DS_Store
 
+# File spreadsheet & data lokal (agar tidak masuk repo publik)
+*.xlsx
+*.xls
+*.csv
+
+# Prototipe file HTML lama
+hallo_alumni_smada_ngawi.html
+
+# Folder khusus file sementara / draft / arsip pribadi
+temp/
+_drafts/
+arsip/
+
+
