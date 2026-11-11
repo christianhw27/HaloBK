@@ -89,32 +89,32 @@ function resetNewsFilters() {
       <!-- Garis Aksen Empat Pilar BK -->
       <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
 
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-4">
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-2 sm:gap-4">
         
         <!-- Logo & Identitas Portal Berita -->
-        <router-link to="/" class="flex items-center gap-3 shrink-0 min-h-[44px]">
+        <router-link to="/" class="flex items-center gap-2 sm:gap-3 min-w-0 min-h-[44px]">
           <img
             src="/logo.png"
             alt="Logo SMA Negeri 2 Ngawi"
             width="40"
             height="40"
-            class="w-10 h-10 rounded-xl object-contain bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-0.5 shadow-sm shrink-0"
+            class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-0.5 shadow-sm shrink-0"
             onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
           />
-          <div class="w-10 h-10 rounded-xl bg-[#E0F2FE] dark:bg-slate-800 border border-sky-200 dark:border-slate-700 flex items-center justify-center text-[#0369A1] dark:text-sky-400 shrink-0 hidden">
-            <i class="fa-solid fa-graduation-cap text-lg" aria-hidden="true"></i>
+          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#E0F2FE] dark:bg-slate-800 border border-sky-200 dark:border-slate-700 flex items-center justify-center text-[#0369A1] dark:text-sky-400 shrink-0 hidden">
+            <i class="fa-solid fa-graduation-cap text-base sm:text-lg" aria-hidden="true"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-display font-bold text-lg sm:text-xl text-[#0F172A] dark:text-white tracking-tight">
+              <span class="font-display font-bold text-base sm:text-xl text-[#0F172A] dark:text-white tracking-tight truncate">
                 Ruang BK Smada
               </span>
-              <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
+              <span class="hidden sm:inline-flex text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800 shrink-0">
                 SMADA Ngawi
               </span>
             </div>
-            <p class="text-xs text-[#64748B] dark:text-slate-400 hidden sm:block">
-              Kabar Kampus, Karir &amp; Cerita Alumni
+            <p class="text-[11px] sm:text-xs text-[#64748B] dark:text-slate-400 truncate -mt-0.5">
+              SMA Negeri 2 Ngawi
             </p>
           </div>
         </router-link>
@@ -130,12 +130,12 @@ function resetNewsFilters() {
         </nav>
 
         <!-- Aksi Kanan Navbar -->
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
           <!-- Toggle Tema Gelap / Terang -->
           <button
             type="button"
             @click="toggleDarkMode"
-            class="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
+            class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
             :aria-label="isDark ? 'Ubah ke tampilan terang' : 'Ubah ke tampilan gelap'"
           >
             <i v-if="isDark" class="fa-solid fa-sun text-amber-400 text-sm" aria-hidden="true"></i>
@@ -184,15 +184,15 @@ function resetNewsFilters() {
             </button>
           </div>
 
-          <!-- Tombol Menu Mobile -->
+          <!-- Tombol Menu Mobile (Responsif, Pas di Ponsel Tanpa Memotong Layar) -->
           <button
             type="button"
             @click="isMobileMenuOpen = true"
-            class="lg:hidden inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold min-h-[44px]"
+            class="lg:hidden w-10 h-10 sm:w-auto sm:px-3.5 sm:py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-1.5 shrink-0"
             aria-label="Buka menu navigasi"
           >
             <i class="fa-solid fa-bars text-sm" aria-hidden="true"></i>
-            <span>Menu</span>
+            <span class="hidden sm:inline">Menu</span>
           </button>
         </div>
       </div>
