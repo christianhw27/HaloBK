@@ -49,7 +49,7 @@ onUnmounted(() => {
 
 async function copyArticleInfo() {
   if (!props.article) return
-  const text = `${props.article.title}\n\n${props.article.summary}\n\nPortal Berita Halo Alumni - SMA Negeri 2 Ngawi`
+  const text = `${props.article.title}\n\n${props.article.summary}\n\nPortal Berita Ruang BK Smada - SMA Negeri 2 Ngawi`
   try {
     await navigator.clipboard.writeText(text)
     copiedNotice.value = true

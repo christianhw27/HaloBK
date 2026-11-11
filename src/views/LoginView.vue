@@ -63,10 +63,10 @@ async function handleLogin() {
         </div>
 
         <h1 class="font-display font-bold text-2xl text-white tracking-tight leading-tight">
-          Halo Alumni SMADA
+          Ruang BK Smada
         </h1>
         <p class="text-xs sm:text-sm text-sky-100 mt-1 font-medium">
-          Sistem Informasi Tracer Study &amp; Bimbingan Konseling SMA Negeri 2 Ngawi
+          Portal Tracer Study &amp; Bimbingan Konseling SMA Negeri 2 Ngawi
         </p>
       </div>
 

@@ -159,10 +159,10 @@ function openWhatsApp(phone, name, inst) {
 
       <!-- Baris 2: Toolbar Pencarian & Dropdown Angkatan -->
       <div class="p-3.5 sm:px-6 sm:py-3.5 bg-sky-50/35 dark:bg-slate-900/60 border-b border-sky-100/70 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 max-w-2xl">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 flex-1 w-full max-w-2xl">
           
-          <!-- Search Bar (Lebar Proporsional & Ramping) -->
-          <div class="relative flex-1 min-w-[220px]">
+          <!-- Search Bar (Lebar Penuh di Mobile & Ramping di Desktop) -->
+          <div class="relative w-full sm:flex-1">
             <label for="alumni-search" class="sr-only">Pencarian Alumni</label>
             <i class="fa-solid fa-magnifying-glass text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-sm" aria-hidden="true"></i>
             <input
@@ -171,26 +171,26 @@ function openWhatsApp(phone, name, inst) {
               @input="currentPage = 1"
               type="text"
               placeholder="Cari nama alumni, kampus, posisi, prodi..."
-              class="w-full pl-9 pr-8 py-2 rounded-[10px] bg-white dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
+              class="w-full pl-9 pr-8 py-2.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
             />
             <button
               v-if="alumniStore.searchQuery"
               @click="alumniStore.searchQuery = ''; currentPage = 1"
               type="button"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm p-1"
               aria-label="Bersihkan pencarian"
             >
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
           </div>
 
-          <!-- Dropdown Filter Angkatan (Menggantikan deretan tombol panjang) -->
-          <div class="relative min-w-[180px] sm:w-52 shrink-0">
+          <!-- Dropdown Filter Angkatan -->
+          <div class="relative w-full sm:w-52 shrink-0">
             <i class="fa-regular fa-calendar text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 text-sm pointer-events-none" aria-hidden="true"></i>
             <select
               v-model="alumniStore.selectedCohort"
               @change="currentPage = 1"
-              class="w-full appearance-none pl-9 pr-8 py-2 rounded-[10px] bg-white dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm font-medium text-[#334155] dark:text-slate-200 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 cursor-pointer"
+              class="w-full appearance-none pl-9 pr-8 py-2.5 sm:py-2 rounded-xl bg-white dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm font-medium text-[#334155] dark:text-slate-200 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 cursor-pointer"
             >
               <option value="ALL">Semua Angkatan</option>
               <option v-for="c in cohorts.filter(x => x !== 'ALL')" :key="c" :value="c">

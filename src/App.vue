@@ -26,7 +26,7 @@ const route = useRoute()
 
     <!-- Konten Utama Aplikasi (Full Width Tanpa Margin Kosong Berlebih) -->
     <div class="flex-1 flex flex-col min-w-0">
-      <main id="main-content" class="flex-1 w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 sm:py-8">
+      <main id="main-content" class="flex-1 w-full px-3.5 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-8">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
             <component :is="Component" />
@@ -34,19 +34,19 @@ const route = useRoute()
         </router-view>
       </main>
 
-      <!-- Footer Hangat Bersama Alumni -->
-      <footer class="border-t border-sky-200/70 dark:border-slate-800 bg-white/90 dark:bg-slate-900/95 text-slate-600 dark:text-slate-400 text-sm py-4 px-4 sm:px-6 lg:px-8 xl:px-10">
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
-          <div class="flex flex-wrap items-center gap-2">
+      <!-- Footer Institusional Ruang BK Smada -->
+      <footer class="border-t border-sky-200/70 dark:border-slate-800 bg-white/90 dark:bg-slate-900/95 text-slate-600 dark:text-slate-400 text-xs sm:text-sm py-4 px-3.5 sm:px-6 lg:px-8 xl:px-10">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
+          <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span class="inline-flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200">
               <span class="w-2 h-2 rounded-full bg-[#0284C7]" aria-hidden="true"></span>
-              Halo Alumni &bull; SMA Negeri 2 Ngawi
+              Ruang BK Smada &bull; SMA Negeri 2 Ngawi
             </span>
-            <span class="text-slate-400" aria-hidden="true">&bull;</span>
-            <span>Ruang Sahabat BK &amp; Jejaring Lulusan</span>
+            <span class="text-slate-400 hidden sm:inline" aria-hidden="true">&bull;</span>
+            <span class="text-slate-500 dark:text-slate-400">Portal Bimbingan Konseling &amp; Tracer Study</span>
           </div>
-          <div>
-            <span>Jalan Ahmad Yani Tromol Pos 7, Klitik, Kecamatan Geneng, Kabupaten Ngawi, Jawa Timur 63217</span>
+          <div class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">
+            <span>Jl. Ahmad Yani Tromol Pos 7, Geneng, Ngawi 63217</span>
           </div>
         </div>
       </footer>

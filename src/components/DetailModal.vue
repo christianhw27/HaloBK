@@ -74,27 +74,27 @@ function openWhatsApp() {
     >
       <div
         v-if="isOpen && alumni"
-        class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+        class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-6 overflow-y-auto"
         @click.self="emit('close')"
         role="dialog"
         aria-modal="true"
         :aria-label="'Detail Informasi ' + alumni.name"
       >
-        <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto max-h-[92vh] flex flex-col">
+        <div class="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden my-auto max-h-[94vh] flex flex-col">
           
           <!-- Tombol Tutup Melayang di Pojok Kanan Atas -->
           <button
             @click="emit('close')"
             type="button"
-            class="absolute top-3.5 right-3.5 z-10 w-8 h-8 rounded-full bg-slate-900/60 hover:bg-slate-900 text-white flex items-center justify-center transition-colors shadow-sm"
+            class="absolute top-3.5 right-3.5 z-10 w-9 h-9 rounded-full bg-slate-900/70 hover:bg-slate-900 text-white flex items-center justify-center transition-colors shadow-sm"
             aria-label="Tutup jendela detail"
           >
-            <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+            <i class="fa-solid fa-xmark text-base" aria-hidden="true"></i>
           </button>
 
           <!-- Area Profil Utama (Header Gelap Elegan dengan Foto Berukuran Besar & Jelas) -->
-          <div class="p-5 sm:p-6 bg-slate-900 text-white border-b border-slate-800">
-            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+          <div class="p-4 sm:p-6 bg-slate-900 text-white border-b border-slate-800">
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5">
               
               <!-- Container Foto Profil Berukuran Jelas (Proporsi Potret 3:4) -->
               <div v-if="alumni.photo" class="relative group shrink-0">
@@ -118,8 +118,8 @@ function openWhatsApp() {
                     <span class="text-xs font-medium">Perbesar Foto</span>
                   </div>
                 </div>
-                <div class="text-xs text-center text-slate-400 mt-1.5 font-medium sm:block hidden">
-                  Klik foto untuk memperbesar
+                <div class="text-[11px] sm:text-xs text-center text-slate-400 mt-1.5 font-medium block">
+                  Ketuk foto untuk memperbesar
                 </div>
               </div>
 

@@ -152,9 +152,13 @@ function initCharts() {
           legend: {
             position: 'bottom',
             labels: {
-              boxWidth: 12,
-              padding: 12,
-              font: { size: 12, family: 'Poppins', weight: 500 },
+              boxWidth: typeof window !== 'undefined' && window.innerWidth < 640 ? 8 : 12,
+              padding: typeof window !== 'undefined' && window.innerWidth < 640 ? 8 : 12,
+              font: {
+                size: typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 12,
+                family: 'Poppins',
+                weight: 500
+              },
               generateLabels(chart) {
                 const data = chart.data
                 if (!data.labels.length || !data.datasets.length) return []
@@ -278,8 +282,13 @@ function initCharts() {
           },
           x: {
             ticks: {
-              font: { size: 12, family: 'Poppins', weight: 500 },
-              maxRotation: 0,
+              font: {
+                size: typeof window !== 'undefined' && window.innerWidth < 640 ? 10 : 12,
+                family: 'Poppins',
+                weight: 500
+              },
+              maxRotation: typeof window !== 'undefined' && window.innerWidth < 640 ? 30 : 0,
+              minRotation: typeof window !== 'undefined' && window.innerWidth < 640 ? 20 : 0,
               autoSkip: false
             },
             grid: { display: false }
@@ -309,26 +318,26 @@ watch(() => alumniStore.alumniList.length, async () => {
     <section class="rounded-3xl bg-gradient-to-br from-[#E0F2FE]/85 via-[#FFFBEB]/70 to-[#FFE4E6]/50 dark:from-slate-900 dark:via-sky-950/35 dark:to-amber-950/20 border border-sky-200/80 dark:border-slate-800 shadow-[var(--shadow-card)] overflow-hidden" aria-labelledby="banner-heading">
       <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
 
-      <div class="p-6 sm:p-8 lg:p-10 max-w-4xl">
-        <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300 mb-2.5">
+      <div class="p-5 sm:p-8 lg:p-10 max-w-4xl">
+        <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300 mb-2">
           <span class="px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800">
             SMA Negeri 2 Ngawi
           </span>
           <span class="text-amber-600 dark:text-amber-300">&bull;</span>
-          <span class="text-[#92400E] dark:text-amber-300">Ruang Sahabat BK &amp; Alumni</span>
+          <span class="text-[#92400E] dark:text-amber-300">Ruang BK Smada</span>
         </div>
 
-        <h1 id="banner-heading" class="font-display font-bold text-2xl sm:text-[1.75rem] lg:text-[2.25rem] tracking-tight text-[#0F172A] dark:text-white leading-[1.25]">
+        <h1 id="banner-heading" class="font-display font-bold text-xl sm:text-[1.75rem] lg:text-[2.25rem] tracking-tight text-[#0F172A] dark:text-white leading-[1.25]">
           Cerita &amp; Sebaran Jejak Alumni SMADA
         </h1>
-        <p class="text-sm sm:text-base lg:text-lg text-[#334155] dark:text-slate-300 mt-3 leading-[1.6] max-w-3xl">
+        <p class="text-xs sm:text-base lg:text-lg text-[#334155] dark:text-slate-300 mt-2 sm:mt-3 leading-relaxed max-w-3xl">
           Intip kampus tujuan, sekolah kedinasan, hingga perjalanan karir seru dari lulusan SMA Negeri 2 Ngawi sebagai referensi hangat buat adik kelas.
         </p>
 
-        <div class="mt-6 flex flex-wrap items-center gap-3">
+        <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
           <router-link
             to="/lapor"
-            class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base transition-colors duration-150 flex items-center gap-2 shadow-sm min-h-[44px]"
+            class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm min-h-[44px]"
           >
             <i class="fa-solid fa-user-plus text-sm" aria-hidden="true"></i>
             <span>Formulir Lapor Diri</span>
@@ -336,7 +345,7 @@ watch(() => alumniStore.alumniList.length, async () => {
 
           <router-link
             to="/data"
-            class="px-5 py-2.5 rounded-xl bg-white hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-200 font-semibold text-sm sm:text-base border border-sky-200 dark:border-slate-700 transition-colors duration-150 flex items-center gap-2 min-h-[44px] shadow-2xs"
+            class="px-5 py-2.5 rounded-xl bg-white hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-200 font-semibold text-sm sm:text-base border border-sky-200 dark:border-slate-700 transition-colors duration-150 flex items-center justify-center gap-2 min-h-[44px] shadow-2xs"
           >
             <i class="fa-solid fa-magnifying-glass text-sm" aria-hidden="true"></i>
             <span>Kenalan di Direktori Alumni</span>
@@ -345,7 +354,7 @@ watch(() => alumniStore.alumniList.length, async () => {
           <router-link
             v-if="authStore.userRole === 'admin' && alumniStore.pendingList.length > 0"
             to="/verifikasi"
-            class="px-5 py-2.5 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-sm sm:text-base transition-colors flex items-center gap-2 min-h-[44px]"
+            class="px-5 py-2.5 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-sm sm:text-base transition-colors flex items-center justify-center gap-2 min-h-[44px]"
           >
             <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
             <span>{{ alumniStore.pendingList.length }} Kabar Perlu Verifikasi</span>

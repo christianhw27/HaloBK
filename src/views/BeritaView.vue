@@ -107,7 +107,7 @@ function resetNewsFilters() {
           <div>
             <div class="flex items-center gap-2">
               <span class="font-display font-bold text-lg sm:text-xl text-[#0F172A] dark:text-white tracking-tight">
-                HaloBK Berita
+                Ruang BK Smada
               </span>
               <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
                 SMADA Ngawi
@@ -742,41 +742,20 @@ function resetNewsFilters() {
 
     </main>
 
-    <!-- FOOTER INSTITUSIONAL -->
+    <!-- FOOTER INSTITUSIONAL (TANPA TAUTAN LOGIN) -->
     <footer class="border-t border-sky-200/70 dark:border-slate-800 bg-white/90 dark:bg-slate-900 text-[#64748B] dark:text-slate-400 text-sm py-6 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div class="space-y-1">
-          <p class="font-semibold text-[#0F172A] dark:text-white flex items-center gap-2">
-            <span>Ruang Sahabat BK &amp; Jejaring Alumni &bull; SMA Negeri 2 Ngawi</span>
+          <p class="font-semibold text-[#0F172A] dark:text-white flex items-center justify-center sm:justify-start gap-2">
+            <span>Ruang BK Smada &bull; SMA Negeri 2 Ngawi</span>
           </p>
-          <p class="text-xs sm:text-sm">
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Jalan Ahmad Yani Tromol Pos 7, Klitik, Kecamatan Geneng, Kabupaten Ngawi, Jawa Timur 63217
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-4 text-sm font-semibold">
-          <router-link
-            v-if="!authStore.isLoggedIn"
-            to="/login"
-            class="text-[#0369A1] dark:text-sky-400 hover:underline"
-          >
-            Masuk / Login
-          </router-link>
-          <router-link
-            v-else
-            to="/dashboard"
-            class="text-[#0369A1] dark:text-sky-400 hover:underline"
-          >
-            Tracer Study
-          </router-link>
-
-          <router-link
-            v-if="authStore.userRole === 'admin'"
-            to="/kelola-berita"
-            class="text-[#047857] dark:text-emerald-400 hover:underline"
-          >
-            Kelola Berita
-          </router-link>
+        <div class="text-xs text-slate-500 dark:text-slate-400">
+          <span>&copy; 2026 Bimbingan Konseling SMA Negeri 2 Ngawi. Hak cipta dilindungi.</span>
         </div>
       </div>
     </footer>

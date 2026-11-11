@@ -80,11 +80,11 @@ function toggleDarkMode() {
           <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
         </div>
         <div>
-          <span class="font-display font-bold text-base text-slate-900 dark:text-white leading-tight block">
-            Halo Alumni
+          <span class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-tight block">
+            Ruang BK Smada
           </span>
-          <span class="text-xs text-[#0369A1] dark:text-sky-300 font-medium block -mt-0.5">
-            Sahabat BK SMADA
+          <span class="text-[11px] text-[#0369A1] dark:text-sky-300 font-medium block -mt-0.5">
+            Tracer Study &amp; Karir
           </span>
         </div>
       </div>
@@ -159,14 +159,11 @@ function toggleDarkMode() {
           <div>
             <div class="flex items-center gap-1.5">
               <span class="font-display font-bold text-lg text-slate-900 dark:text-white leading-tight">
-                Halo Alumni
-              </span>
-              <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950/80 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
-                SMADA
+                Ruang BK Smada
               </span>
             </div>
             <p class="text-xs text-[#0369A1] dark:text-sky-300 font-medium mt-0.5">
-              Sahabat BK &amp; Jejak Alumni
+              SMA Negeri 2 Ngawi
             </p>
           </div>
         </router-link>
