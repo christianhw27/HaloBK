@@ -100,7 +100,7 @@ async function handleLogin() {
                 type="email"
                 required
                 autocomplete="username"
-                placeholder="nama@smadangawi.sch.id"
+                placeholder="halobksmada@gmail.com"
                 class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
               />
             </div>

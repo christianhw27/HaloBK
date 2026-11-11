@@ -3,10 +3,10 @@ import { ref } from 'vue'
 
 // Akun Resmi Peran Admin (Guru BK)
 const ADMIN_ACCOUNTS = [
+  'halobksmada@gmail.com',
   'admin@smadangawi.sch.id',
   'gurubk@smadangawi.sch.id',
-  'admin@smada.sch.id',
-  'admin@gmail.com'
+  'admin@smada.sch.id'
 ]
 const ADMIN_PASSWORDS = [
   'smadahebat',
