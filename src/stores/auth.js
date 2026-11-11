@@ -1,18 +1,33 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
-const ADMIN_EMAILS = [
+// Akun Resmi Peran Admin (Guru BK)
+const ADMIN_ACCOUNTS = [
+  'admin@smadangawi.sch.id',
   'gurubk@smadangawi.sch.id',
   'admin@smada.sch.id',
-  'admin@smadangawi.sch.id',
   'admin@gmail.com'
 ]
-
 const ADMIN_PASSWORDS = [
   'smadahebat',
   'admin123',
   'guru123',
   'admin'
+]
+
+// Akun Resmi Peran Pengunjung (Tamu / Dummy)
+const GUEST_ACCOUNTS = [
+  'pengunjung@smadangawi.sch.id',
+  'pengunjung@smada.id',
+  'tamu@smadangawi.sch.id',
+  'tamu@smada.id',
+  'pengunjung@gmail.com'
+]
+const GUEST_PASSWORDS = [
+  'pengunjung123',
+  'smada123',
+  'tamu123',
+  'pengunjung'
 ]
 
 export const useAuthStore = defineStore('auth', () => {
@@ -62,11 +77,10 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, message: 'Email dan kata sandi wajib diisi.' }
     }
 
-    const isAdminEmail = ADMIN_EMAILS.includes(cleanEmail) || cleanEmail.startsWith('admin') || cleanEmail.startsWith('guru')
-    const isValidAdminPass = ADMIN_PASSWORDS.includes(cleanPass)
-
+    // 1. Cek kredensial Guru BK (Admin)
+    const isAdminEmail = ADMIN_ACCOUNTS.includes(cleanEmail) || cleanEmail.startsWith('admin') || cleanEmail.startsWith('guru')
     if (isAdminEmail) {
-      if (isValidAdminPass) {
+      if (ADMIN_PASSWORDS.includes(cleanPass)) {
         loginAsAdmin('Guru BK SMADA')
         return { success: true, role: 'admin' }
       } else {
@@ -74,7 +88,22 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
-    // Jika bukan email admin, masuk sebagai akun pengunjung / user
+    // 2. Cek kredensial Pengunjung (Dummy / Tamu)
+    const isGuestEmail = GUEST_ACCOUNTS.includes(cleanEmail) || cleanEmail.startsWith('pengunjung') || cleanEmail.startsWith('tamu')
+    if (isGuestEmail) {
+      if (GUEST_PASSWORDS.includes(cleanPass) || cleanPass.length >= 4) {
+        loginAsGuest('Pengunjung SMADA')
+        return { success: true, role: 'guest' }
+      } else {
+        return { success: false, message: 'Kata sandi akun Pengunjung salah. Silakan coba lagi.' }
+      }
+    }
+
+    // 3. Jika pengguna memasukkan email umum lainnya
+    if (cleanPass.length < 4) {
+      return { success: false, message: 'Kata sandi minimal 4 karakter.' }
+    }
+
     const guestDisplayName = cleanEmail.split('@')[0]
     loginAsGuest(guestDisplayName)
     return { success: true, role: 'guest' }

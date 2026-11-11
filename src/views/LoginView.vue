@@ -29,11 +29,6 @@ async function handleLogin() {
     errorMessage.value = res.message || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
   }
 }
-
-function handleEnterAsGuest() {
-  authStore.loginAsGuest('Pengunjung SMADA')
-  router.push('/dashboard')
-}
 </script>
 
 <template>
@@ -148,31 +143,8 @@ function handleEnterAsGuest() {
           </button>
         </form>
 
-        <!-- Garis Pemisah Antara Login Akun & Mode Pengunjung -->
-        <div class="relative py-2">
-          <div class="absolute inset-0 flex items-center" aria-hidden="true">
-            <div class="w-full border-t border-slate-200 dark:border-slate-800"></div>
-          </div>
-          <div class="relative flex justify-center text-xs font-semibold uppercase tracking-wider">
-            <span class="bg-white dark:bg-slate-900 px-3 text-slate-400 dark:text-slate-500">
-              atau
-            </span>
-          </div>
-        </div>
-
-        <!-- Tombol Akses Khusus Pengunjung / Tamu -->
-        <div>
-          <button
-            type="button"
-            @click="handleEnterAsGuest"
-            class="w-full py-3 px-4 rounded-xl border border-sky-200 dark:border-slate-700 bg-sky-50/70 hover:bg-sky-100/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-[#0369A1] dark:text-sky-300 font-semibold text-sm sm:text-base transition-colors flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <i class="fa-solid fa-users text-sm" aria-hidden="true"></i>
-            <span>Masuk sebagai Pengunjung</span>
-          </button>
-          <p class="text-xs text-center text-slate-500 dark:text-slate-400 mt-2">
-            Mode pengunjung dapat melihat statistik dan direktori alumni secara publik tanpa memerlukan kata sandi.
-          </p>
+        <div class="pt-2 text-center text-xs text-slate-500 dark:text-slate-400">
+          Gunakan akun resmi Guru BK atau akun Pengunjung untuk masuk ke sistem.
         </div>
 
       </div>
