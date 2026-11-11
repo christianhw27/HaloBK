@@ -47,6 +47,12 @@ export const CATEGORY_COLORS = {
     cardAccent: 'border-t-4 border-t-[#E11D48]',
     dot: 'bg-[#E11D48]'
   },
+  'Belum Lapor Diri': {
+    badge: 'bg-rose-50 text-[#BE123C] border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+    avatar: 'bg-rose-100 text-[#BE123C] border-rose-200 dark:bg-rose-900/60 dark:text-rose-200 dark:border-rose-700',
+    cardAccent: 'border-t-4 border-t-rose-400',
+    dot: 'bg-rose-500'
+  },
   'Masa Tunggu': {
     badge: 'bg-rose-50 text-[#BE123C] border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
     avatar: 'bg-rose-100 text-[#BE123C] border-rose-200 dark:bg-rose-900/60 dark:text-rose-200 dark:border-rose-700',

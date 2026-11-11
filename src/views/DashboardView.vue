@@ -36,12 +36,14 @@ function initCharts() {
   const stats = alumniStore.statistics
   if (stats.total === 0) return
 
-  // Donut Chart: Komposisi Kategori selaras palet Portal BK (Trust Blue, Warm Magenta, Hope Amber, Growth Emerald)
+  // Donut Chart: Komposisi Kategori (Lengkap dengan Angka & Persentase Langsung Muncul)
   if (donutCanvas.value) {
+    const isDark = document.documentElement.classList.contains('dark')
+
     donutChart = new Chart(donutCanvas.value, {
       type: 'doughnut',
       data: {
-        labels: ['PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan', 'Masa Tunggu'],
+        labels: ['PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan', 'Belum Lapor Diri'],
         datasets: [{
           data: [
             stats.ptnCount,
@@ -61,43 +63,146 @@ function initCharts() {
             '#F59E0B', // Bekerja - Hope Amber
             '#FBBF24', // Wirausaha - Warm Gold
             '#E11D48', // Pelatihan - Warm Magenta
-            '#FB7185'  // Masa Tunggu - Soft Coral
+            '#FB7185'  // Belum Lapor Diri - Soft Coral
           ],
           borderWidth: 2,
-          borderColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff'
+          borderColor: isDark ? '#0f172a' : '#ffffff'
         }]
       },
+      plugins: [
+        {
+          id: 'donutSliceLabelsPlugin',
+          afterDatasetsDraw(chart) {
+            const { ctx, data } = chart
+            const dataset = data.datasets[0]
+            const meta = chart.getDatasetMeta(0)
+            if (!meta || !meta.data) return
+
+            const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0)
+            if (total === 0) return
+
+            ctx.save()
+            ctx.font = 'bold 11px Poppins, sans-serif'
+            ctx.fillStyle = '#ffffff'
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+
+            meta.data.forEach((element, i) => {
+              const val = Number(dataset.data[i]) || 0
+              const pct = (val / total) * 100
+              if (pct >= 5 && element && typeof element.tooltipPosition === 'function') {
+                const pos = element.tooltipPosition()
+                ctx.save()
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.55)'
+                ctx.shadowBlur = 4
+                ctx.fillText(`${pct.toFixed(1)}%`, pos.x, pos.y)
+                ctx.restore()
+              }
+            })
+            ctx.restore()
+          }
+        },
+        {
+          id: 'centerTextPlugin',
+          beforeDraw(chart) {
+            const { width, height, ctx } = chart
+            const meta = chart.getDatasetMeta(0)
+            if (!meta || !meta.data || !meta.data[0]) return
+
+            const total = chart.data.datasets[0].data.reduce((sum, v) => sum + (Number(v) || 0), 0)
+            const centerX = meta.data[0].x || width / 2
+            const centerY = meta.data[0].y || height / 2
+
+            ctx.save()
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+
+            ctx.font = '500 11px Poppins, sans-serif'
+            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
+            ctx.fillText('Total Terdata', centerX, centerY - 10)
+
+            ctx.font = 'bold 20px Poppins, sans-serif'
+            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a'
+            ctx.fillText(total.toString(), centerX, centerY + 12)
+
+            ctx.restore()
+          }
+        }
+      ],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: 8
+        },
         plugins: {
           legend: {
             position: 'bottom',
             labels: {
               boxWidth: 12,
-              padding: 16,
-              font: { size: 13, family: 'Poppins', weight: 500 }
+              padding: 12,
+              font: { size: 12, family: 'Poppins', weight: 500 },
+              generateLabels(chart) {
+                const data = chart.data
+                if (!data.labels.length || !data.datasets.length) return []
+                const dataset = data.datasets[0]
+                const total = dataset.data.reduce((sum, v) => sum + (Number(v) || 0), 0)
+
+                return data.labels.map((label, i) => {
+                  const val = Number(dataset.data[i]) || 0
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) + '%' : '0%'
+                  const fillStyle = dataset.backgroundColor[i]
+                  return {
+                    text: `${label}: ${val} (${pct})`,
+                    fillStyle: fillStyle,
+                    strokeStyle: fillStyle,
+                    lineWidth: 0,
+                    hidden: isNaN(val) || val === 0,
+                    index: i
+                  }
+                }).filter(item => !item.hidden)
+              }
             }
           }
         },
-        cutout: '68%'
+        cutout: '66%'
       }
     })
   }
 
-  // Bar Chart: Top 5 Instansi / Kampus Terbanyak
+  // Bar Chart: Top 5 Kampus Pilihan Alumni (Khusus Kampus Saja, Abaikan Belum Lapor Diri & Persiapan Ulang)
   if (barCanvas.value) {
     const counts = {}
+    const ignoredValues = [
+      'persiapan ulang',
+      'masa tunggu',
+      'belum lapor diri',
+      'gap year',
+      'tidak ada',
+      '-',
+      'belum ada',
+      'lainnya'
+    ]
+
     alumniStore.alumniList.forEach(a => {
-      const inst = a.institution ? a.institution.split('(')[0].trim() : 'Lainnya'
-      counts[inst] = (counts[inst] || 0) + 1
+      // Abaikan kategori Belum Lapor Diri / Masa Tunggu
+      if (a.category === 'Masa Tunggu' || a.category === 'Belum Lapor Diri') return
+
+      const rawInst = a.institution ? a.institution.split('(')[0].trim() : ''
+      if (!rawInst) return
+
+      const lower = rawInst.toLowerCase()
+      if (ignoredValues.some(ign => lower.includes(ign))) return
+
+      counts[rawInst] = (counts[rawInst] || 0) + 1
     })
 
     const sorted = Object.entries(counts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
 
-    const labels = sorted.map(s => s[0].length > 25 ? s[0].slice(0, 25) + '...' : s[0])
+    const totalTopCampus = sorted.reduce((sum, s) => sum + s[1], 0)
+    const labels = sorted.map(s => s[0].length > 22 ? s[0].slice(0, 22) + '...' : s[0])
     const dataValues = sorted.map(s => s[1])
 
     barChart = new Chart(barCanvas.value, {
@@ -112,23 +217,53 @@ function initCharts() {
           maxBarThickness: 44
         }]
       },
+      plugins: [
+        {
+          id: 'barLabelsPlugin',
+          afterDatasetsDraw(chart) {
+            const { ctx, data } = chart
+            const dataset = data.datasets[0]
+            const meta = chart.getDatasetMeta(0)
+            if (!meta || !meta.data) return
+
+            ctx.save()
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'bottom'
+            ctx.font = 'bold 12px Poppins, sans-serif'
+            ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f1f5f9' : '#0f172a'
+
+            meta.data.forEach((bar, index) => {
+              const val = dataset.data[index]
+              if (val > 0) {
+                const pct = totalTopCampus > 0 ? ((val / totalTopCampus) * 100).toFixed(1) + '%' : ''
+                ctx.fillText(`${val} (${pct})`, bar.x, bar.y - 6)
+              }
+            })
+            ctx.restore()
+          }
+        }
+      ],
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: { top: 22 }
+        },
         plugins: {
           legend: { display: false }
         },
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, font: { size: 13, family: 'Poppins' } },
+            grace: '18%', // Ruang bernafas di atas bar agar label angka dan % tidak terpotong
+            ticks: { precision: 0, font: { size: 12, family: 'Poppins' } },
             grid: { color: 'rgba(148, 163, 184, 0.15)' }
           },
           x: {
             ticks: {
-              font: { size: 13, family: 'Poppins' },
+              font: { size: 12, family: 'Poppins', weight: 500 },
               maxRotation: 0,
-              autoSkip: true
+              autoSkip: false
             },
             grid: { display: false }
           }
@@ -290,37 +425,37 @@ watch(() => alumniStore.alumniList.length, () => {
           </div>
         </div>
         
-        <div v-if="alumniStore.statistics.total > 0" class="relative h-72 sm:h-80 w-full mt-auto">
+        <div v-if="alumniStore.statistics.total > 0" class="relative h-80 sm:h-96 w-full mt-auto">
           <canvas ref="donutCanvas" aria-label="Grafik donat sebaran kategori"></canvas>
         </div>
-        <div v-else class="h-72 sm:h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+        <div v-else class="h-80 sm:h-96 flex flex-col items-center justify-center text-center p-6 text-slate-400">
           <i class="fa-solid fa-chart-pie text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
           <p class="text-sm">Belum ada data grafik. Isi formulir lapor diri untuk memulai pemetaan.</p>
         </div>
       </div>
 
-      <!-- Bar Chart: 5 Kampus / Instansi Terbanyak -->
+      <!-- Bar Chart: Top 5 Kampus Pilihan Alumni -->
       <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 shadow-sm flex flex-col">
         <div class="border-b border-emerald-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center gap-3">
           <span class="w-9 h-9 rounded-xl bg-[#D1FAE5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-chart-simple text-sm" aria-hidden="true"></i>
+            <i class="fa-solid fa-graduation-cap text-sm" aria-hidden="true"></i>
           </span>
           <div>
             <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-              5 Kampus &amp; Instansi Favorit
+              Top 5 Kampus Pilihan Alumni
             </h3>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Kampus &amp; tempat berkarir yang paling banyak dipilih kakak kelas
+              Perguruan tinggi yang paling banyak dipilih alumni SMADA Ngawi
             </p>
           </div>
         </div>
         
-        <div v-if="alumniStore.statistics.total > 0" class="relative h-72 sm:h-80 w-full mt-auto">
-          <canvas ref="barCanvas" aria-label="Grafik batang instansi terbanyak"></canvas>
+        <div v-if="alumniStore.statistics.total > 0" class="relative h-80 sm:h-96 w-full mt-auto">
+          <canvas ref="barCanvas" aria-label="Grafik batang kampus favorit"></canvas>
         </div>
-        <div v-else class="h-72 sm:h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
-          <i class="fa-solid fa-chart-simple text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
-          <p class="text-sm">Data instansi belum tersedia.</p>
+        <div v-else class="h-80 sm:h-96 flex flex-col items-center justify-center text-center p-6 text-slate-400">
+          <i class="fa-solid fa-graduation-cap text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
+          <p class="text-sm">Data kampus belum tersedia.</p>
         </div>
       </div>
 

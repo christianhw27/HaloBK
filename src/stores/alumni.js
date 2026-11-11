@@ -105,7 +105,11 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
 
     if (selectedCategory.value !== 'ALL') {
-      result = result.filter(item => item.category === selectedCategory.value)
+      if (selectedCategory.value === 'Belum Lapor Diri' || selectedCategory.value === 'Masa Tunggu') {
+        result = result.filter(item => item.category === 'Belum Lapor Diri' || item.category === 'Masa Tunggu')
+      } else {
+        result = result.filter(item => item.category === selectedCategory.value)
+      }
     }
 
     if (searchQuery.value.trim() !== '') {
@@ -133,7 +137,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     const kerjaCount = alumniList.value.filter(a => a.category === 'Bekerja').length
     const wirausahaCount = alumniList.value.filter(a => a.category === 'Wirausaha').length
     const pelatihanCount = alumniList.value.filter(a => a.category === 'Pelatihan / LPK').length
-    const masaTungguCount = alumniList.value.filter(a => a.category === 'Masa Tunggu').length
+    const masaTungguCount = alumniList.value.filter(a => a.category === 'Masa Tunggu' || a.category === 'Belum Lapor Diri').length
 
     return {
       total,
@@ -145,6 +149,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       wirausahaCount,
       pelatihanCount,
       masaTungguCount,
+      belumLaporCount: masaTungguCount,
       pendingCount: pendingList.value.length
     }
   })

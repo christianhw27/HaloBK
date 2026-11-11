@@ -25,7 +25,7 @@ const itemsPerPage = 12
 const viewMode = ref('grid') // 'grid' | 'table'
 
 const cohorts = ['ALL', '2026', '2025', '2024', '2023', '2022', '2021', '2020']
-const categories = ['ALL', 'PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan / LPK', 'Masa Tunggu']
+const categories = ['ALL', 'PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan / LPK', 'Belum Lapor Diri']
 
 const hasActiveFilters = computed(() => {
   return (
@@ -42,7 +42,8 @@ const categoryCounts = computed(() => {
 
   const counts = { ALL: baseList.length }
   for (const a of baseList) {
-    counts[a.category] = (counts[a.category] || 0) + 1
+    const cat = (a.category === 'Masa Tunggu') ? 'Belum Lapor Diri' : a.category
+    counts[cat] = (counts[cat] || 0) + 1
   }
   return counts
 })

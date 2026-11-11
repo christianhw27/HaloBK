@@ -75,7 +75,8 @@ const pathwaysByCategory = {
   'Bekerja': ['Rekrutmen Kerja Perusahaan', 'BUMN / BUMD', 'Freelance / Remote Work'],
   'Wirausaha': ['Wirausaha Mandiri', 'Bisnis Kuliner / UMKM', 'Digital Creator / Agensi'],
   'Pelatihan / LPK': ['Program Pelatihan / LPK', 'Magang Luar Negeri / Jepang', 'Balai Latihan Kerja (BLK)'],
-  'Masa Tunggu': ['Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif']
+  'Belum Lapor Diri': ['Belum Menentukan Pilihan', 'Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif'],
+  'Masa Tunggu': ['Belum Menentukan Pilihan', 'Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif']
 }
 
 function onManualCategoryChange() {
@@ -227,10 +228,10 @@ function handleFileSelect(e) {
           else if (upperCat.includes('KERJA') || upperCat.includes('BEKERJA')) finalCat = 'Bekerja'
           else if (upperCat.includes('WIRAUSAHA') || upperCat.includes('BISNIS') || upperCat.includes('USAHA')) finalCat = 'Wirausaha'
           else if (upperCat.includes('PELATIHAN') || upperCat.includes('LPK') || upperCat.includes('KURSUS')) finalCat = 'Pelatihan / LPK'
-          else if (upperCat.includes('GAP') || upperCat.includes('TUNGGU') || !rawInst) finalCat = 'Masa Tunggu'
+          else if (upperCat.includes('GAP') || upperCat.includes('TUNGGU') || upperCat.includes('BELUM') || !rawInst) finalCat = 'Belum Lapor Diri'
 
           if (!rawInst) {
-            rawInst = finalCat === 'Masa Tunggu' ? 'Persiapan Ulang (Gap Year)' : '-'
+            rawInst = (finalCat === 'Belum Lapor Diri' || finalCat === 'Masa Tunggu') ? 'Belum Menentukan Kampus' : '-'
           }
           if (!rawMajor) rawMajor = '-'
           if (!rawPathway) rawPathway = finalCat === 'PTN' ? 'SNBP' : 'Mandiri'
@@ -536,7 +537,7 @@ async function handleDelete(alumni) {
               <option value="Bekerja">Dunia Kerja / Karyawan</option>
               <option value="Wirausaha">Wirausaha / UMKM / Bisnis</option>
               <option value="Pelatihan / LPK">Pelatihan / LPK / Luar Negeri</option>
-              <option value="Masa Tunggu">Masa Tunggu / Persiapan Ulang</option>
+              <option value="Belum Lapor Diri">Belum Lapor Diri / Persiapan Ulang</option>
             </select>
           </div>
 

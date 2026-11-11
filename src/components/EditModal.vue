@@ -76,7 +76,8 @@ const pathwaysByCategory = {
   'Bekerja': ['Rekrutmen Kerja Perusahaan', 'BUMN / BUMD', 'Freelance / Remote Work'],
   'Wirausaha': ['Wirausaha Mandiri', 'Bisnis Kuliner / UMKM', 'Digital Creator / Agensi'],
   'Pelatihan / LPK': ['Program Pelatihan / LPK', 'Magang Luar Negeri / Jepang', 'Balai Latihan Kerja (BLK)'],
-  'Masa Tunggu': ['Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif']
+  'Belum Lapor Diri': ['Belum Menentukan Pilihan', 'Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif'],
+  'Masa Tunggu': ['Belum Menentukan Pilihan', 'Persiapan UTBK / Kedinasan Tahun Depan (Gap Year)', 'Kursus / Les Intensif']
 }
 
 watch(() => props.alumni, (newVal) => {
@@ -266,7 +267,7 @@ async function handleSave() {
                 <option value="Bekerja">Dunia Kerja / Karyawan</option>
                 <option value="Wirausaha">Wirausaha / UMKM / Bisnis</option>
                 <option value="Pelatihan / LPK">Pelatihan / LPK / Luar Negeri</option>
-                <option value="Masa Tunggu">Masa Tunggu / Persiapan Ulang</option>
+                <option value="Belum Lapor Diri">Belum Lapor Diri / Persiapan Ulang</option>
               </select>
             </div>
 
