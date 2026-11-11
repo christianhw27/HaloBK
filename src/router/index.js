@@ -1,15 +1,23 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+import BeritaView from '@/views/BeritaView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import DataAlumniView from '@/views/DataAlumniView.vue'
 import FormLaporView from '@/views/FormLaporView.vue'
 import VerifikasiView from '@/views/VerifikasiView.vue'
 import ImportExportView from '@/views/ImportExportView.vue'
+import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
 
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    name: 'berita',
+    component: BeritaView,
+    meta: { layout: 'public' }
+  },
+  {
+    path: '/berita',
+    redirect: '/'
   },
   {
     path: '/dashboard',
@@ -37,8 +45,13 @@ const routes = [
     component: ImportExportView
   },
   {
+    path: '/kelola-berita',
+    name: 'kelola-berita',
+    component: KelolaBeritaView
+  },
+  {
     path: '/:pathMatch(.*)*',
-    redirect: '/dashboard'
+    redirect: '/'
   }
 ]
 

@@ -106,12 +106,12 @@ function openWhatsApp() {
                     class="w-full h-full object-cover"
                   />
                   <!-- Hover Overlay Zoom Hint -->
-                  <div class="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-xs gap-1.5 rounded-xl">
+                  <div class="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-sm gap-1.5 rounded-xl">
                     <i class="fa-solid fa-magnifying-glass-plus text-lg"></i>
-                    <span class="text-[11px] font-medium">Perbesar Foto</span>
+                    <span class="text-xs font-medium">Perbesar Foto</span>
                   </div>
                 </div>
-                <div class="text-[10px] text-center text-slate-400 mt-1.5 font-medium sm:block hidden">
+                <div class="text-xs text-center text-slate-400 mt-1.5 font-medium sm:block hidden">
                   Klik foto untuk memperbesar
                 </div>
               </div>
@@ -126,20 +126,20 @@ function openWhatsApp() {
 
               <!-- Identitas Alumni di Samping Foto -->
               <div class="flex-1 text-center sm:text-left min-w-0">
-                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold mb-2 border" :class="badgeStyle">
+                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-semibold mb-2 border" :class="badgeStyle">
                   {{ alumni.category }} &bull; Jalur {{ alumni.pathway }}
                 </div>
                 
-                <h2 class="text-lg sm:text-2xl font-bold font-display text-white leading-tight">
+                <h2 class="text-xl sm:text-2xl font-bold font-display text-white leading-tight">
                   {{ alumni.name }}
                 </h2>
 
-                <p class="text-xs text-slate-300 mt-1 font-medium">
-                  Alumni Angkatan {{ alumni.cohort }} &bull; Kelas {{ alumni.classRoom }}
+                <p class="text-sm text-slate-300 mt-1 font-medium">
+                  Alumni Angkatan {{ alumni.cohort }} &bull; Kelas {{ alumni.classRoom }}<template v-if="alumni.nis && alumni.nis !== '-'"> &bull; NIS: {{ alumni.nis }}</template>
                 </p>
 
                 <!-- Ringkasan Instansi Cepat di Samping Foto -->
-                <div class="mt-3.5 pt-3 border-t border-slate-800/80 space-y-1 text-xs">
+                <div class="mt-3.5 pt-3 border-t border-slate-800/80 space-y-1.5 text-sm">
                   <div class="font-semibold text-slate-200 flex items-center justify-center sm:justify-start gap-2">
                     <img
                       v-if="getInstitutionLogo(alumni.institution)"
@@ -148,11 +148,11 @@ function openWhatsApp() {
                       class="w-4 h-4 rounded object-contain bg-white p-0.5 shrink-0"
                       loading="lazy"
                     />
-                    <i v-else class="fa-solid fa-building-columns text-blue-400 text-xs" aria-hidden="true"></i>
+                    <i v-else class="fa-solid fa-building-columns text-sky-400 text-sm" aria-hidden="true"></i>
                     <span class="truncate">{{ alumni.institution }}</span>
                   </div>
                   <div class="text-slate-400 flex items-center justify-center sm:justify-start gap-2">
-                    <i class="fa-solid fa-graduation-cap text-slate-500 text-xs" aria-hidden="true"></i>
+                    <i class="fa-solid fa-graduation-cap text-slate-500 text-sm" aria-hidden="true"></i>
                     <span class="truncate">{{ alumni.major }}</span>
                   </div>
                 </div>
@@ -162,14 +162,14 @@ function openWhatsApp() {
           </div>
 
           <!-- Badan Konten Modal (Scrollable) -->
-          <div class="p-5 sm:p-6 space-y-4 text-xs sm:text-sm overflow-y-auto">
+          <div class="p-5 sm:p-6 space-y-4 text-sm sm:text-base overflow-y-auto">
             
             <!-- Rincian Instansi / Lembaga Lengkap -->
             <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
-              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Penempatan / Lembaga / Perguruan Tinggi
               </div>
-              <div class="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2.5">
+              <div class="font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
                 <img
                   v-if="getInstitutionLogo(alumni.institution)"
                   :src="getInstitutionLogo(alumni.institution)"
@@ -180,7 +180,7 @@ function openWhatsApp() {
                 <i v-else class="fa-solid fa-building-columns text-slate-400" aria-hidden="true"></i>
                 <span>{{ alumni.institution }}</span>
               </div>
-              <div class="text-xs text-slate-600 dark:text-slate-300 flex items-center gap-2">
+              <div class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
                 <i class="fa-solid fa-graduation-cap text-slate-400" aria-hidden="true"></i>
                 <span>{{ alumni.major }} &bull; Jalur Seleksi {{ alumni.pathway }}</span>
               </div>
@@ -188,18 +188,18 @@ function openWhatsApp() {
 
             <!-- Pesan Motivasi Alumni -->
             <div>
-              <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+              <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
                 Pesan & Motivasi untuk Siswa SMADA
               </div>
-              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic leading-relaxed text-xs sm:text-sm">
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic leading-relaxed text-sm sm:text-base">
                 "{{ alumni.message || 'Semangat terus meraih cita-cita untuk seluruh adik-adik kelas SMA Negeri 2 Ngawi.' }}"
               </div>
             </div>
 
             <!-- Footer Metadata -->
-            <div class="pt-2 flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-100 dark:border-slate-800">
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
               <span>Status: Terverifikasi ({{ alumni.timestamp }})</span>
-              <span class="font-mono text-[10px] text-slate-400">ID: {{ alumni.id }}</span>
+              <span class="font-mono text-xs text-slate-400">ID: {{ alumni.id }}</span>
             </div>
           </div>
 
@@ -209,16 +209,16 @@ function openWhatsApp() {
               v-if="alumni.phone && alumni.phone !== '-'"
               @click="openWhatsApp"
               type="button"
-              class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-colors"
+              class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xs transition-colors"
             >
-              <i class="fa-brands fa-whatsapp text-sm" aria-hidden="true"></i>
+              <i class="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
               <span>Hubungi via WhatsApp ({{ alumni.phone }})</span>
             </button>
             
             <button
               @click="emit('close')"
               type="button"
-              class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs sm:text-sm font-semibold transition-colors"
+              class="px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm sm:text-base font-semibold transition-colors"
             >
               Tutup
             </button>

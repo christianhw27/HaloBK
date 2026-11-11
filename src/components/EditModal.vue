@@ -22,6 +22,7 @@ const alumniStore = useAlumniStore()
 
 const form = ref({
   name: '',
+  nis: '',
   classRoom: 'XII-1',
   cohort: '2026',
   phone: '',
@@ -82,6 +83,7 @@ watch(() => props.alumni, (newVal) => {
   if (newVal) {
     form.value = {
       name: newVal.name || '',
+      nis: newVal.nis === '-' ? '' : (newVal.nis || ''),
       classRoom: newVal.classRoom || 'XII-1',
       cohort: String(newVal.cohort || '2026'),
       phone: newVal.phone === '-' ? '' : (newVal.phone || ''),
@@ -157,10 +159,10 @@ async function handleSave() {
         <!-- Header Modal -->
         <div class="p-5 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
           <div>
-            <h2 class="font-display font-bold text-base sm:text-lg text-white">
+            <h2 class="font-display font-bold text-lg sm:text-xl text-white">
               Edit Data Alumni
             </h2>
-            <p class="text-xs text-slate-400 mt-0.5">
+            <p class="text-sm text-slate-400 mt-0.5">
               Pembaruan data resmi lulusan SMA Negeri 2 Ngawi
             </p>
           </div>
@@ -175,44 +177,56 @@ async function handleSave() {
         </div>
 
         <!-- Body Form -->
-        <form @submit.prevent="handleSave" class="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+        <form @submit.prevent="handleSave" class="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-sm sm:text-base">
           
-          <div v-if="errorMessage" class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs">
+          <div v-if="errorMessage" class="p-3 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-sm">
             {{ errorMessage }}
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Nama Lengkap Alumni <span class="text-rose-500">*</span>
               </label>
               <input
                 v-model="form.name"
                 type="text"
                 required
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+              />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                NIS (Nomor Induk Siswa)
+              </label>
+              <input
+                v-model="form.nis"
+                type="text"
+                placeholder="Contoh: 12345"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               />
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Kelas Terakhir di SMADA
               </label>
               <select
                 v-model="form.classRoom"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
                 <option v-for="i in 10" :key="i" :value="`XII-${i}`">XII-{{ i }}</option>
               </select>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Tahun Angkatan Lulus
               </label>
               <select
                 v-model="form.cohort"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
@@ -225,25 +239,25 @@ async function handleSave() {
             </div>
 
             <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Nomor WhatsApp
               </label>
               <input
                 v-model="form.phone"
                 type="tel"
                 placeholder="081234567890"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               />
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Kategori Karir / Pendidikan <span class="text-rose-500">*</span>
               </label>
               <select
                 v-model="form.category"
                 @change="onCategoryChange"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
                 <option value="PTN">PTN (Perguruan Tinggi Negeri)</option>
                 <option value="PTS">PTS (Perguruan Tinggi Swasta)</option>
@@ -257,19 +271,19 @@ async function handleSave() {
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Jalur Masuk / Seleksi <span class="text-rose-500">*</span>
               </label>
               <select
                 v-model="form.pathway"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
                 <option v-for="p in pathwaysByCategory[form.category]" :key="p" :value="p">{{ p }}</option>
               </select>
             </div>
 
             <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Nama Kampus / Perusahaan / Instansi <span class="text-rose-500">*</span>
               </label>
               <CampusCombobox
@@ -287,34 +301,34 @@ async function handleSave() {
             </div>
 
             <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Jurusan / Program Studi / Posisi Pekerjaan
               </label>
               <input
                 v-model="form.major"
                 type="text"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               />
             </div>
 
             <div class="sm:col-span-2">
-              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Pesan / Tips untuk Siswa SMADA
               </label>
               <textarea
                 v-model="form.message"
                 rows="2"
-                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               ></textarea>
             </div>
 
             <!-- Foto Profil / Almamater (Opsional) -->
             <div class="sm:col-span-2">
               <div class="flex items-center justify-between mb-1">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300">
                   Foto Profil / Almamater (Opsional)
                 </label>
-                <span class="text-[10px] text-slate-400">
+                <span class="text-xs text-slate-400">
                   Cloudinary Storage
                 </span>
               </div>
@@ -334,7 +348,7 @@ async function handleSave() {
                   >
                     <i class="fa-solid fa-xmark"></i>
                   </button>
-                  <div v-if="form.photo.includes('cloudinary.com')" class="absolute bottom-0 inset-x-0 bg-blue-700/85 text-white text-[8px] text-center py-0.5 font-medium tracking-tight">
+                  <div v-if="form.photo.includes('cloudinary.com')" class="absolute bottom-0 inset-x-0 bg-[#0369A1]/90 text-white text-[8px] text-center py-0.5 font-medium tracking-tight">
                     Cloudinary
                   </div>
                 </div>
@@ -342,7 +356,7 @@ async function handleSave() {
                 <!-- Indikator Loading Upload -->
                 <div
                   v-else-if="isUploadingPhoto"
-                  class="w-14 h-14 rounded-lg border border-dashed border-blue-400 bg-blue-50 dark:bg-blue-950/40 shrink-0 flex flex-col items-center justify-center text-blue-600 dark:text-blue-400"
+                  class="w-14 h-14 rounded-lg border border-dashed border-[#0284C7] bg-[#E0F2FE] dark:bg-sky-950/40 shrink-0 flex flex-col items-center justify-center text-[#0369A1] dark:text-sky-400"
                 >
                   <i class="fa-solid fa-spinner fa-spin text-sm" aria-hidden="true"></i>
                   <span class="text-[8px] font-semibold mt-1">Unggah...</span>
@@ -354,12 +368,12 @@ async function handleSave() {
                     accept="image/png, image/jpeg, image/jpg, image/webp"
                     :disabled="isUploadingPhoto"
                     @change="handlePhotoUpload"
-                    class="block w-full text-xs text-slate-500 file:mr-2.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 cursor-pointer disabled:opacity-50"
+                    class="block w-full text-sm text-slate-500 file:mr-2.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-slate-100 dark:file:bg-slate-800 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 cursor-pointer disabled:opacity-50"
                   />
-                  <p v-if="!photoUploadError" class="text-[11px] text-slate-400 mt-0.5">
+                  <p v-if="!photoUploadError" class="text-xs sm:text-sm text-slate-400 mt-0.5">
                     Ganti atau unggah foto baru (Otomatis dioptimasi dan disimpan ke Cloudinary CDN).
                   </p>
-                  <p v-else class="text-[11px] text-amber-500 mt-0.5 font-medium">
+                  <p v-else class="text-xs sm:text-sm text-amber-500 mt-0.5 font-medium">
                     {{ photoUploadError }}
                   </p>
                 </div>
@@ -372,16 +386,16 @@ async function handleSave() {
             <button
               @click="emit('close')"
               type="button"
-              class="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              class="px-4 py-2 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-300 text-sm sm:text-base font-semibold hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors"
             >
               Batal
             </button>
             <button
               type="submit"
               :disabled="isSubmitting || isUploadingPhoto"
-              class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              class="px-5 py-2 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold transition-colors flex items-center gap-1.5 disabled:opacity-50"
             >
-              <i v-if="isSubmitting || isUploadingPhoto" class="fa-solid fa-spinner fa-spin text-xs" aria-hidden="true"></i>
+              <i v-if="isSubmitting || isUploadingPhoto" class="fa-solid fa-spinner fa-spin text-sm" aria-hidden="true"></i>
               <span>{{ isUploadingPhoto ? 'Mengunggah Foto...' : (isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan') }}</span>
             </button>
           </div>

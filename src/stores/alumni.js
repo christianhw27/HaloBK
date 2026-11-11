@@ -23,6 +23,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     return {
       id: item.id,
       name: item.nama_lengkap || item.name || '',
+      nis: item.nis || '-',
       classRoom: item.kelas_terakhir || item.classRoom || '-',
       cohort: String(item.tahun_lulus || item.cohort || ''),
       phone: item.no_wa || item.phone || '-',
@@ -111,6 +112,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       const q = searchQuery.value.toLowerCase().trim()
       result = result.filter(item => 
         (item.name && item.name.toLowerCase().includes(q)) ||
+        (item.nis && item.nis.toLowerCase().includes(q)) ||
         (item.institution && item.institution.toLowerCase().includes(q)) ||
         (item.major && item.major.toLowerCase().includes(q)) ||
         (item.classRoom && item.classRoom.toLowerCase().includes(q)) ||
@@ -155,6 +157,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       try {
         const payload = {
           nama_lengkap: form.name,
+          nis: form.nis || null,
           kelas_terakhir: form.classRoom,
           tahun_lulus: parseInt(form.cohort) || 2026,
           no_wa: form.phone || null,
@@ -173,9 +176,10 @@ export const useAlumniStore = defineStore('alumni', () => {
           .select()
           .single()
 
-        // Fallback jika kolom foto_url belum dibuat di database Supabase
-        if (error && error.message.includes('foto_url')) {
-          delete payload.foto_url
+        // Fallback jika kolom foto_url atau nis belum dibuat di database Supabase
+        if (error && (error.message.includes('foto_url') || error.message.includes('nis'))) {
+          if (error.message.includes('foto_url')) delete payload.foto_url
+          if (error.message.includes('nis')) delete payload.nis
           const retry = await supabase.from('alumni').insert(payload).select().single()
           data = retry.data
           error = retry.error
@@ -194,6 +198,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       const newPending = {
         id: 'PENDING-' + Date.now().toString().slice(-4),
         name: form.name,
+        nis: form.nis || '-',
         classRoom: form.classRoom,
         cohort: form.cohort,
         phone: form.phone,
@@ -278,6 +283,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     const exportData = alumniList.value.map((item, index) => ({
       'No': index + 1,
       'ID Alumni': item.id,
+      'NIS': item.nis || '-',
       'Nama Lengkap': item.name,
       'Kelas XII': item.classRoom,
       'Angkatan': item.cohort,
@@ -304,6 +310,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     if (isSupabaseConfigured && supabase) {
       const records = rows.map(r => ({
         nama_lengkap: r.name,
+        nis: r.nis || null,
         kelas_terakhir: r.classRoom || 'XII-1',
         tahun_lulus: parseInt(r.cohort) || 2026,
         no_wa: r.phone || null,
@@ -316,8 +323,21 @@ export const useAlumniStore = defineStore('alumni', () => {
       }))
 
       try {
-        const { error } = await supabase.from('alumni').insert(records)
-        if (error) throw error
+        const CHUNK_SIZE = 100
+        for (let i = 0; i < records.length; i += CHUNK_SIZE) {
+          const chunk = records.slice(i, i + CHUNK_SIZE)
+          let { error } = await supabase.from('alumni').insert(chunk)
+          if (error && error.message.includes('nis')) {
+            const fallbackChunk = chunk.map(rec => {
+              const copy = { ...rec }
+              delete copy.nis
+              return copy
+            })
+            const retry = await supabase.from('alumni').insert(fallbackChunk)
+            error = retry.error
+          }
+          if (error) throw error
+        }
         await fetchData()
         return records.length
       } catch (err) {
@@ -331,6 +351,7 @@ export const useAlumniStore = defineStore('alumni', () => {
           alumniList.value.unshift({
             id: 'IMPORT-' + (Date.now() + i).toString().slice(-4),
             name: r.name,
+            nis: r.nis || '-',
             classRoom: r.classRoom || 'XII-1',
             cohort: String(r.cohort || '2026'),
             phone: r.phone || '-',
@@ -355,6 +376,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       try {
         const payload = {
           nama_lengkap: form.name,
+          nis: form.nis || null,
           kelas_terakhir: form.classRoom,
           tahun_lulus: parseInt(form.cohort) || 2026,
           no_wa: form.phone || null,
@@ -373,8 +395,9 @@ export const useAlumniStore = defineStore('alumni', () => {
           .select()
           .single()
 
-        if (error && error.message.includes('foto_url')) {
-          delete payload.foto_url
+        if (error && (error.message.includes('foto_url') || error.message.includes('nis'))) {
+          if (error.message.includes('foto_url')) delete payload.foto_url
+          if (error.message.includes('nis')) delete payload.nis
           const retry = await supabase.from('alumni').insert(payload).select().single()
           data = retry.data
           error = retry.error
@@ -392,6 +415,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       const newAlumni = {
         id: 'ALUMNI-' + Date.now().toString().slice(-4),
         name: form.name,
+        nis: form.nis || '-',
         classRoom: form.classRoom,
         cohort: String(form.cohort),
         phone: form.phone || '-',
@@ -415,6 +439,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       try {
         const payload = {
           nama_lengkap: form.name,
+          nis: form.nis !== undefined ? (form.nis || null) : undefined,
           kelas_terakhir: form.classRoom,
           tahun_lulus: parseInt(form.cohort) || 2026,
           no_wa: form.phone || null,
@@ -432,8 +457,9 @@ export const useAlumniStore = defineStore('alumni', () => {
           .update(payload)
           .eq('id', id)
 
-        if (error && error.message.includes('foto_url')) {
-          delete payload.foto_url
+        if (error && (error.message.includes('foto_url') || error.message.includes('nis'))) {
+          if (error.message.includes('foto_url')) delete payload.foto_url
+          if (error.message.includes('nis')) delete payload.nis
           const retry = await supabase.from('alumni').update(payload).eq('id', id)
           error = retry.error
         }
@@ -451,6 +477,7 @@ export const useAlumniStore = defineStore('alumni', () => {
         alumniList.value[idx] = {
           ...alumniList.value[idx],
           name: form.name,
+          nis: form.nis !== undefined ? form.nis : (alumniList.value[idx].nis || '-'),
           classRoom: form.classRoom,
           cohort: String(form.cohort),
           phone: form.phone || '-',

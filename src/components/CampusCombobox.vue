@@ -125,7 +125,7 @@ onUnmounted(() => {
         />
         <i
           v-else
-          class="fa-solid fa-building-columns text-slate-400 text-xs"
+          class="fa-solid fa-building-columns text-slate-400 text-sm"
           aria-hidden="true"
         ></i>
       </div>
@@ -140,7 +140,7 @@ onUnmounted(() => {
         :placeholder="placeholder"
         :required="required"
         autocomplete="off"
-        class="w-full pl-10 pr-9 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-colors"
+        class="w-full pl-10 pr-9 py-2.5 rounded-[10px] bg-slate-50 dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm sm:text-base text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
       />
 
       <!-- Tombol Bersihkan -->
@@ -148,7 +148,7 @@ onUnmounted(() => {
         v-if="query"
         @click="query = ''; emit('update:modelValue', ''); isOpen = true"
         type="button"
-        class="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+        class="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"
         aria-label="Bersihkan input instansi"
       >
         <i class="fa-solid fa-xmark"></i>
@@ -177,10 +177,10 @@ onUnmounted(() => {
             @mouseenter="highlightedIndex = idx"
             role="option"
             :aria-selected="highlightedIndex === idx"
-            class="px-3 py-2 cursor-pointer transition-colors flex items-center justify-between gap-3 text-xs"
+            class="px-3.5 py-2.5 cursor-pointer transition-colors flex items-center justify-between gap-3 text-sm"
             :class="highlightedIndex === idx
-              ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100'
-              : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200'"
+              ? 'bg-[#E0F2FE] dark:bg-sky-950/40 text-[#0369A1] dark:text-sky-100'
+              : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 text-[#0F172A] dark:text-slate-200'"
           >
             <div class="flex items-center gap-2.5 min-w-0">
               <img
@@ -193,7 +193,7 @@ onUnmounted(() => {
                 <div class="font-semibold truncate">
                   {{ campus.name }}
                 </div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                <div class="text-xs text-slate-500 dark:text-slate-400 truncate">
                   <span>{{ campus.shortName }}</span>
                   <span class="mx-1">&bull;</span>
                   <span>{{ campus.city }}</span>
@@ -201,7 +201,7 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0 border border-slate-200 dark:border-slate-700">
+            <span class="px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 shrink-0 border border-slate-200 dark:border-slate-700">
               {{ campus.category }}
             </span>
           </li>
@@ -211,9 +211,9 @@ onUnmounted(() => {
         <div
           v-if="query.trim()"
           @click="selectCustomText"
-          class="p-2.5 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-xs flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium transition-colors"
+          class="p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium transition-colors"
         >
-          <i class="fa-solid fa-pen-nib text-slate-400 text-xs"></i>
+          <i class="fa-solid fa-pen-nib text-slate-400 text-sm"></i>
           <span>Gunakan teks kustom: <strong>"{{ query }}"</strong></span>
         </div>
       </div>

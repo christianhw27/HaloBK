@@ -36,7 +36,7 @@ function initCharts() {
   const stats = alumniStore.statistics
   if (stats.total === 0) return
 
-  // Donut Chart: Komposisi Kategori dengan Palet Blue-Slate Resmi (Tanpa Warna Ungu)
+  // Donut Chart: Komposisi Kategori selaras palet Portal BK (Trust Blue, Warm Magenta, Hope Amber, Growth Emerald)
   if (donutCanvas.value) {
     donutChart = new Chart(donutCanvas.value, {
       type: 'doughnut',
@@ -54,14 +54,14 @@ function initCharts() {
             stats.masaTungguCount
           ],
           backgroundColor: [
-            '#1d4ed8', // PTN - Royal Blue
-            '#0284c7', // PTS - Sky Blue
-            '#0891b2', // Kedinasan - Deep Cyan
-            '#059669', // TNI/Polri - Forest Emerald
-            '#475569', // Bekerja - Slate Grey
-            '#d97706', // Wirausaha - Warm Amber
-            '#0d9488', // Pelatihan - Teal
-            '#78716c'  // Masa Tunggu - Stone
+            '#0284C7', // PTN - Trust Blue
+            '#38BDF8', // PTS - Light Sky
+            '#10B981', // Kedinasan - Growth Emerald
+            '#047857', // TNI/Polri - Deep Emerald
+            '#F59E0B', // Bekerja - Hope Amber
+            '#FBBF24', // Wirausaha - Warm Gold
+            '#E11D48', // Pelatihan - Warm Magenta
+            '#FB7185'  // Masa Tunggu - Soft Coral
           ],
           borderWidth: 2,
           borderColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#ffffff'
@@ -74,9 +74,9 @@ function initCharts() {
           legend: {
             position: 'bottom',
             labels: {
-              boxWidth: 10,
-              padding: 14,
-              font: { size: 11, family: 'Inter', weight: 500 }
+              boxWidth: 12,
+              padding: 16,
+              font: { size: 13, family: 'Poppins', weight: 500 }
             }
           }
         },
@@ -107,9 +107,9 @@ function initCharts() {
         datasets: [{
           label: 'Jumlah Alumni',
           data: dataValues,
-          backgroundColor: '#2563eb',
-          borderRadius: 6,
-          maxBarThickness: 42
+          backgroundColor: ['#0284C7', '#10B981', '#F59E0B', '#E11D48', '#38BDF8'],
+          borderRadius: 10,
+          maxBarThickness: 44
         }]
       },
       options: {
@@ -121,12 +121,12 @@ function initCharts() {
         scales: {
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, font: { size: 11, family: 'Inter' } },
+            ticks: { precision: 0, font: { size: 13, family: 'Poppins' } },
             grid: { color: 'rgba(148, 163, 184, 0.15)' }
           },
           x: {
             ticks: {
-              font: { size: 11, family: 'Inter' },
+              font: { size: 13, family: 'Poppins' },
               maxRotation: 0,
               autoSkip: true
             },
@@ -151,114 +151,118 @@ watch(() => alumniStore.alumniList.length, () => {
 <template>
   <div class="space-y-6 sm:space-y-8 w-full">
     
-    <!-- Hero Banner Utama Luas (Full Width) -->
-    <section class="rounded-xl bg-slate-900 text-white p-6 sm:p-8 lg:p-10 border border-slate-800 shadow-sm" aria-labelledby="banner-heading">
-      <div class="max-w-4xl">
-        <div class="flex items-center gap-2 text-xs font-semibold text-slate-400 mb-2">
-          <span>SMA Negeri 2 Ngawi</span>
-          <span>&bull;</span>
-          <span>Portal Bimbingan Konseling</span>
+    <!-- Hero Banner Utama Cerah & Ramah (Full Width) -->
+    <section class="rounded-3xl bg-gradient-to-br from-[#E0F2FE]/85 via-[#FFFBEB]/70 to-[#FFE4E6]/50 dark:from-slate-900 dark:via-sky-950/35 dark:to-amber-950/20 border border-sky-200/80 dark:border-slate-800 shadow-[var(--shadow-card)] overflow-hidden" aria-labelledby="banner-heading">
+      <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
+
+      <div class="p-6 sm:p-8 lg:p-10 max-w-4xl">
+        <div class="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300 mb-2.5">
+          <span class="px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800">
+            SMA Negeri 2 Ngawi
+          </span>
+          <span class="text-amber-600 dark:text-amber-300">&bull;</span>
+          <span class="text-[#92400E] dark:text-amber-300">Ruang Sahabat BK &amp; Alumni</span>
         </div>
 
-        <h1 id="banner-heading" class="font-display font-bold text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-tight">
-          Sistem Penelusuran Karir & Lulusan Alumni
+        <h1 id="banner-heading" class="font-display font-bold text-2xl sm:text-[1.75rem] lg:text-[2.25rem] tracking-tight text-[#0F172A] dark:text-white leading-[1.25]">
+          Cerita &amp; Sebaran Jejak Alumni SMADA
         </h1>
-        <p class="text-xs sm:text-sm lg:text-base text-slate-300 mt-2.5 leading-relaxed max-w-3xl">
-          Pusat pemetaan data kelulusan siswa, sebaran perguruan tinggi (PTN/PTS), kedinasan, TNI/Polri, serta capaian karir profesional alumni SMADA Ngawi.
+        <p class="text-sm sm:text-base lg:text-lg text-[#334155] dark:text-slate-300 mt-3 leading-[1.6] max-w-3xl">
+          Intip kampus tujuan, sekolah kedinasan, hingga perjalanan karir seru dari lulusan SMA Negeri 2 Ngawi sebagai referensi hangat buat adik kelas.
         </p>
 
         <div class="mt-6 flex flex-wrap items-center gap-3">
           <router-link
             to="/lapor"
-            class="px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm transition-colors flex items-center gap-2 shadow-sm"
+            class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base transition-colors duration-150 flex items-center gap-2 shadow-sm min-h-[44px]"
           >
-            <i class="fa-solid fa-user-plus text-xs" aria-hidden="true"></i>
+            <i class="fa-solid fa-user-plus text-sm" aria-hidden="true"></i>
             <span>Formulir Lapor Diri</span>
           </router-link>
 
           <router-link
             to="/data"
-            class="px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs sm:text-sm border border-slate-700 transition-colors flex items-center gap-2"
+            class="px-5 py-2.5 rounded-xl bg-white hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-200 font-semibold text-sm sm:text-base border border-sky-200 dark:border-slate-700 transition-colors duration-150 flex items-center gap-2 min-h-[44px] shadow-2xs"
           >
-            <i class="fa-solid fa-magnifying-glass text-xs" aria-hidden="true"></i>
-            <span>Jelajahi Direktori Alumni</span>
+            <i class="fa-solid fa-magnifying-glass text-sm" aria-hidden="true"></i>
+            <span>Kenalan di Direktori Alumni</span>
           </router-link>
 
           <router-link
             v-if="authStore.userRole === 'admin' && alumniStore.pendingList.length > 0"
             to="/verifikasi"
-            class="px-4 py-2.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 font-semibold text-xs sm:text-sm transition-colors flex items-center gap-2"
+            class="px-5 py-2.5 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-sm sm:text-base transition-colors flex items-center gap-2 min-h-[44px]"
           >
-            <i class="fa-solid fa-bell text-xs text-amber-400" aria-hidden="true"></i>
-            <span>{{ alumniStore.pendingList.length }} Laporan Perlu Verifikasi</span>
+            <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
+            <span>{{ alumniStore.pendingList.length }} Kabar Perlu Verifikasi</span>
           </router-link>
         </div>
       </div>
     </section>
 
-    <!-- Ringkasan Statistik Utama (Responsive Grid) -->
+    <!-- Ringkasan Statistik Utama (4 Pilar Warna BK) -->
     <section aria-labelledby="metrics-title">
       <h2 id="metrics-title" class="sr-only">Statistik Utama Alumni</h2>
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
         
-        <!-- Total Data Terverifikasi -->
-        <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <!-- Total Data Terverifikasi (Trust Blue) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-sky-50/90 to-white dark:from-sky-950/40 dark:to-slate-900 border border-sky-200/80 dark:border-sky-800/60 shadow-[var(--shadow-sm)]">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Terverifikasi</span>
-            <span class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center text-xs">
+            <span class="text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300">Total Terdata</span>
+            <span class="w-9 h-9 rounded-xl bg-[#0369A1] text-white flex items-center justify-center text-sm shadow-xs">
               <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
             </span>
           </div>
           <div class="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-slate-900 dark:text-white">
             {{ alumniStore.statistics.total }}
           </div>
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Lulusan terdata resmi</div>
+          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">Alumni sudah berbagi kabar</div>
         </div>
 
-        <!-- Kuliah PTN & PTS -->
-        <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <!-- Kuliah PTN & PTS (Growth Emerald) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-[var(--shadow-sm)]">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Perguruan Tinggi</span>
-            <span class="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 flex items-center justify-center text-xs">
+            <span class="text-xs sm:text-sm font-semibold text-[#047857] dark:text-emerald-300">Perguruan Tinggi</span>
+            <span class="w-9 h-9 rounded-xl bg-[#047857] text-white flex items-center justify-center text-sm shadow-xs">
               <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
             </span>
           </div>
           <div class="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-slate-900 dark:text-white">
             {{ alumniStore.statistics.ptnCount + alumniStore.statistics.ptsCount }}
           </div>
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             {{ alumniStore.statistics.ptnCount }} PTN &bull; {{ alumniStore.statistics.ptsCount }} PTS
           </div>
         </div>
 
-        <!-- Kedinasan & Militer -->
-        <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <!-- Kedinasan & Militer (Warm Magenta) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-slate-900 border border-rose-200/80 dark:border-rose-800/60 shadow-[var(--shadow-sm)]">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Kedinasan & Militer</span>
-            <span class="w-8 h-8 rounded-lg bg-cyan-50 dark:bg-cyan-950/60 text-cyan-700 dark:text-cyan-300 flex items-center justify-center text-xs">
+            <span class="text-xs sm:text-sm font-semibold text-[#BE123C] dark:text-rose-300">Kedinasan &amp; Militer</span>
+            <span class="w-9 h-9 rounded-xl bg-[#BE123C] text-white flex items-center justify-center text-sm shadow-xs">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
             </span>
           </div>
           <div class="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-slate-900 dark:text-white">
             {{ alumniStore.statistics.kedinasanCount + alumniStore.statistics.tniPolriCount }}
           </div>
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             {{ alumniStore.statistics.kedinasanCount }} Dinas &bull; {{ alumniStore.statistics.tniPolriCount }} TNI/Polri
           </div>
         </div>
 
-        <!-- Karir & Wirausaha -->
-        <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+        <!-- Karir & Wirausaha (Hope Amber) -->
+        <div class="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-slate-900 border border-amber-200/80 dark:border-amber-800/60 shadow-[var(--shadow-sm)]">
           <div class="flex items-center justify-between mb-3">
-            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Karir & Wirausaha</span>
-            <span class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-xs">
+            <span class="text-xs sm:text-sm font-semibold text-[#92400E] dark:text-amber-300">Karir &amp; Wirausaha</span>
+            <span class="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-sm shadow-xs">
               <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
             </span>
           </div>
           <div class="font-display font-bold text-2xl sm:text-3xl lg:text-4xl text-slate-900 dark:text-white">
             {{ alumniStore.statistics.kerjaCount + alumniStore.statistics.wirausahaCount }}
           </div>
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+          <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
             {{ alumniStore.statistics.kerjaCount }} Kerja &bull; {{ alumniStore.statistics.wirausahaCount }} Bisnis
           </div>
         </div>
@@ -266,19 +270,24 @@ watch(() => alumniStore.alumniList.length, () => {
       </div>
     </section>
 
-    <!-- Visualisasi Grafik Terstruktur Full Width -->
+    <!-- Visualisasi Grafik Cerah & Mudah Dibaca -->
     <section class="grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6" aria-labelledby="charts-heading">
       <h2 id="charts-heading" class="sr-only">Grafik Sebaran Alumni</h2>
       
       <!-- Donut Chart: Komposisi Kategori -->
-      <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-        <div class="border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-          <h3 class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-            Sebaran Jalur Karir & Studi Lanjut
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Komposisi seluruh kategori alumni SMA Negeri 2 Ngawi yang terdaftar
-          </p>
+      <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm flex flex-col">
+        <div class="border-b border-sky-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center gap-3">
+          <span class="w-9 h-9 rounded-xl bg-[#E0F2FE] text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-chart-pie text-sm" aria-hidden="true"></i>
+          </span>
+          <div>
+            <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+              Sebaran Pilihan Lulusan
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Jalur kuliah, kedinasan, dan karir pilihan alumni SMADA Ngawi
+            </p>
+          </div>
         </div>
         
         <div v-if="alumniStore.statistics.total > 0" class="relative h-72 sm:h-80 w-full mt-auto">
@@ -286,19 +295,24 @@ watch(() => alumniStore.alumniList.length, () => {
         </div>
         <div v-else class="h-72 sm:h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
           <i class="fa-solid fa-chart-pie text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
-          <p class="text-xs">Belum ada data grafik. Isi formulir lapor diri untuk memulai pemetaan.</p>
+          <p class="text-sm">Belum ada data grafik. Isi formulir lapor diri untuk memulai pemetaan.</p>
         </div>
       </div>
 
       <!-- Bar Chart: 5 Kampus / Instansi Terbanyak -->
-      <div class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
-        <div class="border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-          <h3 class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-            5 Instansi & Kampus Terfavorit
-          </h3>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Perguruan tinggi & perusahaan tujuan alumni terbanyak
-          </p>
+      <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 shadow-sm flex flex-col">
+        <div class="border-b border-emerald-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center gap-3">
+          <span class="w-9 h-9 rounded-xl bg-[#D1FAE5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-chart-simple text-sm" aria-hidden="true"></i>
+          </span>
+          <div>
+            <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+              5 Kampus &amp; Instansi Favorit
+            </h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Kampus &amp; tempat berkarir yang paling banyak dipilih kakak kelas
+            </p>
+          </div>
         </div>
         
         <div v-if="alumniStore.statistics.total > 0" class="relative h-72 sm:h-80 w-full mt-auto">
@@ -306,28 +320,33 @@ watch(() => alumniStore.alumniList.length, () => {
         </div>
         <div v-else class="h-72 sm:h-80 flex flex-col items-center justify-center text-center p-6 text-slate-400">
           <i class="fa-solid fa-chart-simple text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
-          <p class="text-xs">Data instansi belum tersedia.</p>
+          <p class="text-sm">Data instansi belum tersedia.</p>
         </div>
       </div>
 
     </section>
 
-    <!-- Tabel Data Alumni Terbaru (Lebar & Terstruktur) -->
-    <section class="p-5 sm:p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4" aria-labelledby="recent-heading">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-        <div>
-          <h2 id="recent-heading" class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-            Pembaruan Data Terkini
-          </h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Daftar alumni yang baru saja diverifikasi oleh Tim Guru BK
-          </p>
+    <!-- Daftar Kabar Alumni Terbaru -->
+    <section class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-amber-100 dark:border-slate-800 shadow-sm space-y-4" aria-labelledby="recent-heading">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-100/80 dark:border-slate-800">
+        <div class="flex items-center gap-3">
+          <span class="w-9 h-9 rounded-xl bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950/60 dark:text-amber-300 flex items-center justify-center shrink-0">
+            <i class="fa-solid fa-sparkles text-sm" aria-hidden="true"></i>
+          </span>
+          <div>
+            <h2 id="recent-heading" class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+              Kabar Alumni Terbaru
+            </h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Cerita studi lanjut &amp; karir alumni yang baru saja masuk
+            </p>
+          </div>
         </div>
         <router-link
           to="/data"
-          class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+          class="px-3.5 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 border border-sky-200/80 dark:border-sky-800 text-sm font-semibold text-[#0369A1] dark:text-sky-300 self-start sm:self-auto transition-colors"
         >
-          Buka Direktori Lengkap ({{ alumniStore.alumniList.length }})
+          Lihat Semua ({{ alumniStore.alumniList.length }})
         </router-link>
       </div>
 
@@ -336,7 +355,7 @@ watch(() => alumniStore.alumniList.length, () => {
           v-for="alumni in recentAlumni"
           :key="alumni.id"
           @click="openDetail(alumni)"
-          class="py-3 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors flex items-center justify-between gap-4"
+          class="py-3.5 px-3 rounded-xl hover:bg-sky-50/70 dark:hover:bg-slate-800/60 cursor-pointer transition-colors flex items-center justify-between gap-4"
           role="button"
           tabindex="0"
           @keydown.enter="openDetail(alumni)"
@@ -347,25 +366,26 @@ watch(() => alumniStore.alumniList.length, () => {
               v-if="alumni.photo"
               :src="alumni.photo"
               :alt="`Foto ${alumni.name}`"
-              class="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+              class="w-11 h-11 rounded-xl object-cover border border-sky-200 dark:border-slate-700 shrink-0"
               loading="lazy"
             />
             <div
               v-else
-              class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold flex items-center justify-center text-sm border border-slate-200 dark:border-slate-700 shrink-0"
+              class="w-11 h-11 rounded-xl font-bold flex items-center justify-center text-base border shrink-0 shadow-2xs"
+              :class="CATEGORY_COLORS[alumni.category]?.avatar || 'bg-sky-100 text-[#0369A1] border-sky-200 dark:bg-slate-800 dark:text-sky-300'"
             >
               {{ alumni.name.charAt(0) }}
             </div>
             <div class="min-w-0">
-              <div class="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
+              <div class="font-semibold text-sm sm:text-base text-slate-900 dark:text-white truncate">
                 {{ alumni.name }}
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center">
+              <div class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 truncate mt-0.5 flex items-center">
                 <img
                   v-if="getInstitutionLogo(alumni.institution)"
                   :src="getInstitutionLogo(alumni.institution)"
                   :alt="alumni.institution"
-                  class="w-3.5 h-3.5 rounded object-contain inline-block mr-1 bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                  class="w-4 h-4 rounded object-contain inline-block mr-1.5 bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                   loading="lazy"
                 />
                 <span class="truncate">{{ alumni.institution }}</span>
@@ -379,7 +399,7 @@ watch(() => alumniStore.alumniList.length, () => {
 
           <div class="flex items-center gap-3 shrink-0">
             <span
-              class="px-2.5 py-0.5 rounded text-[11px] font-medium border"
+              class="px-2.5 py-0.5 rounded text-xs font-medium border"
               :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
             >
               {{ alumni.category }}
@@ -389,7 +409,7 @@ watch(() => alumniStore.alumniList.length, () => {
         </div>
       </div>
 
-      <div v-else class="py-10 text-center text-xs text-slate-500 dark:text-slate-400">
+      <div v-else class="py-10 text-center text-sm text-slate-500 dark:text-slate-400">
         <p class="font-medium text-slate-700 dark:text-slate-300">Belum ada data alumni terdaftar di sistem.</p>
         <p class="mt-1">Silakan mengisi formulir lapor diri untuk memulai pencatatan data lulusan.</p>
       </div>

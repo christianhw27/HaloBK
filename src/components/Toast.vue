@@ -39,18 +39,18 @@ defineExpose({ show })
       }"
       :role="type === 'error' ? 'alert' : 'status'"
     >
-      <div class="mt-0.5 shrink-0 text-sm">
+      <div class="mt-0.5 shrink-0 text-base">
         <i v-if="type === 'success'" class="fa-solid fa-circle-check text-emerald-400" aria-hidden="true"></i>
         <i v-else-if="type === 'error'" class="fa-solid fa-circle-exclamation text-rose-400" aria-hidden="true"></i>
-        <i v-else class="fa-solid fa-circle-info text-blue-400" aria-hidden="true"></i>
+        <i v-else class="fa-solid fa-circle-info text-sky-400" aria-hidden="true"></i>
       </div>
-      <div class="flex-1 text-xs sm:text-sm font-medium leading-snug">
+      <div class="flex-1 text-sm sm:text-base font-medium leading-snug">
         {{ message }}
       </div>
       <button
         @click="isVisible = false"
         type="button"
-        class="text-slate-400 hover:text-white shrink-0 text-xs"
+        class="text-slate-400 hover:text-white shrink-0 text-sm"
         aria-label="Tutup notifikasi"
       >
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
