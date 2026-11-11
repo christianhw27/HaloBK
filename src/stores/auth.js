@@ -1,13 +1,26 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
+const ADMIN_EMAILS = [
+  'gurubk@smadangawi.sch.id',
+  'admin@smada.sch.id',
+  'admin@smadangawi.sch.id',
+  'admin@gmail.com'
+]
+
+const ADMIN_PASSWORDS = [
+  'smadahebat',
+  'admin123',
+  'guru123',
+  'admin'
+]
+
 export const useAuthStore = defineStore('auth', () => {
-  // Simpan status autentikasi di localStorage
   const savedLoggedIn = localStorage.getItem('hallo_auth_logged_in')
   const savedRole = localStorage.getItem('hallo_auth_role') || 'guest'
   const savedName = localStorage.getItem('hallo_auth_name')
 
-  // Status login awal (default true jika sudah ada sesi tersimpan)
+  // Status autentikasi
   const isLoggedIn = ref(savedLoggedIn === 'true')
   const userRole = ref(savedRole) // 'admin' (Guru BK) atau 'guest' (Pengunjung)
   const userName = ref(savedName || (savedRole === 'admin' ? 'Guru BK SMADA' : 'Pengunjung SMADA'))
@@ -26,7 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Masuk sebagai Pengunjung / Tamu (Dummy)
+   * Masuk sebagai Pengunjung / Tamu
    */
   function loginAsGuest(customName = 'Pengunjung SMADA') {
     isLoggedIn.value = true
@@ -39,25 +52,32 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /**
-   * Set peran langsung
+   * Autentikasi dengan email & password
    */
-  function setRole(role) {
-    if (role === 'admin') {
-      loginAsAdmin()
-    } else {
-      loginAsGuest()
-    }
-  }
+  async function loginWithCredentials(inputEmail, inputPassword) {
+    const cleanEmail = (inputEmail || '').trim().toLowerCase()
+    const cleanPass = (inputPassword || '').trim()
 
-  /**
-   * Beralih antara Admin & Pengunjung secara instan
-   */
-  function toggleRole() {
-    if (userRole.value === 'admin') {
-      loginAsGuest()
-    } else {
-      loginAsAdmin()
+    if (!cleanEmail || !cleanPass) {
+      return { success: false, message: 'Email dan kata sandi wajib diisi.' }
     }
+
+    const isAdminEmail = ADMIN_EMAILS.includes(cleanEmail) || cleanEmail.startsWith('admin') || cleanEmail.startsWith('guru')
+    const isValidAdminPass = ADMIN_PASSWORDS.includes(cleanPass)
+
+    if (isAdminEmail) {
+      if (isValidAdminPass) {
+        loginAsAdmin('Guru BK SMADA')
+        return { success: true, role: 'admin' }
+      } else {
+        return { success: false, message: 'Kata sandi akun Guru BK salah. Silakan coba lagi.' }
+      }
+    }
+
+    // Jika bukan email admin, masuk sebagai akun pengunjung / user
+    const guestDisplayName = cleanEmail.split('@')[0]
+    loginAsGuest(guestDisplayName)
+    return { success: true, role: 'guest' }
   }
 
   /**
@@ -79,8 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
     userName,
     loginAsAdmin,
     loginAsGuest,
-    setRole,
-    toggleRole,
+    loginWithCredentials,
     logout
   }
 })

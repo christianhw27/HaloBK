@@ -42,14 +42,13 @@ const authStore = useAuthStore()
       {{ description }}
     </p>
     <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-      <button
-        type="button"
-        @click="authStore.setRole('admin')"
+      <router-link
+        to="/login"
         class="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold flex items-center justify-center gap-2 shadow-sm transition-colors"
       >
-        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-        <span>Beralih ke Mode Guru BK</span>
-      </button>
+        <i class="fa-solid fa-arrow-right-to-bracket text-sm" aria-hidden="true"></i>
+        <span>Masuk sebagai Guru BK</span>
+      </router-link>
       <router-link
         :to="backTo"
         class="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700 text-sm sm:text-base font-semibold flex items-center justify-center gap-2 transition-colors"

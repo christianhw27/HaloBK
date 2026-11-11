@@ -1,15 +1,21 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
 
 const isDark = ref(false)
 const isMobileOpen = ref(false)
+
+function handleLogout() {
+  authStore.logout()
+  router.push('/')
+}
 
 onMounted(() => {
   if (localStorage.getItem('theme') === 'dark' || 
@@ -84,13 +90,10 @@ function toggleDarkMode() {
       </div>
     </div>
 
-    <!-- Tombol Cepat Tema di Bar Atas Mobile -->
+    <!-- Status Peran di Bar Atas Mobile (Static, Tanpa Pindah Cepat) -->
     <div class="flex items-center gap-2">
-      <button
-        @click="authStore.toggleRole()"
-        type="button"
+      <div
         class="px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs"
-        :title="'Mode: ' + (authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung')"
       >
         <span
           class="w-2 h-2 rounded-full"
@@ -98,7 +101,7 @@ function toggleDarkMode() {
           aria-hidden="true"
         ></span>
         <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}</span>
-      </button>
+      </div>
 
       <button
         @click="toggleDarkMode"
@@ -179,7 +182,7 @@ function toggleDarkMode() {
         </button>
       </div>
 
-      <!-- Kartu Peran Akun Pengguna -->
+      <!-- Kartu Status Akun Pengguna (Static, Terpisah Tegas Tanpa Pindah Cepat) -->
       <div class="p-4 border-b border-sky-100/80 dark:border-slate-800/80 bg-gradient-to-br from-sky-50/75 via-white to-emerald-50/55 dark:from-slate-800/50 dark:via-slate-900 dark:to-slate-900">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-slate-600 dark:text-slate-400 tracking-wide">
@@ -195,12 +198,7 @@ function toggleDarkMode() {
           </span>
         </div>
 
-        <button
-          @click="authStore.toggleRole()"
-          type="button"
-          class="w-full py-2.5 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between border transition-all bg-white dark:bg-slate-900 border-sky-200/80 dark:border-slate-700 hover:border-[#0284C7] hover:bg-sky-50/60 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-xs"
-          title="Klik untuk beralih antara akun Guru BK dan Pengunjung"
-        >
+        <div class="w-full py-2.5 px-3.5 rounded-2xl text-sm font-semibold flex items-center justify-between border bg-white dark:bg-slate-900 border-sky-200/80 dark:border-slate-700 text-slate-800 dark:text-slate-200 shadow-2xs">
           <div class="flex items-center gap-2 truncate">
             <span
               class="w-2.5 h-2.5 rounded-full shrink-0"
@@ -209,8 +207,15 @@ function toggleDarkMode() {
             ></span>
             <span class="truncate font-semibold">{{ authStore.userName }}</span>
           </div>
-          <i class="fa-solid fa-repeat text-xs text-[#0369A1] dark:text-sky-400 ml-1.5 shrink-0" aria-hidden="true"></i>
-        </button>
+          <span
+            class="text-[11px] font-medium px-2 py-0.5 rounded-full"
+            :class="authStore.userRole === 'admin'
+              ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/50'
+              : 'text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/50'"
+          >
+            {{ authStore.userRole === 'admin' ? 'Pengelola' : 'Tamu' }}
+          </span>
+        </div>
       </div>
 
       <!-- Menu Navigasi Utama -->
@@ -363,17 +368,18 @@ function toggleDarkMode() {
 
     <!-- SISI BAWAH: TEMA & INFO SISTEM -->
     <div class="p-4 border-t border-sky-100 dark:border-slate-800 space-y-2.5 bg-gradient-to-br from-sky-50/50 via-white to-amber-50/40 dark:from-slate-900 dark:to-slate-900">
-      <!-- Tombol Navigasi ke Halaman Login / Ganti Akun -->
-      <router-link
-        to="/login"
-        class="w-full py-2 px-3.5 rounded-2xl border border-sky-200/80 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-sky-50/60 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 text-xs font-semibold flex items-center justify-between transition-colors shadow-2xs"
+      <!-- Tombol Keluar dari Akun -->
+      <button
+        @click="handleLogout"
+        type="button"
+        class="w-full py-2 px-3.5 rounded-2xl border border-rose-200/80 dark:border-rose-900/60 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100/80 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-between transition-colors shadow-2xs"
       >
         <div class="flex items-center gap-2">
-          <i class="fa-solid fa-arrow-right-to-bracket text-[#0284C7] dark:text-sky-400" aria-hidden="true"></i>
-          <span>Ganti Akun / Keluar</span>
+          <i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>
+          <span>Keluar dari Akun</span>
         </div>
-        <span class="text-[11px] text-slate-400">&rsaquo;</span>
-      </router-link>
+        <i class="fa-solid fa-chevron-right text-[10px] text-rose-400" aria-hidden="true"></i>
+      </button>
 
       <!-- Tombol Pengubah Tema -->
       <button
