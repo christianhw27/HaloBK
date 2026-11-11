@@ -36,14 +36,14 @@ function initCharts() {
   const stats = alumniStore.statistics
   if (stats.total === 0) return
 
-  // Donut Chart: Komposisi Kategori (Lengkap dengan Angka & Persentase Langsung Muncul)
+  // Donut Chart: Komposisi Kategori (Hanya Menampilkan Yang Sudah Lapor Pilihan Jalur)
   if (donutCanvas.value) {
     const isDark = document.documentElement.classList.contains('dark')
 
     donutChart = new Chart(donutCanvas.value, {
       type: 'doughnut',
       data: {
-        labels: ['PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan', 'Belum Lapor Diri'],
+        labels: ['PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan'],
         datasets: [{
           data: [
             stats.ptnCount,
@@ -52,8 +52,7 @@ function initCharts() {
             stats.tniPolriCount,
             stats.kerjaCount,
             stats.wirausahaCount,
-            stats.pelatihanCount,
-            stats.masaTungguCount
+            stats.pelatihanCount
           ],
           backgroundColor: [
             '#0284C7', // PTN - Trust Blue
@@ -62,8 +61,7 @@ function initCharts() {
             '#047857', // TNI/Polri - Deep Emerald
             '#F59E0B', // Bekerja - Hope Amber
             '#FBBF24', // Wirausaha - Warm Gold
-            '#E11D48', // Pelatihan - Warm Magenta
-            '#FB7185'  // Belum Lapor Diri - Soft Coral
+            '#E11D48'  // Pelatihan - Warm Magenta
           ],
           borderWidth: 2,
           borderColor: isDark ? '#0f172a' : '#ffffff'
@@ -119,7 +117,7 @@ function initCharts() {
 
             ctx.font = '500 11px Poppins, sans-serif'
             ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#94a3b8' : '#64748b'
-            ctx.fillText('Total Terdata', centerX, centerY - 10)
+            ctx.fillText('Sudah Lapor', centerX, centerY - 10)
 
             ctx.font = 'bold 20px Poppins, sans-serif'
             ctx.fillStyle = document.documentElement.classList.contains('dark') ? '#f8fafc' : '#0f172a'
@@ -411,21 +409,32 @@ watch(() => alumniStore.alumniList.length, () => {
       
       <!-- Donut Chart: Komposisi Kategori -->
       <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm flex flex-col">
-        <div class="border-b border-sky-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center gap-3">
-          <span class="w-9 h-9 rounded-xl bg-[#E0F2FE] text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
-            <i class="fa-solid fa-chart-pie text-sm" aria-hidden="true"></i>
-          </span>
-          <div>
-            <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-              Sebaran Pilihan Lulusan
-            </h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Jalur kuliah, kedinasan, dan karir pilihan alumni SMADA Ngawi
-            </p>
+        <div class="border-b border-sky-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-[#E0F2FE] text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0">
+              <i class="fa-solid fa-chart-pie text-sm" aria-hidden="true"></i>
+            </span>
+            <div>
+              <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                Sebaran Pilihan Lulusan
+              </h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                Jalur kuliah, kedinasan, dan karir pilihan alumni SMADA Ngawi
+              </p>
+            </div>
           </div>
+
+          <span
+            v-if="alumniStore.statistics.belumLaporCount > 0"
+            class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-[#BE123C] border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 shrink-0"
+            title="Siswa yang belum lapor diri / mengisi jalur pilihan"
+          >
+            <span class="w-1.5 h-1.5 rounded-full bg-rose-500" aria-hidden="true"></span>
+            <span>{{ alumniStore.statistics.belumLaporCount }} Belum Lapor</span>
+          </span>
         </div>
         
-        <div v-if="alumniStore.statistics.total > 0" class="relative h-80 sm:h-96 w-full mt-auto">
+        <div v-if="(alumniStore.statistics.total - alumniStore.statistics.belumLaporCount) > 0" class="relative h-80 sm:h-96 w-full mt-auto">
           <canvas ref="donutCanvas" aria-label="Grafik donat sebaran kategori"></canvas>
         </div>
         <div v-else class="h-80 sm:h-96 flex flex-col items-center justify-center text-center p-6 text-slate-400">
