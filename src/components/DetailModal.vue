@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { CATEGORY_COLORS } from '@/lib/initialData'
 import { getInstitutionLogo } from '@/lib/campusList'
 
@@ -18,9 +18,16 @@ const emit = defineEmits(['close'])
 
 const isLightboxOpen = ref(false)
 
+watch(() => props.isOpen, (val) => {
+  if (!val) {
+    isLightboxOpen.value = false
+  }
+})
+
 const badgeStyle = computed(() => {
   if (!props.alumni?.category) return ''
-  return CATEGORY_COLORS[props.alumni.category]?.badge || 'bg-slate-100 text-slate-700'
+  const cat = props.alumni.category === 'Masa Tunggu' ? 'Belum Lapor Diri' : props.alumni.category
+  return CATEGORY_COLORS[cat]?.badge || 'bg-slate-100 text-slate-700'
 })
 
 function handleKeydown(e) {
@@ -127,7 +134,7 @@ function openWhatsApp() {
               <!-- Identitas Alumni di Samping Foto -->
               <div class="flex-1 text-center sm:text-left min-w-0">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-semibold mb-2 border" :class="badgeStyle">
-                  {{ alumni.category }} &bull; Jalur {{ alumni.pathway }}
+                  {{ alumni.category === 'Masa Tunggu' ? 'Belum Lapor Diri' : alumni.category }} &bull; Jalur {{ alumni.pathway }}
                 </div>
                 
                 <h2 class="text-xl sm:text-2xl font-bold font-display text-white leading-tight">
@@ -230,41 +237,46 @@ function openWhatsApp() {
       </div>
     </Transition>
 
-    <!-- Lightbox Foto Ukuran Penuh (Full Resolution Preview) -->
-    <Transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition duration-100 ease-in"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div
-        v-if="isLightboxOpen && alumni?.photo"
-        class="fixed inset-0 z-60 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8"
-        @click.self="isLightboxOpen = false"
+    <!-- Lightbox Foto Ukuran Penuh (Teleport ke body dengan z-index tertinggi) -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="opacity-0 scale-95"
+        enter-to-class="opacity-100 scale-100"
+        leave-active-class="transition duration-100 ease-in"
+        leave-from-class="opacity-100 scale-100"
+        leave-to-class="opacity-0 scale-95"
       >
-        <div class="relative max-w-2xl max-h-[85vh] flex flex-col items-center">
-          <button
-            @click="isLightboxOpen = false"
-            type="button"
-            class="absolute -top-12 right-0 sm:-right-4 w-10 h-10 rounded-full bg-slate-800/90 text-white hover:bg-slate-700 flex items-center justify-center transition-colors shadow-lg cursor-pointer"
-            aria-label="Tutup foto penuh"
-          >
-            <i class="fa-solid fa-xmark text-base"></i>
-          </button>
-          
-          <img
-            :src="alumni.photo"
-            :alt="'Foto ' + alumni.name"
-            class="max-h-[75vh] max-w-full rounded-xl object-contain shadow-2xl border border-slate-700 bg-slate-900"
-          />
+        <div
+          v-if="isLightboxOpen && alumni?.photo"
+          class="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8"
+          @click.self="isLightboxOpen = false"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tampilan foto profil penuh"
+        >
+          <div class="relative max-w-2xl max-h-[88vh] flex flex-col items-center">
+            <button
+              @click="isLightboxOpen = false"
+              type="button"
+              class="absolute -top-12 right-0 sm:-right-4 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors shadow-lg cursor-pointer"
+              aria-label="Tutup foto penuh"
+            >
+              <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            
+            <img
+              :src="alumni.photo"
+              :alt="'Foto ' + alumni.name"
+              class="max-h-[78vh] max-w-full rounded-2xl object-contain shadow-2xl border border-white/20 bg-slate-900"
+            />
 
-          <p class="text-xs text-slate-300 mt-3 font-medium text-center">
-            {{ alumni.name }} &bull; Angkatan {{ alumni.cohort }} &bull; {{ alumni.institution }}
-          </p>
+            <p class="text-sm text-slate-200 mt-3 font-medium text-center drop-shadow-md">
+              {{ alumni.name }} &bull; Angkatan {{ alumni.cohort }} &bull; {{ alumni.institution }}
+            </p>
+          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
