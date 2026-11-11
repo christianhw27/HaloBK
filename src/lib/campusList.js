@@ -93,6 +93,23 @@ export const CAMPUS_LIST = [
     category: 'PTS',
     city: 'Pacitan'
   },
+  {
+    name: 'Akademi Keperawatan Pemkab Ngawi',
+    shortName: 'Akper Ngawi',
+    aliases: ['akper ngawi', 'akper pemkab ngawi', 'akademi keperawatan ngawi', 'akademi keperawatan pemkab ngawi', 'akper pemda ngawi'],
+    domain: 'akperngawi.ac.id',
+    logoUrl: '/logos/akper-ngawi.jpg',
+    category: 'PTS',
+    city: 'Ngawi'
+  },
+  {
+    name: 'Politeknik Energi dan Mineral Akamigas',
+    shortName: 'PEM Akamigas',
+    aliases: ['pem akamigas', 'akamigas', 'stem akamigas', 'politeknik energi dan mineral akamigas', 'akamigas cepu', 'pem akamigas cepu'],
+    domain: 'akamigas.ac.id',
+    category: 'Kedinasan',
+    city: 'Blora'
+  },
 
   // ========================================================
   // 2. SOLO RAYA / SURAKARTA (DEKAT NGAWI / SRAGEN / SOLO)
@@ -256,7 +273,7 @@ export const CAMPUS_LIST = [
   {
     name: 'UPN "Veteran" Jawa Timur',
     shortName: 'UPN Jatim',
-    aliases: ['upn jatim', 'upn veteran jatim', 'upn surabaya'],
+    aliases: ['upn jatim', 'upnv jatim', 'upn veteran jatim', 'upn surabaya', 'upnv', 'upn sby', 'upnv jatim sby', 'upn veteran jawa timur'],
     domain: 'upnjatim.ac.id',
     category: 'PTN',
     city: 'Surabaya'
@@ -520,7 +537,7 @@ export const CAMPUS_LIST = [
   {
     name: 'Poltekkes Kemenkes Surabaya',
     shortName: 'Poltekkes Sby',
-    aliases: ['poltekkes surabaya', 'poltekkes kemenkes surabaya'],
+    aliases: ['poltekkes surabaya', 'poltekes surabaya', 'poltekkes kemenkes surabaya', 'poltekkes sby', 'poltekes sby'],
     domain: 'poltekkes-sby.ac.id',
     category: 'Kedinasan',
     city: 'Surabaya'
@@ -636,8 +653,41 @@ export const CAMPUS_LIST = [
   {
     name: 'Universitas Aisyiyah Yogyakarta',
     shortName: 'UNISA',
-    aliases: ['unisa', 'unisa jogja', 'aisyiyah yogyakarta'],
+    aliases: ['unisa', 'unisa yogyakarta', 'unisa jogja', 'universitas aisyiyah yogyakarta', 'universitas aisyiyah', 'aisyiyah yogyakarta', 'aisyiyah'],
     domain: 'unisayogya.ac.id',
+    logoUrl: '/logos/unisa-jogja.png',
+    category: 'PTS',
+    city: 'Yogyakarta'
+  },
+  {
+    name: 'Politeknik Agraria STPN',
+    shortName: 'STPN',
+    aliases: ['stpn', 'politeknik agraria stpn', 'politeknik agraria', 'sekolah tinggi pertanahan nasional', 'stpn yogyakarta', 'stpn jogja', 'agraria stpn'],
+    domain: 'stpn.ac.id',
+    category: 'Kedinasan',
+    city: 'Yogyakarta'
+  },
+  {
+    name: 'Universitas Widya Mataram',
+    shortName: 'UWM',
+    aliases: ['uwm', 'widya mataram', 'universitas widya mataram', 'uwm jogja', 'uwm yogyakarta', 'widya mataram yogyakarta'],
+    domain: 'widyamataram.ac.id',
+    category: 'PTS',
+    city: 'Yogyakarta'
+  },
+  {
+    name: 'Politeknik Pembangunan Pertanian Yogyakarta-Magelang',
+    shortName: 'Polbangtan Yoma',
+    aliases: ['polbangtan yogyakarta', 'polbangtan', 'polbangtan yoma', 'politeknik pembangunan pertanian yogyakarta', 'polbangtan magelang'],
+    domain: 'polbangtanyoma.ac.id',
+    category: 'Kedinasan',
+    city: 'Yogyakarta'
+  },
+  {
+    name: 'Politeknik LPP Yogyakarta',
+    shortName: 'Poltek LPP',
+    aliases: ['politeknik lpp yogyakarta', 'politeknik lpp', 'poltek lpp', 'lpp yogyakarta'],
+    domain: 'polteklpp.ac.id',
     category: 'PTS',
     city: 'Yogyakarta'
   },
@@ -1073,6 +1123,14 @@ export const CAMPUS_LIST = [
     category: 'PTS',
     city: 'Cikarang'
   },
+  {
+    name: 'Politeknik Negeri Media Kreatif',
+    shortName: 'POLIMEDIA',
+    aliases: ['polimedia', 'politeknik negeri media kreatif', 'poltek media kreatif', 'polimedia kreatif', 'polimedia jakarta'],
+    domain: 'polimedia.ac.id',
+    category: 'PTN',
+    city: 'Jakarta'
+  },
 
   // ========================================================
   // 7. SEKOLAH KEDINASAN & MILITER / KEPOLISIAN
@@ -1196,6 +1254,14 @@ export const CAMPUS_LIST = [
     domain: 'aau.ac.id',
     category: 'TNI/Polri',
     city: 'Yogyakarta'
+  },
+  {
+    name: 'TNI Angkatan Darat (Akmil)',
+    shortName: 'TNI AD',
+    aliases: ['tni ad', 'ad', 'angkatan darat', 'tni angkatan darat', 'akmil', 'akademi militer'],
+    domain: 'akmil.ac.id',
+    category: 'TNI/Polri',
+    city: 'Magelang'
   },
 
   // ========================================================
@@ -1372,7 +1438,7 @@ export const CAMPUS_LIST = [
   {
     name: 'Universitas Halu Oleo',
     shortName: 'UHO',
-    aliases: ['uho', 'unhalu', 'halu oleo'],
+    aliases: ['uho', 'univ haluoleo', 'universitas halu oleo', 'unhalu', 'halu oleo', 'uho kendari'],
     domain: 'uho.ac.id',
     category: 'PTN',
     city: 'Kendari'
@@ -1399,6 +1465,12 @@ function normalizeText(str) {
     .trim()
 }
 
+function hasWordBoundaryMatch(source, target) {
+  if (!source || !target) return false
+  const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(`(^|\\s)${escaped}(\\s|$)`, 'i').test(source)
+}
+
 /**
  * Mencari data kampus berdasarkan nama, singkatan, atau alias
  * @param {string} query 
@@ -1423,21 +1495,54 @@ export function findCampus(query) {
     }
   }
 
-  // 3. Cek kecocokan parsial / substring
+  // 3. Pencocokan cerdas parsial berbasis skor dan batas kata (word boundaries)
+  let bestMatch = null
+  let bestScore = 0
+
   for (const c of CAMPUS_LIST) {
     const normName = normalizeText(c.name)
     const normShort = normalizeText(c.shortName)
-    if (
-      cleanQuery.includes(normShort) ||
-      cleanQuery.includes(normName) ||
-      normName.includes(cleanQuery) ||
-      c.aliases.some(alias => cleanQuery.includes(normalizeText(alias)))
-    ) {
-      return c
+
+    // Cek kecocokan alias (alias lebih panjang/spesifik bernilai lebih tinggi)
+    for (const alias of c.aliases) {
+      const normAlias = normalizeText(alias)
+      if (normAlias.length >= 2 && hasWordBoundaryMatch(cleanQuery, normAlias)) {
+        const score = normAlias.length * 10
+        if (score > bestScore) {
+          bestScore = score
+          bestMatch = c
+        }
+      }
+    }
+
+    // Cek kecocokan shortName
+    if (normShort.length >= 3 && hasWordBoundaryMatch(cleanQuery, normShort)) {
+      const score = normShort.length * 8
+      if (score > bestScore) {
+        bestScore = score
+        bestMatch = c
+      }
+    }
+
+    // Cek kecocokan nama resmi lengkap (untuk query panjang)
+    if (cleanQuery.length >= 6) {
+      if (hasWordBoundaryMatch(cleanQuery, normName)) {
+        const score = normName.length * 12
+        if (score > bestScore) {
+          bestScore = score
+          bestMatch = c
+        }
+      } else if (hasWordBoundaryMatch(normName, cleanQuery)) {
+        const score = cleanQuery.length * 10
+        if (score > bestScore) {
+          bestScore = score
+          bestMatch = c
+        }
+      }
     }
   }
 
-  return null
+  return bestMatch
 }
 
 /**
@@ -1450,8 +1555,11 @@ export function getInstitutionLogo(institutionName) {
 
   // 1. Cek apakah institusi cocok dengan basis data kampus
   const campus = findCampus(institutionName)
-  if (campus && campus.domain) {
-    return `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${campus.domain}&size=128`
+  if (campus) {
+    if (campus.logoUrl) return campus.logoUrl
+    if (campus.domain) {
+      return `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${campus.domain}&size=128`
+    }
   }
 
   // 2. Jika nama mengandung format domain (misal: "pertamina.com", "shopee.co.id")

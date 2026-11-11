@@ -201,6 +201,15 @@ function handleFileSelect(e) {
           let rawMajor = idxMajor !== -1 ? String(row[idxMajor] || '').trim() : ''
           let rawPhone = idxPhone !== -1 ? String(row[idxPhone] || '').trim() : '-'
 
+          // Deteksi otomatis jika kolom Lembaga dan Jurusan tertukar pada rekap kelas
+          const looksLikeMajor = /^(S1|S2|D3|D4|TEKNIK|ILMU|PENDIDIKAN|DESAIN|KEDOKTERAN|FARMASI|HUKUM|MANAJEMEN|AKUNTANSI)\b/i.test(rawInst)
+          const campusFromMajor = findCampus(rawMajor)
+          if (looksLikeMajor && (campusFromMajor || (rawMajor && rawMajor.length <= 8))) {
+            const temp = rawInst
+            rawInst = rawMajor
+            rawMajor = temp
+          }
+
           // Cocokkan nama kampus resmi bila dikenali
           const matchedCampus = findCampus(rawInst)
           if (matchedCampus) {
@@ -798,6 +807,7 @@ async function handleDelete(alumni) {
                       :alt="row.institution"
                       class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                       loading="lazy"
+                      @error="(e) => e.target.style.display = 'none'"
                     />
                     <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
                     <span>{{ row.institution }}</span>
@@ -947,6 +957,7 @@ async function handleDelete(alumni) {
                     :alt="alumni.institution"
                     class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                     loading="lazy"
+                    @error="(e) => e.target.style.display = 'none'"
                   />
                   <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
                   <span>{{ alumni.institution }}</span>

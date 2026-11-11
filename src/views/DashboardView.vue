@@ -387,6 +387,7 @@ watch(() => alumniStore.alumniList.length, () => {
                   :alt="alumni.institution"
                   class="w-4 h-4 rounded object-contain inline-block mr-1.5 bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                   loading="lazy"
+                  @error="(e) => e.target.style.display = 'none'"
                 />
                 <span class="truncate">{{ alumni.institution }}</span>
                 <span class="mx-1.5 text-slate-300 dark:text-slate-600 shrink-0">&bull;</span>

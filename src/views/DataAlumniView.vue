@@ -298,6 +298,7 @@ function openWhatsApp(phone, name, inst) {
                 :alt="`Logo ${alumni.institution}`"
                 class="w-5 h-5 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
                 loading="lazy"
+                @error="(e) => e.target.style.display = 'none'"
               />
               <i v-else class="fa-solid fa-building-columns text-[#0284C7] dark:text-sky-400 text-sm shrink-0" aria-hidden="true"></i>
               <span class="truncate">{{ alumni.institution }}</span>
@@ -417,6 +418,7 @@ function openWhatsApp(phone, name, inst) {
                   :alt="`Logo ${alumni.institution}`"
                   class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                   loading="lazy"
+                  @error="(e) => e.target.style.display = 'none'"
                 />
                 <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
                 <span class="truncate">{{ alumni.institution }}</span>

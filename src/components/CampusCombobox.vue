@@ -122,6 +122,7 @@ onUnmounted(() => {
           alt="Logo"
           class="w-5 h-5 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shadow-2xs"
           loading="lazy"
+          @error="(e) => e.target.style.display = 'none'"
         />
         <i
           v-else
@@ -184,10 +185,11 @@ onUnmounted(() => {
           >
             <div class="flex items-center gap-2.5 min-w-0">
               <img
-                :src="`https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${campus.domain}&size=128`"
+                :src="campus.logoUrl || `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${campus.domain}&size=128`"
                 :alt="campus.shortName"
                 class="w-6 h-6 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                 loading="lazy"
+                @error="(e) => e.target.style.display = 'none'"
               />
               <div class="min-w-0">
                 <div class="font-semibold truncate">
