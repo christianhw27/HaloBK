@@ -94,3 +94,52 @@ create policy "Akses publik update berita"
 create policy "Akses publik hapus berita" 
   on public.berita for delete 
   using (true);
+
+-- ========================================================
+-- 6. TABEL AKUN PENGGUNA (USERS) - ADMIN & ALUMNI/SISWA
+-- ========================================================
+create table if not exists public.users (
+  id uuid primary key default gen_random_uuid(),
+  nama text not null,
+  email text unique,
+  nis text unique,                   -- Nomor Induk Siswa (untuk login alternatif siswa)
+  password text not null,            -- Kata sandi akun
+  role text not null default 'user', -- 'admin' (Guru BK) atau 'user' (Alumni / Siswa / Pengunjung)
+  kelas text default 'XII-1',
+  tahun_lulus integer default 2026,
+  created_at timestamp with time zone default timezone('utc'::text, now()),
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.users enable row level security;
+
+drop policy if exists "Akses publik baca users" on public.users;
+drop policy if exists "Akses publik tambah users" on public.users;
+drop policy if exists "Akses publik update users" on public.users;
+drop policy if exists "Akses publik hapus users" on public.users;
+
+create policy "Akses publik baca users" 
+  on public.users for select 
+  using (true);
+
+create policy "Akses publik tambah users" 
+  on public.users for insert 
+  with check (true);
+
+create policy "Akses publik update users" 
+  on public.users for update 
+  using (true);
+
+create policy "Akses publik hapus users" 
+  on public.users for delete 
+  using (true);
+
+-- ========================================================
+-- 7. SEED DATA AKUN RESMI (ADMIN GURU BK & PENGUNJUNG)
+-- ========================================================
+insert into public.users (nama, email, nis, password, role, kelas, tahun_lulus)
+values 
+  ('Guru BK SMADA', 'halobksmada@gmail.com', 'ADMIN01', 'smadahebat', 'admin', 'BK', 2026),
+  ('Pengunjung SMADA', 'pengunjung@smadangawi.sch.id', 'GUEST01', 'pengunjung123', 'user', 'Umum', 2026)
+on conflict (email) do update 
+set password = excluded.password, role = excluded.role, nama = excluded.nama;

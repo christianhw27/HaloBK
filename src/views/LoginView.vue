@@ -91,17 +91,17 @@ async function handleLogin() {
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>
             <label for="login-email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Alamat Email
+              Email atau NIS Siswa
             </label>
             <div class="relative">
-              <i class="fa-regular fa-envelope absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+              <i class="fa-regular fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
               <input
                 id="login-email"
                 v-model="email"
-                type="email"
+                type="text"
                 required
                 autocomplete="username"
-                placeholder="halobksmada@gmail.com"
+                placeholder="Email Guru BK atau NIS Siswa"
                 class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
               />
             </div>
