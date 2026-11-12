@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import AdminOnlyGuard from '@/components/AdminOnlyGuard.vue'
 import EditModal from '@/components/EditModal.vue'
+import DetailModal from '@/components/DetailModal.vue'
 import { CATEGORY_COLORS } from '@/lib/initialData'
 import { compressImage } from '@/lib/imageHelper'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
@@ -321,6 +322,13 @@ function downloadTemplate() {
 const manageSearch = ref('')
 const selectedEditAlumni = ref(null)
 const isEditModalOpen = ref(false)
+const selectedDetailAlumni = ref(null)
+const isDetailModalOpen = ref(false)
+
+function openDetail(alumni) {
+  selectedDetailAlumni.value = alumni
+  isDetailModalOpen.value = true
+}
 
 const filteredManageList = computed(() => {
   if (!manageSearch.value.trim()) return alumniStore.alumniList
@@ -969,6 +977,15 @@ async function handleDelete(alumni) {
               </td>
               <td class="p-3.5 text-right whitespace-nowrap">
                 <button
+                  @click="openDetail(alumni)"
+                  type="button"
+                  class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors mr-1.5"
+                  title="Lihat Detail Lengkap"
+                >
+                  <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
+                  Detail
+                </button>
+                <button
                   @click="openEdit(alumni)"
                   type="button"
                   class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5"
@@ -994,6 +1011,13 @@ async function handleDelete(alumni) {
         Belum ada data alumni yang cocok untuk dikelola.
       </div>
     </section>
+
+    <!-- Modal Detail Alumni / Siswa -->
+    <DetailModal
+      :is-open="isDetailModalOpen"
+      :alumni="selectedDetailAlumni"
+      @close="isDetailModalOpen = false"
+    />
 
     <!-- Modal Edit Alumni -->
     <EditModal

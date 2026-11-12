@@ -41,7 +41,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
-  // Mapping data siswa aktif Angkatan 61 ke format direktori alumni (Hanya data publik standar)
+  // Mapping data siswa aktif Angkatan 61 ke format direktori alumni & manajemen
   function mapSiswaToAlumni(item) {
     return {
       id: item.id,
@@ -62,7 +62,18 @@ export const useAlumniStore = defineStore('alumni', () => {
         day: 'numeric',
         month: 'short',
         year: 'numeric'
-      }) : 'Baru saja'
+      }) : 'Baru saja',
+      // Metadata siswa lengkap (hanya untuk guru/admin saat membuka modal detail)
+      isSiswa: true,
+      email: item.email || '-',
+      ttl: item.ttl || '-',
+      alamat_lengkap: item.alamat_lengkap || '-',
+      jenis_tinggal: item.jenis_tinggal || '-',
+      alat_transportasi: item.alat_transportasi || '-',
+      nama_ortu: item.nama_ortu || '-',
+      pekerjaan_ortu: item.pekerjaan_ortu || '-',
+      no_wa_ortu: item.no_wa_ortu || '-',
+      asal_smp: item.asal_smp || '-'
     }
   }
 
@@ -85,18 +96,18 @@ export const useAlumniStore = defineStore('alumni', () => {
         // 2. Ambil data siswa angkatan 61 dari tabel users agar tampil di direktori alumni
         let listSiswa = []
         try {
-          // Ambil kolom publik siswa saja (mencoba dengan foto_url jika sudah ada kolomnya)
+          // Ambil data siswa lengkap (mencoba dengan foto_url jika kolom sudah ada)
           let { data: siswaData, error: errSiswa } = await supabase
             .from('users')
-            .select('id, nama, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, created_at, foto_url')
+            .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url')
             .eq('role', 'siswa')
             .order('nama', { ascending: true })
 
           if (errSiswa && errSiswa.code === '42703') {
-            // Kolom foto_url belum dibuat di database, ambil kolom standar
+            // Kolom foto_url belum dibuat di database, fallback ambil kolom standar
             const fallback = await supabase
               .from('users')
-              .select('id, nama, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, created_at')
+              .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at')
               .eq('role', 'siswa')
               .order('nama', { ascending: true })
             siswaData = fallback.data

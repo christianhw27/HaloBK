@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import { CATEGORY_COLORS } from '@/lib/initialData'
 import { getInstitutionLogo } from '@/lib/campusList'
 
@@ -16,7 +17,18 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const authStore = useAuthStore()
 const isLightboxOpen = ref(false)
+
+// Cek apakah pengguna saat ini adalah Guru BK / Admin
+const isTeacherOrAdmin = computed(() => {
+  return authStore.userRole === 'admin' || authStore.userRole === 'guru'
+})
+
+// Cek apakah data yang sedang dibuka adalah data siswa aktif
+const isStudent = computed(() => {
+  return Boolean(props.alumni?.isSiswa || props.alumni?.category === 'Siswa Aktif')
+})
 
 watch(() => props.isOpen, (val) => {
   if (!val) {
@@ -56,7 +68,20 @@ function openWhatsApp() {
   if (cleanNumber.startsWith('0')) {
     cleanNumber = '62' + cleanNumber.slice(1)
   }
-  const text = encodeURIComponent(`Halo Kak ${props.alumni.name}, salam dari siswa SMA Negeri 2 Ngawi. Ingin bertanya mengenai pengalaman kuliah/karir di ${props.alumni.institution}...`)
+  const greeting = isStudent.value
+    ? `Halo ananda ${props.alumni.name}, dari Guru BK SMA Negeri 2 Ngawi...`
+    : `Halo Kak ${props.alumni.name}, salam dari SMA Negeri 2 Ngawi. Ingin bertanya mengenai pengalaman kuliah/karir di ${props.alumni.institution}...`
+  const text = encodeURIComponent(greeting)
+  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank')
+}
+
+function openParentWhatsApp() {
+  if (!props.alumni?.no_wa_ortu) return
+  let cleanNumber = props.alumni.no_wa_ortu.replace(/[^0-9]/g, '')
+  if (cleanNumber.startsWith('0')) {
+    cleanNumber = '62' + cleanNumber.slice(1)
+  }
+  const text = encodeURIComponent(`Halo Bapak/Ibu wali dari ananda ${props.alumni.name}, kami dari pihak Bimbingan Konseling (BK) SMA Negeri 2 Ngawi...`)
   window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank')
 }
 </script>
@@ -134,7 +159,7 @@ function openWhatsApp() {
               <!-- Identitas Alumni di Samping Foto -->
               <div class="flex-1 text-center sm:text-left min-w-0">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-semibold mb-2 border" :class="badgeStyle">
-                  {{ alumni.category === 'Masa Tunggu' ? 'Belum Lapor Diri' : alumni.category }} &bull; Jalur {{ alumni.pathway }}
+                  {{ isStudent ? 'Siswa Aktif SMADA' : (alumni.category === 'Masa Tunggu' ? 'Belum Lapor Diri' : alumni.category) }} &bull; {{ isStudent ? ('Angkatan ' + (alumni.angkatan || 61)) : ('Jalur ' + alumni.pathway) }}
                 </div>
                 
                 <h2 class="text-xl sm:text-2xl font-bold font-display text-white leading-tight">
@@ -142,8 +167,12 @@ function openWhatsApp() {
                 </h2>
 
                 <p class="text-sm text-slate-300 mt-1 font-medium">
-                  Alumni Angkatan {{ alumni.cohort }} &bull; Kelas {{ alumni.classRoom }}<template v-if="alumni.nis && alumni.nis !== '-'"> &bull; NIS: {{ alumni.nis }}</template>
+                  {{ isStudent ? 'Siswa Aktif SMA Negeri 2 Ngawi' : ('Alumni Angkatan ' + alumni.cohort) }} &bull; Kelas {{ alumni.classRoom }}
                 </p>
+
+                <div v-if="isStudent && alumni.nisn && alumni.nisn !== '-'" class="text-xs text-emerald-400 font-mono mt-0.5">
+                  NISN: {{ alumni.nisn }} <template v-if="alumni.nis && alumni.nis !== '-'">| NIS: {{ alumni.nis }}</template>
+                </div>
 
                 <!-- Ringkasan Instansi Cepat di Samping Foto -->
                 <div class="mt-3.5 pt-3 border-t border-slate-800/80 space-y-1.5 text-sm">
@@ -172,56 +201,192 @@ function openWhatsApp() {
           <!-- Badan Konten Modal (Scrollable) -->
           <div class="p-5 sm:p-6 space-y-4 text-sm sm:text-base overflow-y-auto">
             
-            <!-- Rincian Instansi / Lembaga Lengkap -->
-            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
-              <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Penempatan / Lembaga / Perguruan Tinggi
+            <!-- TAMPILAN KHUSUS: BIODATA FULL SISWA UNTUK GURU BK / ADMIN -->
+            <div v-if="isTeacherOrAdmin && isStudent" class="space-y-4">
+              <!-- Header Penanda Akses Terproteksi Guru -->
+              <div class="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 flex items-center justify-between">
+                <div class="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-300 font-semibold text-xs sm:text-sm">
+                  <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <i class="fa-solid fa-user-shield text-sm"></i>
+                  </div>
+                  <span>Biodata Lengkap Siswa (Khusus Akses Guru BK)</span>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-[10px] font-bold uppercase tracking-wider border border-emerald-300/40">
+                  Data Internal
+                </span>
               </div>
-              <div class="font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
-                <img
-                  v-if="getInstitutionLogo(alumni.institution)"
-                  :src="getInstitutionLogo(alumni.institution)"
-                  :alt="alumni.institution"
-                  class="w-7 h-7 rounded-lg object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
-                  loading="lazy"
-                  @error="(e) => e.target.style.display = 'none'"
-                />
-                <i v-else class="fa-solid fa-building-columns text-slate-400" aria-hidden="true"></i>
-                <span>{{ alumni.institution }}</span>
+
+              <!-- 1. Identitas & Akademik -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <i class="fa-solid fa-id-card text-sky-500"></i>
+                  <span>1. Identitas & Sekolah Asal</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">NISN (Nomor Induk Siswa Nasional)</span>
+                    <span class="font-bold text-slate-900 dark:text-white font-mono text-sm sm:text-base">{{ alumni.nisn || '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">NIS (Nomor Induk Sekolah)</span>
+                    <span class="font-bold text-slate-900 dark:text-white font-mono text-sm sm:text-base">{{ alumni.nis || '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Kelas & Angkatan</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.classRoom || '-' }} (Angkatan {{ alumni.angkatan || 61 }} / Lulusan {{ alumni.cohort }})</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Tempat, Tanggal Lahir (TTL)</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.ttl || '-' }}</span>
+                  </div>
+                  <div class="sm:col-span-2">
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Asal Sekolah (SMP / MTs)</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.asal_smp || '-' }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                <i class="fa-solid fa-graduation-cap text-slate-400" aria-hidden="true"></i>
-                <span>{{ alumni.major }} &bull; Jalur Seleksi {{ alumni.pathway }}</span>
+
+              <!-- 2. Domisili & Transportasi -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <i class="fa-solid fa-house-chimney-user text-amber-500"></i>
+                  <span>2. Tempat Tinggal & Transportasi</span>
+                </div>
+                <div class="space-y-2.5 text-sm">
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Alamat Tempat Tinggal Lengkap</span>
+                    <span class="font-medium text-slate-800 dark:text-slate-200 leading-relaxed block">{{ alumni.alamat_lengkap || '-' }}</span>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Status Jenis Tinggal</span>
+                      <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200/70">
+                        {{ alumni.jenis_tinggal || '-' }}
+                      </span>
+                    </div>
+                    <div>
+                      <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Alat Transportasi ke Sekolah</span>
+                      <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.alat_transportasi || '-' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Kontak Pribadi Siswa -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <i class="fa-solid fa-address-book text-emerald-500"></i>
+                  <span>3. Kontak Siswa</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Nomor WhatsApp Siswa</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200 font-mono">{{ alumni.phone && alumni.phone !== '-' ? alumni.phone : '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Email Siswa</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.email && alumni.email !== '-' ? alumni.email : '-' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Data Orang Tua / Wali Siswa -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <i class="fa-solid fa-people-roof text-purple-500"></i>
+                  <span>4. Orang Tua / Wali Siswa</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Nama Orang Tua / Wali</span>
+                    <span class="font-bold text-slate-900 dark:text-white">{{ alumni.nama_ortu || '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Pekerjaan Orang Tua / Wali</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.pekerjaan_ortu || '-' }}</span>
+                  </div>
+                  <div class="sm:col-span-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                    <div>
+                      <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">No. WhatsApp Orang Tua / Wali</span>
+                      <span class="font-bold text-slate-900 dark:text-white font-mono text-sm sm:text-base">{{ alumni.no_wa_ortu || '-' }}</span>
+                    </div>
+                    <button
+                      v-if="alumni.no_wa_ortu && alumni.no_wa_ortu !== '-'"
+                      type="button"
+                      @click="openParentWhatsApp"
+                      class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-colors self-start sm:self-auto"
+                    >
+                      <i class="fa-brands fa-whatsapp text-sm"></i>
+                      <span>Chat WA Orang Tua</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Pesan Motivasi Alumni -->
-            <div>
-              <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
-                Pesan & Motivasi untuk Siswa SMADA
+            <!-- TAMPILAN STANDAR: ALUMNI ATAU AKSES NON-GURU -->
+            <template v-else>
+              <!-- Rincian Instansi / Lembaga Lengkap -->
+              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
+                <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  {{ isStudent ? 'Status Pendidikan' : 'Penempatan / Lembaga / Perguruan Tinggi' }}
+                </div>
+                <div class="font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
+                  <img
+                    v-if="getInstitutionLogo(alumni.institution)"
+                    :src="getInstitutionLogo(alumni.institution)"
+                    :alt="alumni.institution"
+                    class="w-7 h-7 rounded-lg object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0 shadow-2xs"
+                    loading="lazy"
+                    @error="(e) => e.target.style.display = 'none'"
+                  />
+                  <i v-else class="fa-solid fa-building-columns text-slate-400" aria-hidden="true"></i>
+                  <span>{{ alumni.institution }}</span>
+                </div>
+                <div class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
+                  <i class="fa-solid fa-graduation-cap text-slate-400" aria-hidden="true"></i>
+                  <span>{{ alumni.major }} <template v-if="!isStudent">&bull; Jalur Seleksi {{ alumni.pathway }}</template></span>
+                </div>
               </div>
-              <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic leading-relaxed text-sm sm:text-base">
-                "{{ alumni.message || 'Semangat terus meraih cita-cita untuk seluruh adik-adik kelas SMA Negeri 2 Ngawi.' }}"
+
+              <!-- Pesan Motivasi Alumni / Info Siswa -->
+              <div>
+                <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                  {{ isStudent ? 'Catatan Siswa' : 'Pesan & Motivasi untuk Siswa SMADA' }}
+                </div>
+                <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic leading-relaxed text-sm sm:text-base">
+                  "{{ alumni.message || 'Semangat terus meraih cita-cita untuk seluruh adik-adik kelas SMA Negeri 2 Ngawi.' }}"
+                </div>
               </div>
-            </div>
+            </template>
 
             <!-- Footer Metadata -->
             <div class="pt-2 flex items-center justify-between text-xs text-slate-400 border-t border-slate-100 dark:border-slate-800">
-              <span>Status: Terverifikasi ({{ alumni.timestamp }})</span>
+              <span>Status: {{ isStudent ? 'Siswa Aktif Terdata' : 'Terverifikasi' }} ({{ alumni.timestamp }})</span>
               <span class="font-mono text-xs text-slate-400">ID: {{ alumni.id }}</span>
             </div>
           </div>
 
           <!-- Tombol Aksi Bawah -->
-          <div class="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex gap-2.5 mt-auto">
+          <div class="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/40 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-2.5 mt-auto">
             <button
               v-if="alumni.phone && alumni.phone !== '-'"
               @click="openWhatsApp"
               type="button"
-              class="flex-1 py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xs transition-colors"
+              class="flex-1 min-w-[170px] py-2.5 px-4 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xs transition-colors"
             >
               <i class="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
-              <span>Hubungi via WhatsApp ({{ alumni.phone }})</span>
+              <span>Hubungi WA ({{ alumni.phone }})</span>
+            </button>
+
+            <button
+              v-if="isTeacherOrAdmin && isStudent && alumni.no_wa_ortu && alumni.no_wa_ortu !== '-'"
+              @click="openParentWhatsApp"
+              type="button"
+              class="flex-1 min-w-[170px] py-2.5 px-4 rounded-lg bg-purple-700 hover:bg-purple-800 text-white font-semibold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xs transition-colors"
+            >
+              <i class="fa-brands fa-whatsapp text-base" aria-hidden="true"></i>
+              <span>Hubungi WA Ortu</span>
             </button>
             
             <button
