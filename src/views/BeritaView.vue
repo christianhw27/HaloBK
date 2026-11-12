@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
-import NewsReaderModal from '@/components/NewsReaderModal.vue'
 
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
@@ -12,8 +11,6 @@ const newsStore = useNewsStore()
 
 const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
-const activeArticle = ref(null)
-const isReaderOpen = ref(false)
 
 function syncThemeOnMount() {
   if (
@@ -55,13 +52,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
-
-function openArticle(article) {
-  if (!article) return
-  activeArticle.value = article
-  isReaderOpen.value = true
-  newsStore.incrementViews(article.id)
-}
 
 function getCategoryStyle(category) {
   return NEWS_CATEGORY_STYLES[category] || NEWS_CATEGORY_STYLES['Pengumuman BK']
@@ -331,21 +321,26 @@ function resetNewsFilters() {
             :class="getCategoryStyle(newsStore.featuredNews.category).cardTop"
           >
             <!-- Visual Sampul Artikel Utama -->
-            <div v-if="newsStore.featuredNews.imageUrl" class="w-full aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-[#E2E8F0] dark:border-slate-800">
+            <router-link
+              v-if="newsStore.featuredNews.imageUrl"
+              :to="'/berita/' + newsStore.featuredNews.id"
+              class="block w-full aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-[#E2E8F0] dark:border-slate-800 group"
+            >
               <img
                 :src="newsStore.featuredNews.imageUrl"
                 :alt="newsStore.featuredNews.title"
                 width="960"
                 height="540"
                 fetchpriority="high"
-                class="w-full h-full object-cover"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
               />
-            </div>
+            </router-link>
 
             <!-- Sampul Cerah Harmonis Jika Tanpa Gambar -->
-            <div
+            <router-link
               v-else
-              class="w-full aspect-[16/8] bg-gradient-to-br p-6 sm:p-9 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
+              :to="'/berita/' + newsStore.featuredNews.id"
+              class="block w-full aspect-[16/8] bg-gradient-to-br p-6 sm:p-9 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
               :class="getCategoryStyle(newsStore.featuredNews.category).surface"
             >
               <div class="flex items-center justify-between gap-2">
@@ -377,7 +372,7 @@ function resetNewsFilters() {
                   <i :class="getCategoryStyle(newsStore.featuredNews.category).icon" aria-hidden="true"></i>
                 </div>
               </div>
-            </div>
+            </router-link>
 
             <!-- Konten Berita Utama -->
             <div class="p-6 sm:p-8 space-y-4">
@@ -398,7 +393,12 @@ function resetNewsFilters() {
               </div>
 
               <h1 class="font-display font-bold text-2xl sm:text-[1.75rem] lg:text-[2rem] text-[#0F172A] dark:text-white leading-[1.25] tracking-tight">
-                {{ newsStore.featuredNews.title }}
+                <router-link
+                  :to="'/berita/' + newsStore.featuredNews.id"
+                  class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors"
+                >
+                  {{ newsStore.featuredNews.title }}
+                </router-link>
               </h1>
 
               <p class="text-base sm:text-lg text-[#334155] dark:text-slate-300 leading-[1.6]">
@@ -411,14 +411,13 @@ function resetNewsFilters() {
                   <span>Ditulis oleh <strong class="text-[#0F172A] dark:text-slate-200">{{ newsStore.featuredNews.author }}</strong></span>
                 </div>
 
-                <button
-                  type="button"
-                  @click="openArticle(newsStore.featuredNews)"
+                <router-link
+                  :to="'/berita/' + newsStore.featuredNews.id"
                   class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold transition-colors duration-150 inline-flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
                 >
                   <span>Baca Berita Selengkapnya</span>
                   <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
-                </button>
+                </router-link>
               </div>
             </div>
           </article>
@@ -510,12 +509,11 @@ function resetNewsFilters() {
             </div>
 
             <div class="divide-y divide-slate-100 dark:divide-slate-800">
-              <button
+              <router-link
                 v-for="(item, idx) in newsStore.secondaryHighlights"
                 :key="item.id"
-                type="button"
-                @click="openArticle(item)"
-                class="w-full text-left py-3.5 first:pt-1 last:pb-1 flex items-start gap-3.5 group"
+                :to="'/berita/' + item.id"
+                class="w-full text-left py-3.5 first:pt-1 last:pb-1 flex items-start gap-3.5 group block"
               >
                 <span
                   class="w-8 h-8 rounded-xl font-display font-extrabold text-sm flex items-center justify-center tabular-nums shrink-0 mt-0.5 transition-transform duration-150 group-hover:scale-105"
@@ -539,7 +537,7 @@ function resetNewsFilters() {
                     {{ newsStore.formatNewsDate(item.createdAt) }}
                   </div>
                 </div>
-              </button>
+              </router-link>
             </div>
           </div>
 
@@ -642,20 +640,25 @@ function resetNewsFilters() {
           >
             <div>
               <!-- Gambar Cover atau Placeholder Kategori Cerah -->
-              <div v-if="item.imageUrl" class="w-full aspect-[16/10] bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-800">
+              <router-link
+                v-if="item.imageUrl"
+                :to="'/berita/' + item.id"
+                class="block w-full aspect-[16/10] bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-800 group"
+              >
                 <img
                   :src="item.imageUrl"
                   :alt="item.title"
                   width="640"
                   height="400"
                   loading="lazy"
-                  class="w-full h-full object-cover"
+                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
-              </div>
+              </router-link>
 
-              <div
+              <router-link
                 v-else
-                class="w-full aspect-[16/9] bg-gradient-to-br p-5 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
+                :to="'/berita/' + item.id"
+                class="block w-full aspect-[16/9] bg-gradient-to-br p-5 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
                 :class="getCategoryStyle(item.category).surface"
               >
                 <div class="flex items-center justify-between gap-2">
@@ -675,7 +678,7 @@ function resetNewsFilters() {
                 <span class="text-xs font-medium text-[#64748B] dark:text-slate-300">
                   Buletin BK SMA Negeri 2 Ngawi
                 </span>
-              </div>
+              </router-link>
 
               <div class="p-5 space-y-3">
                 <div class="flex items-center justify-between gap-2 text-xs sm:text-sm text-[#64748B] dark:text-slate-400">
@@ -684,7 +687,12 @@ function resetNewsFilters() {
                 </div>
 
                 <h3 class="font-display font-semibold text-lg sm:text-xl text-[#0F172A] dark:text-white leading-[1.4] line-clamp-2">
-                  {{ item.title }}
+                  <router-link
+                    :to="'/berita/' + item.id"
+                    class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors"
+                  >
+                    {{ item.title }}
+                  </router-link>
                 </h3>
 
                 <p class="text-sm sm:text-base text-[#334155] dark:text-slate-300 leading-[1.6] line-clamp-3">
@@ -698,14 +706,13 @@ function resetNewsFilters() {
                 {{ item.author }}
               </span>
 
-              <button
-                type="button"
-                @click="openArticle(item)"
+              <router-link
+                :to="'/berita/' + item.id"
                 class="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800 hover:bg-[#0369A1] hover:text-white dark:hover:bg-[#0369A1] text-[#0369A1] dark:text-sky-200 text-sm font-semibold transition-colors duration-150 shrink-0 min-h-[40px] inline-flex items-center gap-1.5"
               >
                 <span>Baca Artikel</span>
                 <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
-              </button>
+              </router-link>
             </div>
           </article>
         </div>
@@ -759,13 +766,6 @@ function resetNewsFilters() {
         </div>
       </div>
     </footer>
-
-    <!-- Modal Pembaca Artikel Berita -->
-    <NewsReaderModal
-      :is-open="isReaderOpen"
-      :article="activeArticle"
-      @close="isReaderOpen = false"
-    />
 
   </div>
 </template>

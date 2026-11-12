@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import BeritaView from '@/views/BeritaView.vue'
+import DetailBeritaView from '@/views/DetailBeritaView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import DataAlumniView from '@/views/DataAlumniView.vue'
 import FormLaporView from '@/views/FormLaporView.vue'
@@ -20,6 +21,12 @@ const routes = [
   {
     path: '/berita',
     redirect: '/'
+  },
+  {
+    path: '/berita/:id',
+    name: 'detail-berita',
+    component: DetailBeritaView,
+    meta: { layout: 'public', requiresAuth: false }
   },
   {
     path: '/login',
