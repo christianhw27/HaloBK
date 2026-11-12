@@ -128,7 +128,10 @@ export const useNewsStore = defineStore('news', () => {
         }
 
         isTableMissing.value = false
-        newsList.value = (data || []).map(mapDbToNews)
+        // Filter out system configuration records from public/admin news list
+        newsList.value = (data || [])
+          .filter(item => item.kategori !== 'SYSTEM_SETTINGS' && item.judul !== '__TICKER_TEXT__')
+          .map(mapDbToNews)
       } catch (err) {
         errorMessage.value = err.message || 'Gagal memuat daftar berita dari server.'
         loadFromLocalStorage()
@@ -410,34 +413,44 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
-  // Mengambil teks berjalan (running text) dari Supabase / LocalStorage
+  // Mengambil teks berjalan (running text) dari Cloud Database Supabase (Global) / LocalStorage
   async function fetchTickerText() {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { data, error } = await supabase
+        // 1. Coba baca dari record konfigurasi sistem di tabel berita Supabase (Global Cloud)
+        const { data: sysData, error: sysErr } = await supabase
+          .from('berita')
+          .select('isi')
+          .eq('kategori', 'SYSTEM_SETTINGS')
+          .eq('judul', '__TICKER_TEXT__')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (!sysErr && sysData && sysData.isi) {
+          tickerText.value = sysData.isi
+          localStorage.setItem(TICKER_STORAGE_KEY, sysData.isi)
+          return
+        }
+
+        // 2. Fallback cek tabel pengaturan jika ada
+        const { data: configData } = await supabase
           .from('pengaturan')
           .select('value')
           .eq('key', 'ticker_text')
           .maybeSingle()
 
-        if (error) {
-          if (!isMissingTableError(error)) {
-            console.warn('Gagal memuat ticker dari database:', error.message)
-          }
-          return
-        }
-
-        if (data && data.value) {
-          tickerText.value = data.value
-          localStorage.setItem(TICKER_STORAGE_KEY, data.value)
+        if (configData && configData.value) {
+          tickerText.value = configData.value
+          localStorage.setItem(TICKER_STORAGE_KEY, configData.value)
         }
       } catch (err) {
-        console.warn('Error saat fetch ticker text:', err)
+        console.warn('Error saat fetch ticker text global dari Supabase:', err)
       }
     }
   }
 
-  // Memperbarui teks berjalan (running text)
+  // Memperbarui teks berjalan secara GLOBAL di Supabase (Semua Pengunjung Melihat Teks Ini)
   async function updateTickerText(newText) {
     const cleaned = (newText || '').trim() || DEFAULT_TICKER_TEXT
     tickerText.value = cleaned
@@ -446,18 +459,46 @@ export const useNewsStore = defineStore('news', () => {
     if (isSupabaseConfigured && supabase) {
       isSavingTicker.value = true
       try {
-        const { error } = await supabase
+        // 1. Simpan ke record sistem di tabel berita Supabase (terbuka & tersinkronisasi global)
+        const { data: existing } = await supabase
+          .from('berita')
+          .select('id')
+          .eq('kategori', 'SYSTEM_SETTINGS')
+          .eq('judul', '__TICKER_TEXT__')
+          .limit(1)
+          .maybeSingle()
+
+        if (existing && existing.id) {
+          await supabase
+            .from('berita')
+            .update({
+              isi: cleaned,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existing.id)
+        } else {
+          await supabase
+            .from('berita')
+            .insert({
+              judul: '__TICKER_TEXT__',
+              kategori: 'SYSTEM_SETTINGS',
+              ringkasan: 'Ticker text pengumuman global portal',
+              isi: cleaned,
+              is_published: false,
+              is_featured: false
+            })
+        }
+
+        // 2. Simpan juga ke tabel pengaturan jika ada
+        await supabase
           .from('pengaturan')
           .upsert(
             { key: 'ticker_text', value: cleaned, updated_at: new Date().toISOString() },
             { onConflict: 'key' }
           )
-
-        if (error) {
-          console.warn('Tabel pengaturan belum ada di Supabase atau error RLS:', error.message)
-        }
+          .catch(() => {})
       } catch (err) {
-        console.warn('Error upsert ticker ke database:', err)
+        console.warn('Error menyimpan ticker secara global ke Supabase:', err)
       } finally {
         isSavingTicker.value = false
       }

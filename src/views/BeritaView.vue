@@ -5,7 +5,6 @@ import { useAlumniStore } from '@/stores/alumni'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
 import { getNewsUrl } from '@/lib/slugify'
-import TickerEditModal from '@/components/TickerEditModal.vue'
 
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
@@ -13,7 +12,6 @@ const newsStore = useNewsStore()
 
 const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
-const isTickerModalOpen = ref(false)
 
 function syncThemeOnMount() {
   if (
@@ -288,31 +286,29 @@ function resetNewsFilters() {
     <section aria-label="Informasi Terkini Berjalan" class="bg-gradient-to-r from-[#FEF3C7]/90 via-[#FFFBEB] to-[#E0F2FE]/90 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/70 border-b border-amber-200/80 dark:border-slate-800 text-[#334155] dark:text-slate-200 overflow-hidden shadow-xs">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
         
-        <!-- BADGE INFO TERKINI & TOMBOL EDIT CEPAT -->
-        <div class="flex items-center gap-1.5 shrink-0 z-20">
+        <!-- BADGE INFO TERKINI & TOMBOL KHUSUS ADMIN -->
+        <div class="flex items-center gap-2 shrink-0 z-20">
           <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#F59E0B] text-slate-950 border border-amber-400 dark:bg-amber-500 dark:text-slate-950 font-bold text-[11px] sm:text-xs uppercase tracking-wider shadow-xs">
             <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
             <span>Info Terkini</span>
           </span>
 
-          <!-- Tombol Edit Running Text -->
-          <button
-            type="button"
-            @click="isTickerModalOpen = true"
-            class="inline-flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-full text-[11px] font-semibold bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-950/80 dark:hover:bg-amber-900 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 transition-colors shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-            title="Klik untuk mengedit teks berjalan"
-            aria-label="Edit teks berjalan Info Terkini"
+          <!-- Pintasan Edit Khusus Admin (Hanya muncul jika sudah login sebagai Guru BK / Admin) -->
+          <router-link
+            v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
+            to="/kelola-berita"
+            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-200/90 hover:bg-amber-300 dark:bg-amber-950 dark:hover:bg-amber-900 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 transition-colors shadow-2xs"
+            title="Buka Dashboard Admin untuk mengedit running text ini"
           >
             <i class="fa-solid fa-pen-to-square text-[10px]" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Edit</span>
-          </button>
+            <span>Edit di Dashboard</span>
+          </router-link>
         </div>
 
         <!-- CONTAINER TEKS BERJALAN (MARQUEE) -->
         <div
-          class="relative flex-1 overflow-hidden min-w-0 flex items-center select-none cursor-pointer py-0.5"
-          @click="isTickerModalOpen = true"
-          title="Klik untuk mengedit teks • Arahkan mouse untuk menjeda teks"
+          class="relative flex-1 overflow-hidden min-w-0 flex items-center select-none py-0.5"
+          title="Arahkan kursor atau sentuh untuk menjeda teks"
         >
           <!-- Fade Gradien Samping -->
           <div class="pointer-events-none absolute left-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-r from-[#FFFBEB] dark:from-slate-900 to-transparent z-10"></div>
@@ -803,12 +799,6 @@ function resetNewsFilters() {
         </div>
       </div>
     </footer>
-
-    <!-- MODAL EDIT RUNNING TEXT (INFO TERKINI) -->
-    <TickerEditModal
-      :is-open="isTickerModalOpen"
-      @close="isTickerModalOpen = false"
-    />
 
   </div>
 </template>

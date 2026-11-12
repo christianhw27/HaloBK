@@ -107,10 +107,10 @@ async function handleSave() {
               </div>
               <div>
                 <span class="inline-block text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                  Pengaturan Header
+                  Pengaturan Header Beranda
                 </span>
                 <h2 id="ticker-modal-title" class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white">
-                  Edit Running Text (Info Terkini)
+                  Edit Running Text Global (Info Terkini)
                 </h2>
               </div>
             </div>
@@ -129,30 +129,13 @@ async function handleSave() {
           <div class="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
             <!-- STATUS PERMISSION INFO -->
             <div
-              v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
               class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2.5"
             >
-              <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 shrink-0" aria-hidden="true"></i>
+              <i class="fa-solid fa-cloud-arrow-up text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 shrink-0" aria-hidden="true"></i>
               <div>
-                <span class="font-bold">Masuk sebagai Guru BK / Admin:</span>
+                <span class="font-bold">Tersimpan Secara Global di Cloud Database:</span>
                 <p class="mt-0.5 text-emerald-800 dark:text-emerald-300">
-                  Perubahan akan disimpan langsung ke database Supabase dan secara langsung diperbarui untuk seluruh pengunjung portal.
-                </p>
-              </div>
-            </div>
-
-            <div
-              v-else
-              class="p-3.5 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-xs text-sky-900 dark:text-sky-200 flex items-start gap-2.5"
-            >
-              <i class="fa-solid fa-circle-info text-sky-600 dark:text-sky-400 text-sm mt-0.5 shrink-0" aria-hidden="true"></i>
-              <div class="flex-1">
-                <span class="font-bold">Mode Pengunjung / Pengujian:</span>
-                <p class="mt-0.5 text-sky-800 dark:text-sky-300">
-                  Anda dapat mengubah dan menguji teks running text di perangkat ini. Untuk menyimpan secara permanen bagi semua pengguna, silakan
-                  <router-link to="/login" class="font-bold underline hover:text-sky-950 dark:hover:text-white">
-                    Masuk Akun Guru BK
-                  </router-link>.
+                  Perubahan teks ini akan langsung disimpan ke database Supabase dan secara otomatis tampil untuk seluruh pengunjung portal Ruang BK Smada di semua perangkat.
                 </p>
               </div>
             </div>
@@ -292,3 +275,4 @@ async function handleSave() {
     </Transition>
   </Teleport>
 </template>
+
