@@ -229,6 +229,7 @@ async function handleSave() {
                 v-model="form.cohort"
                 class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
+                <option value="2027">2027 (Angkatan 61)</option>
                 <option value="2026">2026</option>
                 <option value="2025">2025</option>
                 <option value="2024">2024</option>

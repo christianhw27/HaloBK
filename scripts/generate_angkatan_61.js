@@ -60,7 +60,7 @@ rawData.forEach((row, idx) => {
     password,
     role: 'siswa',
     angkatan: 61,
-    tahun_lulus: 2026,
+    tahun_lulus: 2027,
     is_placeholder_nisn: isNisnPlaceholder
   })
 })

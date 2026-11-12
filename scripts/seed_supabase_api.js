@@ -24,7 +24,7 @@ async function seedViaApi() {
       kelas: item.kelas,
       password: item.password,
       role: item.role || 'siswa',
-      tahun_lulus: item.tahun_lulus || 2026,
+      tahun_lulus: item.tahun_lulus || 2027,
       angkatan: item.angkatan || 61
     }))
 

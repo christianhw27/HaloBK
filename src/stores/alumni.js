@@ -49,7 +49,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       nis: item.nis || '-',
       nisn: item.nisn || '-',
       classRoom: item.kelas || '-',
-      cohort: String(item.tahun_lulus || 2026),
+      cohort: String(item.tahun_lulus || 2027),
       angkatan: item.angkatan || 61,
       phone: item.no_wa || '-',
       category: 'Siswa Aktif',
