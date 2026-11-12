@@ -63,7 +63,7 @@ const routes = [
     path: '/profil',
     name: 'profile',
     component: ProfileView,
-    meta: { requiresAuth: true }
+    meta: { layout: 'public', requiresAuth: true }
   },
   {
     path: '/profile',
@@ -79,7 +79,7 @@ const routes = [
     path: '/kelola-berita',
     name: 'kelola-berita',
     component: KelolaBeritaView,
-    meta: { requiresAuth: true, requiresAdmin: true }
+    meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',

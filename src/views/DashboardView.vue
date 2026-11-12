@@ -359,15 +359,6 @@ watch(() => alumniStore.alumniList.length, async () => {
             <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
             <span>{{ alumniStore.pendingList.length }} Kabar Perlu Verifikasi</span>
           </router-link>
-
-          <router-link
-            v-if="authStore.userRole === 'admin'"
-            to="/kelola-berita"
-            class="px-5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-semibold text-sm sm:text-base transition-colors flex items-center justify-center gap-2 min-h-[44px] shadow-2xs"
-          >
-            <i class="fa-solid fa-bullhorn text-sm text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
-            <span>Kelola Berita &amp; Running Text</span>
-          </router-link>
         </div>
       </div>
     </section>

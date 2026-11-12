@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNewsStore } from '@/stores/news'
 import { useAuthStore } from '@/stores/auth'
 import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES, NEWS_TABLE_SQL } from '@/lib/starterNews'
+import PublicNavbar from '@/components/PublicNavbar.vue'
 import AdminOnlyGuard from '@/components/AdminOnlyGuard.vue'
 import NewsFormModal from '@/components/NewsFormModal.vue'
 import NewsReaderModal from '@/components/NewsReaderModal.vue'
@@ -10,6 +11,8 @@ import TickerEditModal from '@/components/TickerEditModal.vue'
 
 const newsStore = useNewsStore()
 const authStore = useAuthStore()
+
+const isAdmin = computed(() => authStore.userRole === 'admin' || authStore.userRole === 'guru')
 
 // Running Text Info Terkini Modal
 const isTickerModalOpen = ref(false)
@@ -223,18 +226,39 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Penjaga Akses Sementara (Jika sedang di Mode Alumni) -->
-    <AdminOnlyGuard
-      v-if="authStore.userRole !== 'admin'"
-      description="Anda sedang menggunakan mode pratinjau Alumni. Untuk menambah, mengubah, memublikasikan, atau menghapus artikel di Portal Berita SMA Negeri 2 Ngawi, silakan beralih ke mode Guru BK."
-      back-to="/"
-      back-label="Kembali ke Portal Berita"
-      back-icon="fa-solid fa-newspaper"
-    />
+  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/60 via-[#F8FAFC] to-[#FFFBEB]/50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200">
+    <!-- Navbar Publik -->
+    <PublicNavbar />
 
-    <!-- Area Manajemen Berita (Khusus Guru BK / Admin) -->
-    <template v-else>
+    <!-- Konten Manajemen Berita -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+      
+      <!-- Navigasi Kembali ke Portal Berita -->
+      <div class="flex items-center justify-between pb-1">
+        <router-link
+          to="/"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-[#0369A1] dark:text-sky-400 hover:underline py-1 group"
+        >
+          <i class="fa-solid fa-arrow-left text-xs group-hover:-translate-x-1 transition-transform"></i>
+          <span>Kembali ke Portal Berita</span>
+        </router-link>
+
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          Studio Berita &bull; Akses Khusus Guru BK &amp; Admin
+        </span>
+      </div>
+
+      <!-- Penjaga Akses (Jika bukan Guru BK/Admin) -->
+      <AdminOnlyGuard
+        v-if="!isAdmin"
+        description="Fitur Kelola Berita hanya dapat diakses oleh Guru BK dan Administrator. Silakan login atau beralih menggunakan akun Guru BK untuk mengelola artikel dan pengumuman."
+        back-to="/"
+        back-label="Kembali ke Portal Berita"
+        back-icon="fa-solid fa-newspaper"
+      />
+
+      <!-- Area Manajemen Berita (Khusus Guru BK / Admin) -->
+      <template v-else>
       <!-- Header Halaman & Aksi Utama -->
       <header class="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#FFE4E6]/65 via-white to-[#FEF3C7]/70 dark:from-rose-950/25 dark:via-slate-900 dark:to-amber-950/20 border border-rose-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -911,6 +935,19 @@ onUnmounted(() => {
       @close="isTickerModalOpen = false"
       @saved="handleTickerSaved"
     />
-  </div>
+  </main>
+
+  <!-- Footer Standar Public -->
+  <footer class="mt-auto border-t border-slate-200 dark:border-slate-800 py-6 bg-white/50 dark:bg-slate-900/50 text-center text-xs text-slate-500 dark:text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <p>&copy; {{ new Date().getFullYear() }} Bimbingan dan Konseling SMA Negeri 2 Ngawi. Hak cipta dilindungi.</p>
+      <div class="flex items-center gap-4">
+        <router-link to="/" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Portal Berita</router-link>
+        <router-link to="/dashboard" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Tracer Study</router-link>
+        <router-link to="/profil" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Profil Biodata</router-link>
+      </div>
+    </div>
+  </footer>
+</div>
 </template>
 

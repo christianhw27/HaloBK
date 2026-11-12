@@ -236,26 +236,6 @@ function toggleDarkMode() {
           Jelajahi Menu
         </div>
 
-        <!-- 0. Profil Saya (Biodata Siswa / Akun Pengguna) -->
-        <router-link
-          v-if="authStore.isLoggedIn"
-          to="/profil"
-          class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
-          :class="route.path === '/profil'
-            ? 'bg-sky-100 text-[#0284C7] border-sky-300 dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-800 shadow-2xs font-bold'
-            : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-sky-50/70 dark:hover:bg-slate-800/80 hover:text-[#0284C7] dark:hover:text-sky-300'"
-        >
-          <span
-            class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-            :class="route.path === '/profil'
-              ? 'bg-[#0284C7] text-white shadow-xs'
-              : 'bg-sky-100/80 text-[#0284C7] dark:bg-sky-950/60 dark:text-sky-300'"
-          >
-            <i class="fa-solid fa-id-card text-sm" aria-hidden="true"></i>
-          </span>
-          <span>Profil Biodata</span>
-        </router-link>
-
         <!-- 1. Ringkasan (Dashboard - Trust Blue) -->
         <router-link
           to="/dashboard"
@@ -363,26 +343,6 @@ function toggleDarkMode() {
             <i class="fa-solid fa-database text-sm" aria-hidden="true"></i>
           </span>
           <span>Kelola Data & Excel</span>
-        </router-link>
-
-        <!-- 6. Kelola Portal Berita (Warm Magenta - Admin / Guru BK) -->
-        <router-link
-          v-if="authStore.userRole === 'admin'"
-          to="/kelola-berita"
-          class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
-          :class="route.path === '/kelola-berita'
-            ? 'bg-[#FFE4E6] text-[#BE123C] border-rose-200 dark:bg-rose-950/70 dark:text-rose-200 dark:border-rose-800 shadow-2xs'
-            : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-rose-50/70 dark:hover:bg-slate-800/80 hover:text-[#BE123C] dark:hover:text-rose-300'"
-        >
-          <span
-            class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-            :class="route.path === '/kelola-berita'
-              ? 'bg-[#BE123C] text-white'
-              : 'bg-rose-100/80 text-[#BE123C] dark:bg-rose-950/60 dark:text-rose-300'"
-          >
-            <i class="fa-solid fa-pen-nib text-sm" aria-hidden="true"></i>
-          </span>
-          <span>Kelola Berita</span>
         </router-link>
       </nav>
     </div>

@@ -1,9 +1,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import PublicNavbar from '@/components/PublicNavbar.vue'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 
 const authStore = useAuthStore()
+
+// Cek peran pengguna
+const isSiswa = computed(() => authStore.userRole === 'siswa')
+const isAdmin = computed(() => authStore.userRole === 'admin' || authStore.userRole === 'guru')
 
 // State Formulir Biodata
 const form = ref({
@@ -226,82 +231,119 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12">
+  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200">
     
-    <!-- HEADER PROFIL: IDENTITY HERO CARD -->
-    <div class="rounded-3xl bg-gradient-to-br from-[#0284C7] via-[#0369A1] to-[#075985] text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
-      <!-- Ornamen Dekoratif Latar Belakang -->
-      <div class="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-      <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-amber-400/15 rounded-full blur-2xl pointer-events-none"></div>
+    <!-- NAVBAR RESMI HALAMAN DEPAN -->
+    <PublicNavbar />
 
-      <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div class="flex items-center gap-4 sm:gap-5">
-          <!-- Avatar Squircle dengan Foto atau Inisial -->
-          <div class="relative group shrink-0">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white/15 backdrop-blur-md border border-white/30 text-white flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl shadow-md">
-              <img
-                v-if="form.foto_url"
-                :src="form.foto_url"
-                :alt="'Foto ' + form.nama"
-                class="w-full h-full object-cover"
-              />
-              <span v-else>{{ userInitials }}</span>
+    <!-- KONTEN UTAMA PROFIL -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      
+      <!-- NAVIGASI KEMBALI KE PORTAL BERITA -->
+      <div class="flex items-center justify-between pb-1">
+        <router-link
+          to="/"
+          class="inline-flex items-center gap-2 text-sm font-semibold text-[#0369A1] dark:text-sky-400 hover:underline py-1 group"
+        >
+          <i class="fa-solid fa-arrow-left text-xs group-hover:-translate-x-1 transition-transform"></i>
+          <span>Kembali ke Halaman Berita</span>
+        </router-link>
+
+        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+          Konfigurasi Akun &bull; {{ isAdmin ? 'Guru BK' : (isSiswa ? 'Siswa SMADA' : 'Pengguna') }}
+        </span>
+      </div>
+
+      <!-- HEADER PROFIL: IDENTITY HERO CARD -->
+      <div class="rounded-3xl bg-gradient-to-br from-[#0284C7] via-[#0369A1] to-[#075985] text-white p-6 sm:p-8 shadow-xl relative overflow-hidden">
+        <!-- Ornamen Dekoratif Latar Belakang -->
+        <div class="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -bottom-12 -left-12 w-48 h-48 bg-amber-400/15 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div class="flex items-center gap-4 sm:gap-5">
+            <!-- Avatar Squircle dengan Foto atau Inisial -->
+            <div class="relative group shrink-0">
+              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-white/15 backdrop-blur-md border border-white/30 text-white flex items-center justify-center font-display font-extrabold text-2xl sm:text-3xl shadow-md">
+                <img
+                  v-if="form.foto_url"
+                  :src="form.foto_url"
+                  :alt="'Foto ' + form.nama"
+                  class="w-full h-full object-cover"
+                />
+                <span v-else>{{ userInitials }}</span>
+              </div>
+              <!-- Tombol Kamera Cepat di Sudut Avatar -->
+              <button
+                type="button"
+                @click="triggerPhotoSelect"
+                class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center text-xs shadow-md transition-transform group-hover:scale-110"
+                title="Unggah atau ganti foto profil"
+                aria-label="Unggah atau ganti foto profil"
+              >
+                <i class="fa-solid fa-camera"></i>
+              </button>
             </div>
-            <!-- Tombol Kamera Cepat di Sudut Avatar -->
-            <button
-              type="button"
-              @click="triggerPhotoSelect"
-              class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center text-xs shadow-md transition-transform group-hover:scale-110"
-              title="Unggah atau ganti foto profil"
-              aria-label="Unggah atau ganti foto profil"
-            >
-              <i class="fa-solid fa-camera"></i>
-            </button>
+
+            <div class="space-y-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wide shadow-2xs">
+                  {{ isAdmin ? 'Guru BK / Pengelola' : (isSiswa ? ('Angkatan ' + (form.angkatan || 61) + ' (Lulusan 2027)') : 'Alumni / Pengguna') }}
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-semibold text-xs border border-white/25">
+                  {{ isSiswa ? (form.kelas || 'Siswa SMADA') : (isAdmin ? 'Hak Akses Penuh' : 'Pengguna Terdaftar') }}
+                </span>
+              </div>
+
+              <h1 class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-white truncate leading-tight">
+                {{ form.nama || authStore.userName || 'Profil Pengguna' }}
+              </h1>
+
+              <p class="text-xs sm:text-sm text-sky-100 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <template v-if="isSiswa">
+                  <span>NISN: <strong class="text-white">{{ form.nisn || '-' }}</strong></span>
+                  <span aria-hidden="true">&bull;</span>
+                  <span>NIS: <strong class="text-white">{{ form.nis || '-' }}</strong></span>
+                </template>
+                <template v-else>
+                  <span>Email: <strong class="text-white">{{ form.email || authStore.userEmail || '-' }}</strong></span>
+                  <span aria-hidden="true">&bull;</span>
+                  <span>Peran: <strong class="text-white">{{ authStore.userRole === 'admin' ? 'Guru BK / Admin' : 'Pengguna' }}</strong></span>
+                </template>
+              </p>
+            </div>
           </div>
 
-          <div class="space-y-1 min-w-0">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="px-2.5 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wide shadow-2xs">
-                Angkatan 61
+          <!-- Meter Kelengkapan Profil (Khusus Siswa) atau Info Status (Khusus Admin/User) -->
+          <div v-if="isSiswa" class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 w-full md:w-64 space-y-2 shrink-0">
+            <div class="flex items-center justify-between text-xs font-semibold">
+              <span class="text-sky-100 flex items-center gap-1.5">
+                <i class="fa-solid fa-list-check text-amber-300"></i>
+                Kelengkapan Biodata
               </span>
-              <span class="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-semibold text-xs border border-white/25">
-                {{ form.kelas || 'Siswa SMADA' }}
-              </span>
+              <span class="font-display font-bold text-sm text-amber-300">{{ completenessPercentage }}%</span>
             </div>
-
-            <h1 class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-white truncate leading-tight">
-              {{ form.nama || 'Profil Siswa' }}
-            </h1>
-
-            <p class="text-xs sm:text-sm text-sky-100 flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span>NISN: <strong class="text-white">{{ form.nisn || '-' }}</strong></span>
-              <span aria-hidden="true">&bull;</span>
-              <span>NIS: <strong class="text-white">{{ form.nis || '-' }}</strong></span>
+            <div class="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+              <div
+                class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500 rounded-full"
+                :style="{ width: `${completenessPercentage}%` }"
+              ></div>
+            </div>
+            <p class="text-[11px] text-sky-100/90 leading-tight">
+              {{ completenessPercentage === 100 ? '🎉 Biodata Anda sudah lengkap!' : 'Lengkapi seluruh data untuk keperluan administrasi BK.' }}
+            </p>
+          </div>
+          <div v-else class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 w-full md:w-64 space-y-2 shrink-0">
+            <div class="flex items-center gap-2 text-xs font-bold text-amber-300 uppercase tracking-wider">
+              <i class="fa-solid fa-shield-halved"></i>
+              <span>Status Akun Aktif</span>
+            </div>
+            <p class="text-xs text-sky-100 leading-relaxed">
+              {{ isAdmin ? 'Akun Administrator Guru BK: Memiliki akses mengelola berita, database alumni, serta verifikasi laporan tracer study.' : 'Akun Pengguna Terverifikasi.' }}
             </p>
           </div>
         </div>
-
-        <!-- Meter Kelengkapan Profil -->
-        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 sm:p-5 w-full md:w-64 space-y-2 shrink-0">
-          <div class="flex items-center justify-between text-xs font-semibold">
-            <span class="text-sky-100 flex items-center gap-1.5">
-              <i class="fa-solid fa-list-check text-amber-300"></i>
-              Kelengkapan Biodata
-            </span>
-            <span class="font-display font-bold text-sm text-amber-300">{{ completenessPercentage }}%</span>
-          </div>
-          <div class="w-full bg-white/20 rounded-full h-2 overflow-hidden">
-            <div
-              class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500 rounded-full"
-              :style="{ width: `${completenessPercentage}%` }"
-            ></div>
-          </div>
-          <p class="text-[11px] text-sky-100/90 leading-tight">
-            {{ completenessPercentage === 100 ? '🎉 Biodata Anda sudah lengkap!' : 'Lengkapi seluruh data untuk keperluan administrasi BK.' }}
-          </p>
-        </div>
       </div>
-    </div>
 
     <!-- FEEDBACK ALERT (SUKSES / ERROR) -->
     <Transition
@@ -442,12 +484,12 @@ onMounted(async () => {
               <span class="w-8 h-8 rounded-xl bg-sky-100 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 flex items-center justify-center text-sm">
                 <i class="fa-solid fa-user"></i>
               </span>
-              <span>Biodata Siswa</span>
+              <span>{{ isSiswa ? 'Biodata Siswa' : 'Informasi Akun Pengelola' }}</span>
             </h2>
-            <span class="text-xs text-slate-400">Data Pokok</span>
+            <span class="text-xs text-slate-400">{{ isSiswa ? 'Data Pokok' : 'Profil Pengguna' }}</span>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div v-if="isSiswa" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- NAMA LENGKAP (Readonly Terverifikasi) -->
             <div class="sm:col-span-2">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -605,10 +647,64 @@ onMounted(async () => {
               />
             </div>
           </div>
+
+          <!-- TAMPILAN FORMULIR KHUSUS GURU BK / PENGELOLA / PENGGUNA -->
+          <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label for="admin_nama" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Nama Lengkap
+              </label>
+              <input
+                id="admin_nama"
+                v-model="form.nama"
+                type="text"
+                placeholder="Nama Pengguna"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
+              />
+            </div>
+
+            <div>
+              <label for="admin_email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Alamat Email
+              </label>
+              <input
+                id="admin_email"
+                v-model="form.email"
+                type="email"
+                placeholder="email@sekolah.sch.id"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
+              />
+            </div>
+
+            <div>
+              <label for="admin_no_wa" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Nomor WhatsApp
+              </label>
+              <input
+                id="admin_no_wa"
+                v-model="form.no_wa"
+                type="tel"
+                placeholder="081234567890"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
+              />
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Peran Hak Akses
+              </label>
+              <input
+                :value="isAdmin ? 'Guru Bimbingan Konseling / Administrator' : 'Pengguna / Alumni SMADA'"
+                type="text"
+                readonly
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-300 cursor-not-allowed"
+              />
+            </div>
+          </div>
         </div>
 
-        <!-- SEKSI 2: DATA ORANG TUA / WALI -->
-        <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-sm space-y-5">
+        <!-- SEKSI 2: DATA ORANG TUA / WALI (KHUSUS SISWA) -->
+        <div v-if="isSiswa" class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-sm space-y-5">
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
             <h2 class="font-display font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
               <span class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 flex items-center justify-center text-sm">
@@ -619,7 +715,7 @@ onMounted(async () => {
             <span class="text-xs text-slate-400">Kontak Keluarga</span>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div v-if="isSiswa" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <!-- NAMA ORTU / WALI -->
             <div class="sm:col-span-2">
               <label for="nama_ortu" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -800,5 +896,11 @@ onMounted(async () => {
 
     </div>
 
-  </div>
+  </main>
+
+  <!-- FOOTER RESMI -->
+  <footer class="mt-auto border-t border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 py-4 px-4 text-center text-xs text-slate-500 dark:text-slate-400">
+    &copy; 2026 Bimbingan Konseling SMA Negeri 2 Ngawi. Hak cipta dilindungi.
+  </footer>
+</div>
 </template>
