@@ -498,35 +498,6 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <!-- BANNER AJAKAN LAPOR DIRI TRACER STUDY -->
-        <div class="rounded-3xl bg-gradient-to-br from-[#E0F2FE]/80 via-white to-[#FEF3C7]/70 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/40 border border-sky-200/80 dark:border-slate-800 p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-5 shadow-sm">
-          <div class="space-y-1.5 text-center sm:text-left">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-200">
-              Tracer Study Alumni SMADA
-            </span>
-            <h2 class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white">
-              Kamu Alumni SMA Negeri 2 Ngawi?
-            </h2>
-            <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl">
-              Yuk bagikan jejak kelanjutan studimu di PTN, PTS, Kedinasan, maupun dunia karir sebagai inspirasi untuk adik-adik kelas.
-            </p>
-          </div>
-
-          <div class="flex items-center gap-2.5 shrink-0 w-full sm:w-auto">
-            <router-link
-              to="/lapor"
-              class="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold transition-colors text-center shadow-xs"
-            >
-              Formulir Lapor Diri
-            </router-link>
-            <router-link
-              to="/dashboard"
-              class="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-sky-200 dark:border-slate-700 text-[#0369A1] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-700 text-sm font-semibold transition-colors text-center"
-            >
-              Lihat Statistik
-            </router-link>
-          </div>
-        </div>
 
         <!-- SEKSI KABAR LAINNYA -->
         <section v-if="otherNews.length > 0" class="pt-6 border-t border-sky-100 dark:border-slate-800 space-y-4">
@@ -600,3 +571,4 @@ onUnmounted(() => {
 
   </div>
 </template>
+
