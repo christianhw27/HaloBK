@@ -469,15 +469,17 @@ export const useNewsStore = defineStore('news', () => {
           .maybeSingle()
 
         if (existing && existing.id) {
-          await supabase
+          const { error: updErr } = await supabase
             .from('berita')
             .update({
               isi: cleaned,
               updated_at: new Date().toISOString()
             })
             .eq('id', existing.id)
+
+          if (updErr) throw updErr
         } else {
-          await supabase
+          const { error: insErr } = await supabase
             .from('berita')
             .insert({
               judul: '__TICKER_TEXT__',
@@ -487,18 +489,12 @@ export const useNewsStore = defineStore('news', () => {
               is_published: false,
               is_featured: false
             })
-        }
 
-        // 2. Simpan juga ke tabel pengaturan jika ada
-        await supabase
-          .from('pengaturan')
-          .upsert(
-            { key: 'ticker_text', value: cleaned, updated_at: new Date().toISOString() },
-            { onConflict: 'key' }
-          )
-          .catch(() => {})
+          if (insErr) throw insErr
+        }
       } catch (err) {
-        console.warn('Error menyimpan ticker secara global ke Supabase:', err)
+        console.error('Error menyimpan ticker secara global ke Supabase:', err)
+        return { success: false, message: err.message || 'Gagal menyimpan ke server database.' }
       } finally {
         isSavingTicker.value = false
       }

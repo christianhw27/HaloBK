@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useNewsStore } from '@/stores/news'
-import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
   isOpen: {
@@ -13,7 +12,6 @@ const props = defineProps({
 const emit = defineEmits(['close', 'saved'])
 
 const newsStore = useNewsStore()
-const authStore = useAuthStore()
 
 const textDraft = ref('')
 const successNotice = ref('')
@@ -44,18 +42,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-function applyPreset(type) {
-  if (type === 'default') {
-    textDraft.value = '📢 Selamat datang di Portal Ruang BK SMA Negeri 2 Ngawi • Pendataan Tracer Study Alumni Angkatan 60 Resmi Dibuka • Kunjungi ruang Bimbingan Konseling untuk layanan konsultasi karir & perguruan tinggi • Maju Bersama, Hebat Semua!'
-  } else if (type === 'headline' && newsStore.featuredNews) {
-    textDraft.value = `📰 INFO UTAMA: ${newsStore.featuredNews.title} • Dapatkan informasi selengkapnya di Ruang BK Smada • SMADA Ngawi Berprestasi!`
-  } else if (type === 'tracer') {
-    textDraft.value = '🎓 TRACER STUDY ALUMNI: Mari sukseskan pendataan studi lanjut & karir alumni SMA Negeri 2 Ngawi • Isi formulir lapor diri melalui menu Tracer Study!'
-  } else if (type === 'konseling') {
-    textDraft.value = '💬 LAYANAN KONSELING SMADA: Bimbingan Karir, SNBP, SNBT, Kedinasan & Konseling Pribadi buka setiap hari sekolah di Ruang BK • Konsultasikan masa depanmu!'
-  }
-}
-
 async function handleSave() {
   const clean = textDraft.value.trim()
   if (!clean) {
@@ -64,16 +50,18 @@ async function handleSave() {
   }
 
   errorNotice.value = ''
+  successNotice.value = ''
+
   const res = await newsStore.updateTickerText(clean)
   if (res && res.success) {
-    successNotice.value = 'Teks berjalan Info Terkini berhasil disimpan!'
+    successNotice.value = 'Teks berjalan berhasil disimpan secara global ke database!'
     emit('saved', clean)
     setTimeout(() => {
       successNotice.value = ''
       emit('close')
-    }, 900)
+    }, 600)
   } else {
-    errorNotice.value = 'Gagal menyimpan perubahan. Silakan coba kembali.'
+    errorNotice.value = (res && res.message) ? res.message : 'Gagal menyimpan perubahan ke database.'
   }
 }
 </script>
@@ -102,7 +90,7 @@ async function handleSave() {
           <!-- MODAL HEADER -->
           <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-amber-50/80 via-white to-sky-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300 flex items-center justify-center shadow-xs">
+              <div class="w-10 h-10 rounded-2xl bg-[#F59E0B] text-slate-950 flex items-center justify-center shadow-xs">
                 <i class="fa-solid fa-bullhorn text-lg" aria-hidden="true"></i>
               </div>
               <div>
@@ -133,55 +121,10 @@ async function handleSave() {
             >
               <i class="fa-solid fa-cloud-arrow-up text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 shrink-0" aria-hidden="true"></i>
               <div>
-                <span class="font-bold">Tersimpan Secara Global di Cloud Database:</span>
+                <span class="font-bold">Tersimpan Secara Global di Database Cloud:</span>
                 <p class="mt-0.5 text-emerald-800 dark:text-emerald-300">
-                  Perubahan teks ini akan langsung disimpan ke database Supabase dan secara otomatis tampil untuk seluruh pengunjung portal Ruang BK Smada di semua perangkat.
+                  Perubahan teks ini langsung disimpan ke server database Supabase dan secara otomatis tampil untuk seluruh pengunjung portal Ruang BK Smada di semua perangkat.
                 </p>
-              </div>
-            </div>
-
-            <!-- PRESET QUICK CLICKS -->
-            <div class="space-y-2">
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                Pilihan Cepat (Preset Template):
-              </label>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  @click="applyPreset('default')"
-                  class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <i class="fa-solid fa-rotate-left text-[11px] text-amber-600"></i>
-                  <span>Default SMADA</span>
-                </button>
-
-                <button
-                  v-if="newsStore.featuredNews"
-                  type="button"
-                  @click="applyPreset('headline')"
-                  class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <i class="fa-solid fa-newspaper text-[11px]"></i>
-                  <span>Gunakan Berita Utama</span>
-                </button>
-
-                <button
-                  type="button"
-                  @click="applyPreset('tracer')"
-                  class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <i class="fa-solid fa-graduation-cap text-[11px]"></i>
-                  <span>Info Tracer Study</span>
-                </button>
-
-                <button
-                  type="button"
-                  @click="applyPreset('konseling')"
-                  class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800 transition-colors inline-flex items-center gap-1.5"
-                >
-                  <i class="fa-solid fa-comments text-[11px]"></i>
-                  <span>Layanan Konseling</span>
-                </button>
               </div>
             </div>
 
@@ -189,7 +132,7 @@ async function handleSave() {
             <div class="space-y-1.5">
               <div class="flex items-center justify-between text-xs">
                 <label for="ticker-text-input" class="font-bold text-slate-700 dark:text-slate-200">
-                  Isi Teks Berjalan:
+                  Tulis Teks Berjalan:
                 </label>
                 <span class="text-slate-500 dark:text-slate-400">
                   {{ textDraft.length }} karakter
@@ -200,22 +143,22 @@ async function handleSave() {
                 v-model="textDraft"
                 rows="4"
                 maxlength="600"
-                placeholder="Tuliskan pengumuman atau info penting yang ingin ditampilkan secara berjalan..."
+                placeholder="Tuliskan pengumuman atau info terkini di sini..."
                 class="w-full px-4 py-3 rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 leading-relaxed transition-all"
               ></textarea>
               <p class="text-[11px] text-slate-500 dark:text-slate-400">
-                Tip: Gunakan pemisah tanda titik bulat (•) atau emoji untuk memisahkan beberapa kalimat informasi.
+                Gunakan simbol titik pemisah (&bull;) atau emoji untuk memisahkan antar kalimat pengumuman.
               </p>
             </div>
 
             <!-- LIVE PREVIEW BOX -->
             <div class="space-y-1.5">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">
-                Pratinjau Animasi Berjalan:
+                Pratinjau Animasi Teks Berjalan:
               </label>
               <div class="p-2.5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-100/50 to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-sky-950/40 border border-amber-200 dark:border-slate-800 flex items-center gap-2 overflow-hidden shadow-inner">
                 <span class="px-2 py-0.5 rounded-full bg-[#F59E0B] text-slate-950 font-bold text-[10px] uppercase tracking-wider shrink-0 shadow-xs">
-                  Live Ticker
+                  Info Terkini
                 </span>
                 <div class="relative flex-1 overflow-hidden min-w-0 flex items-center">
                   <div class="animate-ticker text-xs font-medium text-slate-900 dark:text-slate-100">
@@ -275,4 +218,3 @@ async function handleSave() {
     </Transition>
   </Teleport>
 </template>
-
