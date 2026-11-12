@@ -55,10 +55,9 @@ async function handleLogin() {
 
         <div class="relative flex items-center justify-center gap-3 mb-3">
           <img
-            src="/logo.svg"
-            alt="Logo SMA Negeri 2 Ngawi"
-            class="w-12 h-12 rounded-xl bg-white p-1.5 shadow-md object-contain shrink-0"
-            onerror="this.onerror=null; this.src='/logo.png'"
+            src="/logo.png"
+            alt="Logo Ruang BK Smada"
+            class="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md object-contain shrink-0"
           />
         </div>
 

@@ -1,49 +1,18 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
 import { slugify, getNewsUrl } from '@/lib/slugify'
+import PublicNavbar from '@/components/PublicNavbar.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const newsStore = useNewsStore()
 
-const isDark = ref(false)
-const isMobileMenuOpen = ref(false)
 const copiedNotice = ref(false)
-
-function syncThemeOnMount() {
-  if (
-    localStorage.getItem('theme') === 'dark' ||
-    (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  ) {
-    isDark.value = true
-    document.documentElement.classList.add('dark')
-  } else {
-    isDark.value = false
-    document.documentElement.classList.remove('dark')
-  }
-}
-
-function toggleDarkMode() {
-  isDark.value = !isDark.value
-  if (isDark.value) {
-    document.documentElement.classList.add('dark')
-    localStorage.setItem('theme', 'dark')
-  } else {
-    document.documentElement.classList.remove('dark')
-    localStorage.setItem('theme', 'light')
-  }
-}
-
-function handleKeydown(e) {
-  if (e.key === 'Escape' && isMobileMenuOpen.value) {
-    isMobileMenuOpen.value = false
-  }
-}
 
 // Pencarian artikel berdasarkan ID, slug, atau judul slugified
 const article = computed(() => {
@@ -164,14 +133,61 @@ function updatePageMetadata() {
   }
 }
 
+// Reading progress & scroll reveal
+const scrollProgress = ref(0)
+let scrollObserver = null
+
+function handleScroll() {
+  const scrollTop = window.scrollY || document.documentElement.scrollTop
+  const docHeight = document.documentElement.scrollHeight - window.innerHeight
+  if (docHeight > 0) {
+    scrollProgress.value = Math.min(100, Math.max(0, (scrollTop / docHeight) * 100))
+  }
+}
+
+function initScrollObserver() {
+  if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return
+
+  if (scrollObserver) {
+    scrollObserver.disconnect()
+  }
+
+  scrollObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed')
+          scrollObserver.unobserve(entry.target)
+        }
+      })
+    },
+    {
+      threshold: 0.05,
+      rootMargin: '0px 0px -20px 0px',
+    }
+  )
+
+  const elements = document.querySelectorAll('.reveal-on-scroll:not(.is-revealed)')
+  elements.forEach((el) => scrollObserver.observe(el))
+}
+
 onMounted(async () => {
-  syncThemeOnMount()
-  window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  handleScroll()
 
   if (newsStore.newsList.length === 0) {
     await newsStore.fetchNews()
   }
   updatePageMetadata()
+
+  nextTick(() => {
+    initScrollObserver()
+  })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
+  if (scrollObserver) scrollObserver.disconnect()
 })
 
 watch(() => [route.params.slug, route.params.id], async () => {
@@ -180,171 +196,28 @@ watch(() => [route.params.slug, route.params.id], async () => {
     await newsStore.fetchNews()
   }
   updatePageMetadata()
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
+  nextTick(() => {
+    initScrollObserver()
+  })
 })
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-hidden">
+  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-hidden relative">
     
-    <!-- STICKY NAVBAR -->
-    <header class="sticky top-0 z-40 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800">
-      <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
-
-      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 sm:h-[72px] flex items-center justify-between gap-2 sm:gap-4">
-        
-        <!-- Logo & Identitas Portal -->
-        <router-link to="/" class="flex items-center gap-2 sm:gap-3 min-w-0 min-h-[44px]">
-          <img
-            src="/logo.png"
-            alt="Logo SMA Negeri 2 Ngawi"
-            width="40"
-            height="40"
-            class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-0.5 shadow-sm shrink-0"
-            onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
-          />
-          <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#E0F2FE] dark:bg-slate-800 border border-sky-200 dark:border-slate-700 flex items-center justify-center text-[#0369A1] dark:text-sky-400 shrink-0 hidden">
-            <i class="fa-solid fa-graduation-cap text-base sm:text-lg" aria-hidden="true"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <span class="font-display font-bold text-base sm:text-xl text-[#0F172A] dark:text-white tracking-tight truncate">
-                Ruang BK Smada
-              </span>
-              <span class="hidden sm:inline-flex text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800 shrink-0">
-                SMADA Ngawi
-              </span>
-            </div>
-            <p class="text-[11px] sm:text-xs text-[#64748B] dark:text-slate-400 truncate -mt-0.5">
-              SMA Negeri 2 Ngawi
-            </p>
-          </div>
-        </router-link>
-
-        <!-- Aksi Kanan Navbar -->
-        <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-          <router-link
-            to="/"
-            class="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold text-[#0369A1] dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            <i class="fa-solid fa-arrow-left text-xs" aria-hidden="true"></i>
-            <span>Portal Berita</span>
-          </router-link>
-
-          <!-- Toggle Tema Gelap / Terang -->
-          <button
-            type="button"
-            @click="toggleDarkMode"
-            class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
-            :aria-label="isDark ? 'Ubah ke tampilan terang' : 'Ubah ke tampilan gelap'"
-          >
-            <i v-if="isDark" class="fa-solid fa-sun text-amber-400 text-sm" aria-hidden="true"></i>
-            <i v-else class="fa-solid fa-moon text-[#334155] text-sm" aria-hidden="true"></i>
-          </button>
-
-          <!-- Menu Akses Tracer Study (Jika Sudah Login) -->
-          <div v-if="authStore.isLoggedIn" class="hidden sm:flex items-center gap-2">
-            <router-link
-              to="/dashboard"
-              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm font-semibold shadow-sm transition-colors duration-150 min-h-[44px]"
-            >
-              <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-              <span>Tracer Study</span>
-            </router-link>
-          </div>
-
-          <!-- Tombol Menu Mobile -->
-          <button
-            type="button"
-            @click="isMobileMenuOpen = true"
-            class="lg:hidden w-10 h-10 sm:w-auto sm:px-3.5 sm:py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-200 text-sm font-semibold flex items-center justify-center gap-1.5 shrink-0"
-            aria-label="Buka menu navigasi"
-          >
-            <i class="fa-solid fa-bars text-sm" aria-hidden="true"></i>
-            <span class="hidden sm:inline">Menu</span>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <!-- MOBILE NAVIGATION DRAWER -->
-    <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
+    <!-- READING PROGRESS BAR DI ATAS LAYAR -->
+    <div
+      class="fixed top-0 left-0 right-0 h-[3px] bg-transparent z-[70] pointer-events-none"
+      aria-hidden="true"
     >
       <div
-        v-if="isMobileMenuOpen"
-        class="lg:hidden fixed inset-0 z-50 bg-slate-950/60 flex justify-end"
-        @click.self="isMobileMenuOpen = false"
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu Navigasi Seluler"
-          class="w-72 max-w-[85vw] bg-white dark:bg-slate-900 h-full border-l border-slate-200 dark:border-slate-800 p-5 flex flex-col justify-between shadow-2xl"
-        >
-          <div class="space-y-5">
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-              <span class="font-display font-bold text-base text-slate-900 dark:text-white">Menu Ruang BK</span>
-              <button
-                type="button"
-                @click="isMobileMenuOpen = false"
-                class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-center"
-                aria-label="Tutup menu"
-              >
-                <i class="fa-solid fa-xmark text-base" aria-hidden="true"></i>
-              </button>
-            </div>
+        class="h-full bg-gradient-to-r from-[#0284C7] via-amber-400 to-emerald-500 transition-[width] duration-100 ease-out shadow-sm shadow-sky-500/50"
+        :style="{ width: `${scrollProgress}%` }"
+      ></div>
+    </div>
 
-            <nav class="space-y-1.5" aria-label="Tautan Seluler">
-              <router-link
-                to="/"
-                @click="isMobileMenuOpen = false"
-                class="block px-3.5 py-3 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <i class="fa-solid fa-newspaper mr-2 text-sky-600" aria-hidden="true"></i>
-                Halaman Depan Berita
-              </router-link>
-              <router-link
-                to="/dashboard"
-                @click="isMobileMenuOpen = false"
-                class="block px-3.5 py-3 rounded-lg text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <i class="fa-solid fa-chart-pie mr-2 text-emerald-600" aria-hidden="true"></i>
-                Portal Tracer Study
-              </router-link>
-              <router-link
-                v-if="authStore.userRole === 'admin'"
-                to="/kelola-berita"
-                @click="isMobileMenuOpen = false"
-                class="block px-3.5 py-3 rounded-lg text-sm font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
-              >
-                <i class="fa-solid fa-pen-to-square mr-2 text-emerald-600" aria-hidden="true"></i>
-                Kelola Berita (Admin)
-              </router-link>
-            </nav>
-          </div>
-
-          <div class="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              @click="copyArticleLink"
-              class="w-full py-3 px-4 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0369A1] dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-sm font-semibold flex items-center justify-center gap-2"
-            >
-              <i class="fa-regular fa-copy" aria-hidden="true"></i>
-              <span>{{ copiedNotice ? 'Tautan Disalin!' : 'Salin Link Berita Ini' }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <!-- NAVBAR RESMI DENGAN 3 MENU: BERITA, AKADEMIK & ALUMNI -->
+    <PublicNavbar />
 
     <!-- NOTIFIKASI TOAST FLOATING SAAT TAUTAN DISALIN -->
     <Transition
@@ -442,7 +315,7 @@ onUnmounted(() => {
       </div>
 
       <!-- KONTEN ARTIKEL LENGKAP -->
-      <article v-else class="space-y-6 sm:space-y-8">
+      <article v-else class="reveal-on-scroll space-y-6 sm:space-y-8">
         
         <!-- HEADER ARTIKEL: KATEGORI, TANGGAL & METADATA -->
         <header class="space-y-3.5">
@@ -555,7 +428,7 @@ onUnmounted(() => {
 
 
         <!-- SEKSI KABAR LAINNYA -->
-        <section v-if="otherNews.length > 0" class="pt-6 border-t border-sky-100 dark:border-slate-800 space-y-4">
+        <section v-if="otherNews.length > 0" class="reveal-on-scroll pt-6 border-t border-sky-100 dark:border-slate-800 space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white flex items-center gap-2">
               <span class="w-2.5 h-2.5 rounded-full bg-[#0284C7]" aria-hidden="true"></span>
@@ -626,4 +499,20 @@ onUnmounted(() => {
 
   </div>
 </template>
+
+<style scoped>
+/* SCROLL REVEAL ANIMATION */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.75s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+</style>
 
