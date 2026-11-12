@@ -25,3 +25,4 @@ export function getNewsUrl(item) {
   const slug = item.slug || slugify(item.title)
   return `/berita/${slug || item.id}`
 }
+

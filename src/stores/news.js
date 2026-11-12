@@ -6,11 +6,17 @@ import { STARTER_NEWS } from '@/lib/starterNews'
 export const useNewsStore = defineStore('news', () => {
   const STORAGE_KEY = 'hallo_berita_smada_v1'
   const SEEDED_KEY = 'hallo_berita_seeded_v1'
+  const TICKER_STORAGE_KEY = 'ruangbk_ticker_text_v1'
+  const DEFAULT_TICKER_TEXT = '📢 Selamat datang di Portal Ruang BK SMA Negeri 2 Ngawi • Pendataan Tracer Study Alumni Angkatan 60 Resmi Dibuka • Kunjungi ruang Bimbingan Konseling untuk layanan konsultasi karir & perguruan tinggi • Maju Bersama, Hebat Semua!'
 
   const newsList = ref([])
   const isLoading = ref(false)
   const errorMessage = ref('')
   const isTableMissing = ref(false)
+
+  // Running Text / Info Terkini Marquee
+  const tickerText = ref(localStorage.getItem(TICKER_STORAGE_KEY) || DEFAULT_TICKER_TEXT)
+  const isSavingTicker = ref(false)
 
   // Filter untuk Portal Berita Publik
   const selectedCategory = ref('ALL')
@@ -130,6 +136,9 @@ export const useNewsStore = defineStore('news', () => {
     } else {
       loadFromLocalStorage()
     }
+
+    // Ambil juga teks berjalan terkini
+    await fetchTickerText()
 
     isLoading.value = false
   }
@@ -401,11 +410,71 @@ export const useNewsStore = defineStore('news', () => {
     }
   }
 
+  // Mengambil teks berjalan (running text) dari Supabase / LocalStorage
+  async function fetchTickerText() {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('pengaturan')
+          .select('value')
+          .eq('key', 'ticker_text')
+          .maybeSingle()
+
+        if (error) {
+          if (!isMissingTableError(error)) {
+            console.warn('Gagal memuat ticker dari database:', error.message)
+          }
+          return
+        }
+
+        if (data && data.value) {
+          tickerText.value = data.value
+          localStorage.setItem(TICKER_STORAGE_KEY, data.value)
+        }
+      } catch (err) {
+        console.warn('Error saat fetch ticker text:', err)
+      }
+    }
+  }
+
+  // Memperbarui teks berjalan (running text)
+  async function updateTickerText(newText) {
+    const cleaned = (newText || '').trim() || DEFAULT_TICKER_TEXT
+    tickerText.value = cleaned
+    localStorage.setItem(TICKER_STORAGE_KEY, cleaned)
+
+    if (isSupabaseConfigured && supabase) {
+      isSavingTicker.value = true
+      try {
+        const { error } = await supabase
+          .from('pengaturan')
+          .upsert(
+            { key: 'ticker_text', value: cleaned, updated_at: new Date().toISOString() },
+            { onConflict: 'key' }
+          )
+
+        if (error) {
+          console.warn('Tabel pengaturan belum ada di Supabase atau error RLS:', error.message)
+        }
+      } catch (err) {
+        console.warn('Error upsert ticker ke database:', err)
+      } finally {
+        isSavingTicker.value = false
+      }
+    }
+
+    return { success: true, text: cleaned }
+  }
+
   return {
     newsList,
     isLoading,
     errorMessage,
     isTableMissing,
+    tickerText,
+    isSavingTicker,
+    fetchTickerText,
+    updateTickerText,
     selectedCategory,
     searchQuery,
     publishedNews,

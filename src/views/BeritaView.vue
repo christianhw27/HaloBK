@@ -5,6 +5,7 @@ import { useAlumniStore } from '@/stores/alumni'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
 import { getNewsUrl } from '@/lib/slugify'
+import TickerEditModal from '@/components/TickerEditModal.vue'
 
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
@@ -12,6 +13,7 @@ const newsStore = useNewsStore()
 
 const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
+const isTickerModalOpen = ref(false)
 
 function syncThemeOnMount() {
   if (
@@ -282,19 +284,53 @@ function resetNewsFilters() {
       </div>
     </Transition>
 
-    <!-- STRIP INFORMASI CEPAT -->
-    <div class="bg-gradient-to-r from-[#FEF3C7]/70 via-[#FFFBEB]/85 to-[#E0F2FE]/70 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/60 border-b border-amber-200/70 dark:border-slate-800 text-[#334155] dark:text-slate-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-2 text-xs sm:text-sm">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="px-2.5 py-0.5 rounded-full bg-[#F59E0B] text-slate-950 border border-amber-400 dark:bg-amber-900/80 dark:text-amber-200 dark:border-amber-700 font-bold text-xs uppercase tracking-wider shrink-0">
-            Info Terkini
+    <!-- STRIP INFORMASI CEPAT: RUNNING TEXT (TICKER) MARQUEE -->
+    <section aria-label="Informasi Terkini Berjalan" class="bg-gradient-to-r from-[#FEF3C7]/90 via-[#FFFBEB] to-[#E0F2FE]/90 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/70 border-b border-amber-200/80 dark:border-slate-800 text-[#334155] dark:text-slate-200 overflow-hidden shadow-xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+        
+        <!-- BADGE INFO TERKINI & TOMBOL EDIT CEPAT -->
+        <div class="flex items-center gap-1.5 shrink-0 z-20">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:py-1 rounded-full bg-[#F59E0B] text-slate-950 border border-amber-400 dark:bg-amber-500 dark:text-slate-950 font-bold text-[11px] sm:text-xs uppercase tracking-wider shadow-xs">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></span>
+            <span>Info Terkini</span>
           </span>
-          <span class="truncate text-[#0F172A] dark:text-slate-100 font-medium">
-            {{ newsStore.featuredNews ? newsStore.featuredNews.title : 'Portal Bimbingan Konseling & Kabar Prestasi Siswa SMA Negeri 2 Ngawi' }}
-          </span>
+
+          <!-- Tombol Edit Running Text -->
+          <button
+            type="button"
+            @click="isTickerModalOpen = true"
+            class="inline-flex items-center gap-1 px-2 py-0.5 sm:py-1 rounded-full text-[11px] font-semibold bg-amber-200/80 hover:bg-amber-300 dark:bg-amber-950/80 dark:hover:bg-amber-900 text-amber-950 dark:text-amber-200 border border-amber-300 dark:border-amber-700 transition-colors shadow-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+            title="Klik untuk mengedit teks berjalan"
+            aria-label="Edit teks berjalan Info Terkini"
+          >
+            <i class="fa-solid fa-pen-to-square text-[10px]" aria-hidden="true"></i>
+            <span class="hidden sm:inline">Edit</span>
+          </button>
         </div>
+
+        <!-- CONTAINER TEKS BERJALAN (MARQUEE) -->
+        <div
+          class="relative flex-1 overflow-hidden min-w-0 flex items-center select-none cursor-pointer py-0.5"
+          @click="isTickerModalOpen = true"
+          title="Klik untuk mengedit teks • Arahkan mouse untuk menjeda teks"
+        >
+          <!-- Fade Gradien Samping -->
+          <div class="pointer-events-none absolute left-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-r from-[#FFFBEB] dark:from-slate-900 to-transparent z-10"></div>
+          <div class="pointer-events-none absolute right-0 top-0 bottom-0 w-6 sm:w-10 bg-gradient-to-l from-[#FFFBEB] dark:from-slate-900 to-transparent z-10"></div>
+
+          <!-- Seamless Looping Marquee Track -->
+          <div class="animate-ticker text-xs sm:text-sm font-medium text-[#0F172A] dark:text-slate-100">
+            <div class="flex items-center shrink-0 pr-12">
+              <span>{{ newsStore.tickerText }}</span>
+            </div>
+            <div class="flex items-center shrink-0 pr-12" aria-hidden="true">
+              <span>{{ newsStore.tickerText }}</span>
+            </div>
+          </div>
+        </div>
+
       </div>
-    </div>
+    </section>
 
     <!-- KONTEN UTAMA PORTAL BERITA -->
     <main id="portal-main" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-12">
@@ -767,6 +803,12 @@ function resetNewsFilters() {
         </div>
       </div>
     </footer>
+
+    <!-- MODAL EDIT RUNNING TEXT (INFO TERKINI) -->
+    <TickerEditModal
+      :is-open="isTickerModalOpen"
+      @close="isTickerModalOpen = false"
+    />
 
   </div>
 </template>

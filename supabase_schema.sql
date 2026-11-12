@@ -143,3 +143,34 @@ values
   ('Pengunjung SMADA', 'pengunjung@smadangawi.sch.id', 'GUEST01', 'pengunjung123', 'user', 'Umum', 2026)
 on conflict (email) do update 
 set password = excluded.password, role = excluded.role, nama = excluded.nama;
+
+-- ========================================================
+-- 8. TABEL PENGATURAN APLIKASI (PENGATURAN / RUNNING TEXT)
+-- ========================================================
+create table if not exists public.pengaturan (
+  key text primary key,
+  value text not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.pengaturan enable row level security;
+
+drop policy if exists "Akses publik baca pengaturan" on public.pengaturan;
+drop policy if exists "Akses publik simpan pengaturan" on public.pengaturan;
+
+create policy "Akses publik baca pengaturan" 
+  on public.pengaturan for select 
+  using (true);
+
+create policy "Akses publik simpan pengaturan" 
+  on public.pengaturan for all 
+  using (true)
+  with check (true);
+
+-- Data Awal Running Text Info Terkini
+insert into public.pengaturan (key, value)
+values (
+  'ticker_text', 
+  '📢 Selamat datang di Portal Ruang BK SMA Negeri 2 Ngawi • Pendataan Tracer Study Alumni Angkatan 60 Resmi Dibuka • Kunjungi ruang Bimbingan Konseling untuk layanan konsultasi karir & perguruan tinggi • Maju Bersama, Hebat Semua!'
+)
+on conflict (key) do nothing;

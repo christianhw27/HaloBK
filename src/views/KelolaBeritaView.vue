@@ -6,9 +6,13 @@ import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES, NEWS_TABLE_SQL } from '@/lib/sta
 import AdminOnlyGuard from '@/components/AdminOnlyGuard.vue'
 import NewsFormModal from '@/components/NewsFormModal.vue'
 import NewsReaderModal from '@/components/NewsReaderModal.vue'
+import TickerEditModal from '@/components/TickerEditModal.vue'
 
 const newsStore = useNewsStore()
 const authStore = useAuthStore()
+
+// Running Text Info Terkini Modal
+const isTickerModalOpen = ref(false)
 
 // Filter & Pencarian Admin
 const searchQuery = ref('')
@@ -98,6 +102,10 @@ function closeFormModal() {
 
 function handleSaved(message) {
   showFeedback('success', message || 'Perubahan berita berhasil disimpan.')
+}
+
+function handleTickerSaved() {
+  showFeedback('success', 'Running text Info Terkini berhasil diperbarui.')
 }
 
 function openPreviewModal(item) {
@@ -271,6 +279,37 @@ onUnmounted(() => {
           </button>
         </div>
       </header>
+
+      <!-- KARTU PENGATURAN RUNNING TEXT INFO TERKINI -->
+      <section aria-label="Pengaturan Teks Berjalan" class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-white to-sky-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/90 border border-amber-200/80 dark:border-slate-800 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="w-10 h-10 rounded-xl bg-[#F59E0B] text-slate-950 flex items-center justify-center shrink-0 font-bold shadow-xs">
+            <i class="fa-solid fa-bullhorn text-base" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-400">
+                Running Text Beranda (Info Terkini)
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 text-amber-950 dark:bg-amber-950 dark:text-amber-200">
+                Live
+              </span>
+            </div>
+            <p class="text-sm font-medium text-slate-800 dark:text-slate-200 truncate max-w-xl lg:max-w-3xl mt-0.5" :title="newsStore.tickerText">
+              {{ newsStore.tickerText }}
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="isTickerModalOpen = true"
+          class="shrink-0 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs sm:text-sm font-bold inline-flex items-center gap-2 shadow-xs transition-colors"
+        >
+          <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+          <span>Ubah Teks Berjalan</span>
+        </button>
+      </section>
 
       <!-- Banner Feedback Operasi CRUD -->
       <div
@@ -865,6 +904,13 @@ onUnmounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- MODAL EDIT RUNNING TEXT (INFO TERKINI) -->
+    <TickerEditModal
+      :is-open="isTickerModalOpen"
+      @close="isTickerModalOpen = false"
+      @saved="handleTickerSaved"
+    />
   </div>
 </template>
 
