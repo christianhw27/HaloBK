@@ -41,6 +41,31 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
+  // Mapping data siswa aktif Angkatan 61 ke format direktori alumni (Hanya data publik standar)
+  function mapSiswaToAlumni(item) {
+    return {
+      id: item.id,
+      name: item.nama || '',
+      nis: item.nis || '-',
+      nisn: item.nisn || '-',
+      classRoom: item.kelas || '-',
+      cohort: String(item.tahun_lulus || 2026),
+      angkatan: item.angkatan || 61,
+      phone: item.no_wa || '-',
+      category: 'Siswa Aktif',
+      pathway: 'Siswa',
+      institution: 'SMA Negeri 2 Ngawi',
+      major: `Siswa Aktif Kelas ${item.kelas || '-'}`,
+      message: 'Siswa Aktif Angkatan 61 SMA Negeri 2 Ngawi.',
+      photo: item.foto_url || null,
+      timestamp: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      }) : 'Baru saja'
+    }
+  }
+
   // Ambil Data dari Supabase (atau Local Storage jika belum connect)
   async function fetchData() {
     isLoading.value = true
@@ -55,9 +80,44 @@ export const useAlumniStore = defineStore('alumni', () => {
           .order('created_at', { ascending: false })
 
         if (errVerified) throw errVerified
-        alumniList.value = (verifiedData || []).map(mapDbToAlumni)
+        const listAlumni = (verifiedData || []).map(mapDbToAlumni)
 
-        // 2. Ambil data antrean pending (untuk Admin Guru BK)
+        // 2. Ambil data siswa angkatan 61 dari tabel users agar tampil di direktori alumni
+        let listSiswa = []
+        try {
+          // Ambil kolom publik siswa saja (mencoba dengan foto_url jika sudah ada kolomnya)
+          let { data: siswaData, error: errSiswa } = await supabase
+            .from('users')
+            .select('id, nama, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, created_at, foto_url')
+            .eq('role', 'siswa')
+            .order('nama', { ascending: true })
+
+          if (errSiswa && errSiswa.code === '42703') {
+            // Kolom foto_url belum dibuat di database, ambil kolom standar
+            const fallback = await supabase
+              .from('users')
+              .select('id, nama, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, created_at')
+              .eq('role', 'siswa')
+              .order('nama', { ascending: true })
+            siswaData = fallback.data
+            errSiswa = fallback.error
+          }
+
+          if (!errSiswa && siswaData) {
+            // Filter siswa yang sudah lapor mandiri di tabel alumni agar tidak duplikat
+            const existingNisSet = new Set(listAlumni.map(a => a.nis).filter(Boolean))
+            listSiswa = siswaData
+              .filter(s => !existingNisSet.has(s.nis))
+              .map(mapSiswaToAlumni)
+          }
+        } catch (errSiswa) {
+          console.warn('Gagal memuat siswa ke direktori:', errSiswa)
+        }
+
+        // Gabungkan: Alumni terdahulu + Siswa Aktif Angkatan 61
+        alumniList.value = [...listAlumni, ...listSiswa]
+
+        // 3. Ambil data antrean pending (untuk Admin Guru BK)
         const { data: pendingData, error: errPending } = await supabase
           .from('alumni')
           .select('*')

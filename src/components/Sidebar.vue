@@ -100,7 +100,7 @@ function toggleDarkMode() {
           :class="authStore.userRole === 'admin' ? 'bg-emerald-500' : 'bg-[#0284C7]'"
           aria-hidden="true"
         ></span>
-        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}</span>
+        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : (authStore.userRole === 'siswa' ? 'Siswa' : 'Pengunjung') }}</span>
       </div>
 
       <button
@@ -189,9 +189,11 @@ function toggleDarkMode() {
             class="text-xs font-bold px-2.5 py-0.5 rounded-full border"
             :class="authStore.userRole === 'admin'
               ? 'bg-[#D1FAE5] text-[#047857] border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
-              : 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800'"
+              : (authStore.userRole === 'siswa'
+                ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
+                : 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800')"
           >
-            {{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}
+            {{ authStore.userRole === 'admin' ? 'Guru BK' : (authStore.userRole === 'siswa' ? 'Siswa SMADA' : 'Pengunjung') }}
           </span>
         </div>
 
@@ -199,7 +201,7 @@ function toggleDarkMode() {
           <div class="flex items-center gap-2 truncate">
             <span
               class="w-2.5 h-2.5 rounded-full shrink-0"
-              :class="authStore.userRole === 'admin' ? 'bg-emerald-500' : 'bg-[#0284C7]'"
+              :class="authStore.userRole === 'admin' ? 'bg-emerald-500' : (authStore.userRole === 'siswa' ? 'bg-amber-500' : 'bg-[#0284C7]')"
               aria-hidden="true"
             ></span>
             <span class="truncate font-semibold">{{ authStore.userName }}</span>
@@ -208,9 +210,11 @@ function toggleDarkMode() {
             class="text-[11px] font-medium px-2 py-0.5 rounded-full"
             :class="authStore.userRole === 'admin'
               ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/50'
-              : 'text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/50'"
+              : (authStore.userRole === 'siswa'
+                ? 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/50'
+                : 'text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/50')"
           >
-            {{ authStore.userRole === 'admin' ? 'Pengelola' : 'Tamu' }}
+            {{ authStore.userRole === 'admin' ? 'Pengelola' : (authStore.userRole === 'siswa' ? 'Siswa Aktif' : 'Tamu') }}
           </span>
         </div>
       </div>
@@ -231,6 +235,26 @@ function toggleDarkMode() {
         <div class="text-xs font-bold text-[#64748B] dark:text-slate-400 tracking-wide px-2 py-1">
           Jelajahi Menu
         </div>
+
+        <!-- 0. Profil Saya (Biodata Siswa / Akun Pengguna) -->
+        <router-link
+          v-if="authStore.isLoggedIn"
+          to="/profil"
+          class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
+          :class="route.path === '/profil'
+            ? 'bg-sky-100 text-[#0284C7] border-sky-300 dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-800 shadow-2xs font-bold'
+            : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-sky-50/70 dark:hover:bg-slate-800/80 hover:text-[#0284C7] dark:hover:text-sky-300'"
+        >
+          <span
+            class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+            :class="route.path === '/profil'
+              ? 'bg-[#0284C7] text-white shadow-xs'
+              : 'bg-sky-100/80 text-[#0284C7] dark:bg-sky-950/60 dark:text-sky-300'"
+          >
+            <i class="fa-solid fa-id-card text-sm" aria-hidden="true"></i>
+          </span>
+          <span>Profil Biodata</span>
+        </router-link>
 
         <!-- 1. Ringkasan (Dashboard - Trust Blue) -->
         <router-link

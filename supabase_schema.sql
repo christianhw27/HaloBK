@@ -103,13 +103,39 @@ create table if not exists public.users (
   nama text not null,
   email text unique,
   nis text unique,                   -- Nomor Induk Siswa (untuk login alternatif siswa)
+  nisn text unique,                  -- Nomor Induk Siswa Nasional (ID login utama siswa)
   password text not null,            -- Kata sandi akun
-  role text not null default 'user', -- 'admin' (Guru BK) atau 'user' (Alumni / Siswa / Pengunjung)
-  kelas text default 'XII-1',
+  role text not null default 'user', -- 'admin' (Guru BK), 'siswa' (Siswa Aktif), atau 'user' (Pengunjung)
+  kelas text default 'XI 1',
+  angkatan integer default 61,
   tahun_lulus integer default 2026,
+  ttl text,                          -- Tempat, Tanggal Lahir
+  alamat_lengkap text,
+  jenis_tinggal text,                -- 'Bersama Orang Tua', 'Anggota Keluarga Lainnya', 'Sendiri'
+  alat_transportasi text,            -- 'Sepeda Motor', 'Sepeda', 'Jalan Kaki', dll
+  no_wa text,
+  nama_ortu text,
+  pekerjaan_ortu text,
+  no_wa_ortu text,
+  asal_smp text,
   created_at timestamp with time zone default timezone('utc'::text, now()),
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+-- Tambahkan kolom jika tabel sudah ada sebelumnya
+alter table public.users add column if not exists nisn text;
+alter table public.users add column if not exists angkatan integer default 61;
+alter table public.users add column if not exists ttl text;
+alter table public.users add column if not exists alamat_lengkap text;
+alter table public.users add column if not exists jenis_tinggal text;
+alter table public.users add column if not exists alat_transportasi text;
+alter table public.users add column if not exists no_wa text;
+alter table public.users add column if not exists nama_ortu text;
+alter table public.users add column if not exists pekerjaan_ortu text;
+alter table public.users add column if not exists no_wa_ortu text;
+alter table public.users add column if not exists asal_smp text;
+
+create index if not exists idx_users_nisn on public.users(nisn);
 
 alter table public.users enable row level security;
 

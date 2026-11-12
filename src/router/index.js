@@ -10,6 +10,7 @@ import VerifikasiView from '@/views/VerifikasiView.vue'
 import ImportExportView from '@/views/ImportExportView.vue'
 import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
 import LoginView from '@/views/LoginView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 
 const routes = [
   {
@@ -59,6 +60,16 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/profil',
+    name: 'profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    redirect: '/profil'
+  },
+  {
     path: '/import-export',
     name: 'import-export',
     component: ImportExportView,
@@ -96,8 +107,11 @@ router.beforeEach((to, from, next) => {
     })
   }
 
-  // 2. Jika sudah login dan membuka halaman /login, alihkan langsung ke dashboard
+  // 2. Jika sudah login dan membuka halaman /login, alihkan langsung ke halaman tujuan
   if (to.path === '/login' && authStore.isLoggedIn) {
+    if (authStore.userRole === 'siswa') {
+      return next({ path: '/profil' })
+    }
     return next({ path: '/dashboard' })
   }
 

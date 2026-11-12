@@ -25,7 +25,7 @@ const itemsPerPage = 12
 const viewMode = ref('grid') // 'grid' | 'table'
 
 const cohorts = ['ALL', '2026', '2025', '2024', '2023', '2022', '2021', '2020']
-const categories = ['ALL', 'PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan / LPK', 'Belum Lapor Diri']
+const categories = ['ALL', 'Siswa Aktif', 'PTN', 'PTS', 'Kedinasan', 'TNI/Polri', 'Bekerja', 'Wirausaha', 'Pelatihan / LPK', 'Belum Lapor Diri']
 
 const hasActiveFilters = computed(() => {
   return (

@@ -47,6 +47,12 @@ export const CATEGORY_COLORS = {
     cardAccent: 'border-t-4 border-t-[#E11D48]',
     dot: 'bg-[#E11D48]'
   },
+  'Siswa Aktif': {
+    badge: 'bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800',
+    avatar: 'bg-gradient-to-br from-cyan-100 to-sky-100 text-cyan-800 border-cyan-200 dark:from-cyan-900/70 dark:to-sky-900/70 dark:text-cyan-200 dark:border-cyan-700',
+    cardAccent: 'border-t-4 border-t-cyan-500',
+    dot: 'bg-cyan-500'
+  },
   'Belum Lapor Diri': {
     badge: 'bg-rose-50 text-[#BE123C] border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
     avatar: 'bg-rose-100 text-[#BE123C] border-rose-200 dark:bg-rose-900/60 dark:text-rose-200 dark:border-rose-700',

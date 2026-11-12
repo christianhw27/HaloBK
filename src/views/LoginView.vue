@@ -24,7 +24,8 @@ async function handleLogin() {
   isLoading.value = false
 
   if (res.success) {
-    const target = router.currentRoute.value.query.redirect || '/dashboard'
+    const redirectQuery = router.currentRoute.value.query.redirect
+    const target = redirectQuery || (res.role === 'siswa' ? '/profil' : '/dashboard')
     router.push(target)
   } else {
     errorMessage.value = res.message || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
@@ -89,8 +90,9 @@ async function handleLogin() {
         <!-- Formulir Login Tunggal (Admin / Akun Terdaftar) -->
         <form @submit.prevent="handleLogin" class="space-y-4">
           <div>
-            <label for="login-email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-              Email atau NIS Siswa
+            <label for="login-email" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+              <span>NISN, NIS, atau Email</span>
+              <span class="text-[11px] font-normal text-sky-600 dark:text-sky-400">Angkatan 61: Gunakan NISN</span>
             </label>
             <div class="relative">
               <i class="fa-regular fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
@@ -100,10 +102,13 @@ async function handleLogin() {
                 type="text"
                 required
                 autocomplete="username"
-                placeholder="Email Guru BK atau NIS Siswa"
+                placeholder="Masukkan NISN siswa (contoh: 3105491454) atau Email"
                 class="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
               />
             </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Siswa Angkatan 61 masuk menggunakan <strong>NISN</strong> dan kata sandi acak dari kartu akun.
+            </p>
           </div>
 
           <div>
