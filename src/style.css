@@ -75,9 +75,9 @@
     outline-offset: 2px;
   }
 
-  /* R-39: Menghormati preferensi pengurangan gerak (reduced motion) */
+  /* R-39: Menghormati preferensi pengurangan gerak (reduced motion) kecuali running text ticker */
   @media (prefers-reduced-motion: reduce) {
-    *,
+    *:not(.animate-ticker):not(.animate-ticker *):not(.running-ticker-track):not(.running-ticker-track *),
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
@@ -118,22 +118,16 @@
   }
 }
 
-.animate-ticker {
-  display: flex;
-  width: max-content;
+.animate-ticker,
+.running-ticker-track {
+  display: inline-flex !important;
+  width: max-content !important;
+  white-space: nowrap !important;
   will-change: transform;
-  animation: ticker-marquee 35s linear infinite;
+  animation: ticker-marquee 28s linear infinite !important;
 }
 
 .animate-ticker:hover,
-.animate-ticker:focus-within {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-ticker {
-    animation: none;
-    width: auto;
-    overflow-x: auto;
-  }
+.running-ticker-track:hover {
+  animation-play-state: paused !important;
 }

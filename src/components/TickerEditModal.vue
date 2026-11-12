@@ -161,7 +161,7 @@ async function handleSave() {
                   Info Terkini
                 </span>
                 <div class="relative flex-1 overflow-hidden min-w-0 flex items-center">
-                  <div class="animate-ticker text-xs font-medium text-slate-900 dark:text-slate-100">
+                  <div class="running-ticker-track text-xs font-medium text-slate-900 dark:text-slate-100">
                     <div class="flex items-center shrink-0 pr-10">
                       <span>{{ textDraft || 'Teks berjalan akan tampil di sini...' }}</span>
                     </div>
@@ -218,3 +218,22 @@ async function handleSave() {
     </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+@keyframes continuous-modal-marquee {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.running-ticker-track {
+  display: inline-flex !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  will-change: transform;
+  animation: continuous-modal-marquee 25s linear infinite !important;
+}
+</style>

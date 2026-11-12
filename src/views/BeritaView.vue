@@ -314,8 +314,8 @@ function resetNewsFilters() {
           <div class="pointer-events-none absolute left-0 top-0 bottom-0 w-3 sm:w-6 bg-gradient-to-r from-[#FFFBEB] dark:from-slate-900 to-transparent z-10"></div>
           <div class="pointer-events-none absolute right-0 top-0 bottom-0 w-6 sm:w-10 bg-gradient-to-l from-[#FFFBEB] dark:from-slate-900 to-transparent z-10"></div>
 
-          <!-- Seamless Looping Marquee Track -->
-          <div class="animate-ticker text-xs sm:text-sm font-medium text-[#0F172A] dark:text-slate-100">
+          <!-- Seamless Looping Marquee Track Otomatis Berjalan -->
+          <div class="running-ticker-track text-xs sm:text-sm font-medium text-[#0F172A] dark:text-slate-100">
             <div class="flex items-center shrink-0 pr-12">
               <span>{{ newsStore.tickerText }}</span>
             </div>
@@ -802,4 +802,27 @@ function resetNewsFilters() {
 
   </div>
 </template>
+
+<style scoped>
+@keyframes continuous-marquee-scroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.running-ticker-track {
+  display: inline-flex !important;
+  width: max-content !important;
+  white-space: nowrap !important;
+  will-change: transform;
+  animation: continuous-marquee-scroll 28s linear infinite !important;
+}
+
+.running-ticker-track:hover {
+  animation-play-state: paused !important;
+}
+</style>
 
