@@ -23,7 +23,7 @@ const routes = [
     redirect: '/'
   },
   {
-    path: '/berita/:id',
+    path: '/berita/:slug',
     name: 'detail-berita',
     component: DetailBeritaView,
     meta: { layout: 'public', requiresAuth: false }

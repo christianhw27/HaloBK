@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORIES, NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
+import { getNewsUrl } from '@/lib/slugify'
 
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
@@ -323,7 +324,7 @@ function resetNewsFilters() {
             <!-- Visual Sampul Artikel Utama -->
             <router-link
               v-if="newsStore.featuredNews.imageUrl"
-              :to="'/berita/' + newsStore.featuredNews.id"
+              :to="getNewsUrl(newsStore.featuredNews)"
               class="block w-full aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-[#E2E8F0] dark:border-slate-800 group"
             >
               <img
@@ -339,7 +340,7 @@ function resetNewsFilters() {
             <!-- Sampul Cerah Harmonis Jika Tanpa Gambar -->
             <router-link
               v-else
-              :to="'/berita/' + newsStore.featuredNews.id"
+              :to="getNewsUrl(newsStore.featuredNews)"
               class="block w-full aspect-[16/8] bg-gradient-to-br p-6 sm:p-9 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
               :class="getCategoryStyle(newsStore.featuredNews.category).surface"
             >
@@ -394,7 +395,7 @@ function resetNewsFilters() {
 
               <h1 class="font-display font-bold text-2xl sm:text-[1.75rem] lg:text-[2rem] text-[#0F172A] dark:text-white leading-[1.25] tracking-tight">
                 <router-link
-                  :to="'/berita/' + newsStore.featuredNews.id"
+                  :to="getNewsUrl(newsStore.featuredNews)"
                   class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors"
                 >
                   {{ newsStore.featuredNews.title }}
@@ -412,7 +413,7 @@ function resetNewsFilters() {
                 </div>
 
                 <router-link
-                  :to="'/berita/' + newsStore.featuredNews.id"
+                  :to="getNewsUrl(newsStore.featuredNews)"
                   class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-sm sm:text-base font-semibold transition-colors duration-150 inline-flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
                 >
                   <span>Baca Berita Selengkapnya</span>
@@ -512,7 +513,7 @@ function resetNewsFilters() {
               <router-link
                 v-for="(item, idx) in newsStore.secondaryHighlights"
                 :key="item.id"
-                :to="'/berita/' + item.id"
+                :to="getNewsUrl(item)"
                 class="w-full text-left py-3.5 first:pt-1 last:pb-1 flex items-start gap-3.5 group block"
               >
                 <span
@@ -642,7 +643,7 @@ function resetNewsFilters() {
               <!-- Gambar Cover atau Placeholder Kategori Cerah -->
               <router-link
                 v-if="item.imageUrl"
-                :to="'/berita/' + item.id"
+                :to="getNewsUrl(item)"
                 class="block w-full aspect-[16/10] bg-slate-100 dark:bg-slate-800 overflow-hidden border-b border-slate-100 dark:border-slate-800 group"
               >
                 <img
@@ -657,7 +658,7 @@ function resetNewsFilters() {
 
               <router-link
                 v-else
-                :to="'/berita/' + item.id"
+                :to="getNewsUrl(item)"
                 class="block w-full aspect-[16/9] bg-gradient-to-br p-5 flex flex-col justify-between border-b border-[#E2E8F0] dark:border-slate-800"
                 :class="getCategoryStyle(item.category).surface"
               >
@@ -688,7 +689,7 @@ function resetNewsFilters() {
 
                 <h3 class="font-display font-semibold text-lg sm:text-xl text-[#0F172A] dark:text-white leading-[1.4] line-clamp-2">
                   <router-link
-                    :to="'/berita/' + item.id"
+                    :to="getNewsUrl(item)"
                     class="hover:text-[#0369A1] dark:hover:text-sky-400 transition-colors"
                   >
                     {{ item.title }}
@@ -707,7 +708,7 @@ function resetNewsFilters() {
               </span>
 
               <router-link
-                :to="'/berita/' + item.id"
+                :to="getNewsUrl(item)"
                 class="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/50 border border-sky-200/80 dark:border-sky-800 hover:bg-[#0369A1] hover:text-white dark:hover:bg-[#0369A1] text-[#0369A1] dark:text-sky-200 text-sm font-semibold transition-colors duration-150 shrink-0 min-h-[40px] inline-flex items-center gap-1.5"
               >
                 <span>Baca Artikel</span>

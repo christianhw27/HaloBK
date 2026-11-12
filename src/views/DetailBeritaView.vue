@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNewsStore } from '@/stores/news'
 import { NEWS_CATEGORY_STYLES } from '@/lib/starterNews'
+import { slugify, getNewsUrl } from '@/lib/slugify'
 
 const route = useRoute()
 const router = useRouter()
@@ -44,9 +45,29 @@ function handleKeydown(e) {
   }
 }
 
+// Pencarian artikel berdasarkan ID, slug, atau judul slugified
 const article = computed(() => {
-  const paramId = String(route.params.id || '')
-  return newsStore.newsList.find(n => String(n.id) === paramId) || null
+  const param = String(route.params.slug || route.params.id || '').trim().toLowerCase()
+  if (!param) return null
+
+  // 1. Cocokkan ID persis
+  let found = newsStore.newsList.find(n => String(n.id).toLowerCase() === param)
+  if (found) return found
+
+  // 2. Cocokkan slug khusus bila tersimpan di database
+  found = newsStore.newsList.find(n => n.slug && String(n.slug).toLowerCase() === param)
+  if (found) return found
+
+  // 3. Cocokkan slug dari judul berita
+  found = newsStore.newsList.find(n => slugify(n.title) === param)
+  if (found) return found
+
+  // 4. Pencocokan awalan slug (toleransi URL terpotong)
+  found = newsStore.newsList.find(n => {
+    const s = slugify(n.title)
+    return s.startsWith(param) || param.startsWith(s)
+  })
+  return found || null
 })
 
 const categoryStyle = computed(() => {
@@ -69,8 +90,14 @@ const otherNews = computed(() => {
     .slice(0, 3)
 })
 
+function getShareableUrl() {
+  if (!article.value) return window.location.href
+  const base = window.location.origin
+  return base + getNewsUrl(article.value)
+}
+
 async function copyArticleLink() {
-  const url = window.location.href
+  const url = getShareableUrl()
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(url)
@@ -95,14 +122,42 @@ async function copyArticleLink() {
 
 function shareToWhatsApp() {
   if (!article.value) return
-  const url = window.location.href
+  const url = getShareableUrl()
   const text = encodeURIComponent(`*${article.value.title}*\n\n${article.value.summary || ''}\n\nBaca selengkapnya di Ruang BK Smada:\n${url}`)
   window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank')
 }
 
+function setMetaTag(attr, key, content) {
+  if (typeof document === 'undefined') return
+  let element = document.querySelector(`meta[${attr}="${key}"]`)
+  if (!element) {
+    element = document.createElement('meta')
+    element.setAttribute(attr, key)
+    document.head.appendChild(element)
+  }
+  element.setAttribute('content', content || '')
+}
+
 function updatePageMetadata() {
   if (article.value) {
-    document.title = `${article.value.title} - Ruang BK Smada`
+    const title = `${article.value.title} - Ruang BK Smada`
+    const description = article.value.summary || 'Kabar terbaru dari Bimbingan Konseling SMA Negeri 2 Ngawi.'
+    const url = getShareableUrl()
+    const image = article.value.imageUrl || `${window.location.origin}/logo.png`
+
+    document.title = title
+
+    // Perbarui Open Graph meta tags agar thumbnail preview terbaca saat dibagikan
+    setMetaTag('property', 'og:title', title)
+    setMetaTag('property', 'og:description', description)
+    setMetaTag('property', 'og:image', image)
+    setMetaTag('property', 'og:url', url)
+    setMetaTag('property', 'og:type', 'article')
+    setMetaTag('name', 'twitter:card', 'summary_large_image')
+    setMetaTag('name', 'twitter:title', title)
+    setMetaTag('name', 'twitter:description', description)
+    setMetaTag('name', 'twitter:image', image)
+
     newsStore.incrementViews(article.value.id)
   } else {
     document.title = 'Detail Berita - Ruang BK Smada'
@@ -119,7 +174,7 @@ onMounted(async () => {
   updatePageMetadata()
 })
 
-watch(() => route.params.id, async () => {
+watch(() => [route.params.slug, route.params.id], async () => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
   if (newsStore.newsList.length === 0) {
     await newsStore.fetchNews()
@@ -518,7 +573,7 @@ onUnmounted(() => {
             <router-link
               v-for="item in otherNews"
               :key="item.id"
-              :to="'/berita/' + item.id"
+              :to="getNewsUrl(item)"
               class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all flex flex-col justify-between group"
             >
               <div class="space-y-2">
