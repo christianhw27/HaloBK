@@ -11,7 +11,6 @@ const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
 const activeDropdown = ref(null) // 'berita' | 'akademik' | 'alumni' | null
 const isEligibleModalOpen = ref(false)
-const isKelolaBeritaModalOpen = ref(false)
 
 const isGuruOrAdmin = computed(() => authStore.userRole === 'admin' || authStore.userRole === 'guru')
 
@@ -66,7 +65,6 @@ function handleKeydown(e) {
     closeDropdown()
     isMobileMenuOpen.value = false
     isEligibleModalOpen.value = false
-    isKelolaBeritaModalOpen.value = false
   }
 }
 
@@ -105,22 +103,6 @@ function openEligibleModal() {
   isEligibleModalOpen.value = true
 }
 
-function openKelolaBeritaModal() {
-  closeDropdown()
-  isMobileMenuOpen.value = false
-  isKelolaBeritaModalOpen.value = true
-}
-
-function navigateToKelolaBerita() {
-  closeDropdown()
-  isMobileMenuOpen.value = false
-  if (isGuruOrAdmin.value) {
-    router.push('/kelola-berita')
-  } else {
-    isKelolaBeritaModalOpen.value = true
-  }
-}
-
 function toggleMobileAccordion(section) {
   mobileOpenSection.value = mobileOpenSection.value === section ? null : section
 }
@@ -145,10 +127,7 @@ function toggleMobileAccordion(section) {
         <div class="min-w-0">
           <div class="flex items-center gap-2">
             <span class="font-display font-bold text-base sm:text-xl text-[#0F172A] dark:text-white tracking-tight truncate">
-              Ruang BK Smada
-            </span>
-            <span class="hidden sm:inline-flex text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950 dark:text-amber-200 border border-amber-200 dark:border-amber-800 shrink-0">
-              SMADA Ngawi
+              Ruang BK SMADA
             </span>
           </div>
           <p class="text-[11px] sm:text-xs text-[#64748B] dark:text-slate-400 truncate -mt-0.5">
@@ -160,8 +139,22 @@ function toggleMobileAccordion(section) {
       <!-- 3 TOMBOL UTAMA NAVIGASI DESKTOP (BERITA, AKADEMIK, ALUMNI) -->
       <nav id="public-desktop-nav" class="hidden md:flex items-center gap-1.5 lg:gap-2.5 relative" aria-label="Navigasi Utama">
         
-        <!-- 1. TOMBOL BERITA (DROPDOWN KE BAWAH: PORTAL & KELOLA BERITA) -->
-        <div class="relative">
+        <!-- 1. TOMBOL BERITA (UNTUK SISWA / NON-ADMIN: LANGSUNG KE ARSIP BERITA) -->
+        <button
+          v-if="!isGuruOrAdmin"
+          type="button"
+          @click="navigateToNews('#arsip-berita')"
+          class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-transparent"
+          :class="route.path === '/' && !activeDropdown
+            ? 'text-[#0284C7] dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60'
+            : 'text-slate-700 dark:text-slate-200 hover:text-[#0284C7] dark:hover:text-sky-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+        >
+          <i class="fa-regular fa-newspaper text-sm" aria-hidden="true"></i>
+          <span>Berita</span>
+        </button>
+
+        <!-- 1. TOMBOL BERITA (KHUSUS GURU BK / ADMIN: DROPDOWN PORTAL & KELOLA BERITA) -->
+        <div v-else class="relative">
           <button
             type="button"
             @click.stop="toggleDropdown('berita')"
@@ -181,7 +174,7 @@ function toggleMobileAccordion(section) {
             ></i>
           </button>
 
-          <!-- DROPDOWN PANEL BERITA -->
+          <!-- DROPDOWN PANEL BERITA (KHUSUS GURU BK / ADMIN) -->
           <Transition
             enter-active-class="transition duration-150 ease-out"
             enter-from-class="opacity-0 translate-y-2 scale-95"
@@ -239,9 +232,8 @@ function toggleMobileAccordion(section) {
                 </div>
               </button>
 
-              <!-- Item 2: Kelola Berita (Jika Guru/Admin: Akses Langsung, Jika bukan: Terkunci / Modal) -->
+              <!-- Item 2: Kelola Berita (Khusus Guru BK) -->
               <router-link
-                v-if="isGuruOrAdmin"
                 to="/kelola-berita"
                 @click="closeDropdown"
                 class="p-3.5 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-gradient-to-r from-rose-50/80 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-rose-950/30 hover:border-rose-400 dark:hover:border-rose-700 hover:shadow-md transition-all group block"
@@ -274,51 +266,12 @@ function toggleMobileAccordion(section) {
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </router-link>
-
-              <button
-                v-else
-                type="button"
-                @click="openKelolaBeritaModal"
-                class="w-full text-left p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 hover:bg-rose-50/70 dark:bg-slate-850 dark:hover:bg-slate-800/80 transition-all cursor-pointer group block"
-                role="menuitem"
-              >
-                <div class="flex items-start gap-3.5">
-                  <div class="relative w-12 h-12 rounded-xl bg-gradient-to-br from-slate-400 to-slate-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                    <i class="fa-solid fa-pen-to-square text-xl" aria-hidden="true"></i>
-                    <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] shadow-sm border-2 border-white dark:border-slate-900">
-                      <i class="fa-solid fa-lock text-[9px]" aria-hidden="true"></i>
-                    </span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <div class="flex items-center justify-between gap-2">
-                      <span class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white group-hover:text-rose-700 dark:group-hover:text-rose-300 transition-colors">
-                        Kelola Berita
-                      </span>
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 shrink-0">
-                        <i class="fa-solid fa-lock text-[9px]"></i>
-                        <span>Terkunci</span>
-                      </span>
-                    </div>
-                    <p class="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                      Manajemen publikasi artikel berita &amp; running text info pengumuman.
-                    </p>
-                  </div>
-                </div>
-
-                <div class="mt-2.5 pt-2 border-t border-slate-200/70 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-rose-700 dark:text-rose-300">
-                  <span class="flex items-center gap-1.5">
-                    <i class="fa-solid fa-circle-info text-[10px]"></i>
-                    Akses khusus Guru BK
-                  </span>
-                  <span class="text-slate-400 dark:text-slate-500 font-normal text-[10px]">Klik untuk melihat</span>
-                </div>
-              </button>
             </div>
           </Transition>
         </div>
 
-        <!-- 2. TOMBOL AKADEMIK (DROPDOWN KE BAWAH: ELIGIBLE LOCKED) -->
-        <div class="relative">
+        <!-- 2. TOMBOL AKADEMIK (DROPDOWN KE BAWAH: ELIGIBLE LOCKED - DISEMBUNYIKAN UNTUK SISWA) -->
+        <div v-if="authStore.userRole !== 'siswa'" class="relative">
           <button
             type="button"
             @click.stop="toggleDropdown('akademik')"
@@ -611,8 +564,24 @@ function toggleMobileAccordion(section) {
             <!-- Accordion Links: Berita, Akademik, Alumni -->
             <nav class="space-y-3" aria-label="Tautan Menu Seluler">
               
-              <!-- 1. Menu Berita (Accordion) -->
-              <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <!-- 1. Menu Berita (Untuk Siswa / Umum: Langsung Navigasi ke Berita) -->
+              <button
+                v-if="!isGuruOrAdmin"
+                type="button"
+                @click="navigateToNews('#arsip-berita')"
+                class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-800 flex items-center justify-between border border-transparent hover:border-sky-200 transition-colors"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                    <i class="fa-regular fa-newspaper" aria-hidden="true"></i>
+                  </div>
+                  <span>Berita &amp; Informasi</span>
+                </div>
+                <i class="fa-solid fa-arrow-right text-xs text-slate-400" aria-hidden="true"></i>
+              </button>
+
+              <!-- 1. Menu Berita (Khusus Guru BK / Admin: Accordion Portal & Kelola Berita) -->
+              <div v-else class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <button
                   type="button"
                   @click="toggleMobileAccordion('berita')"
@@ -653,7 +622,6 @@ function toggleMobileAccordion(section) {
 
                   <!-- Item 2: Kelola Berita -->
                   <router-link
-                    v-if="isGuruOrAdmin"
                     to="/kelola-berita"
                     @click="isMobileMenuOpen = false"
                     class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-left flex items-center gap-2.5 block border border-rose-200 dark:border-rose-900/60"
@@ -671,31 +639,11 @@ function toggleMobileAccordion(section) {
                       </p>
                     </div>
                   </router-link>
-
-                  <button
-                    v-else
-                    type="button"
-                    @click="openKelolaBeritaModal"
-                    class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-left flex items-center gap-2.5"
-                  >
-                    <div class="w-8 h-8 rounded-lg bg-slate-500 text-white flex items-center justify-center shrink-0 text-xs">
-                      <i class="fa-solid fa-lock"></i>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-bold text-xs text-slate-900 dark:text-white">Kelola Berita</span>
-                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300">Terkunci</span>
-                      </div>
-                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        Akses khusus Guru BK
-                      </p>
-                    </div>
-                  </button>
                 </div>
               </div>
 
-              <!-- 2. Menu Akademik (Eligible) -->
-              <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <!-- 2. Menu Akademik (Eligible - Disembunyikan untuk Siswa) -->
+              <div v-if="authStore.userRole !== 'siswa'" class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <button
                   type="button"
                   @click="toggleMobileAccordion('akademik')"
@@ -868,66 +816,6 @@ function toggleMobileAccordion(section) {
               class="w-full py-3 px-5 rounded-2xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm transition-colors shadow-sm"
             >
               Saya Mengerti
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-  </Teleport>
-
-  <!-- MODAL INFORMASI: KELOLA BERITA KHUSUS GURU BK -->
-  <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95"
-    >
-      <div
-        v-if="isKelolaBeritaModalOpen"
-        class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
-        @click.self="isKelolaBeritaModalOpen = false"
-      >
-        <div
-          role="dialog"
-          aria-modal="true"
-          class="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 text-center space-y-4"
-        >
-          <!-- Icon Bulat Guru BK -->
-          <div class="w-16 h-16 rounded-3xl bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400 mx-auto flex items-center justify-center text-2xl shadow-inner border border-rose-200 dark:border-rose-800">
-            <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
-          </div>
-
-          <div class="space-y-2">
-            <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/80 text-rose-800 dark:text-rose-300 text-xs font-bold uppercase tracking-wider">
-              <span>Akses Khusus Guru BK</span>
-            </div>
-            <h3 class="font-display font-bold text-xl text-slate-900 dark:text-white">
-              Studio Kelola Berita &amp; Pengumuman
-            </h3>
-            <p class="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              Fitur <strong>Kelola Berita &amp; Running Text</strong> hanya dapat diakses oleh Guru BK dan Administrator untuk mempublikasikan artikel kabar sekolah, info beasiswa, serta running text pengumuman.
-            </p>
-          </div>
-
-          <div class="pt-2 flex flex-col gap-2">
-            <router-link
-              v-if="!authStore.isLoggedIn"
-              to="/login"
-              @click="isKelolaBeritaModalOpen = false"
-              class="w-full py-3 px-5 rounded-2xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm transition-colors shadow-sm flex items-center justify-center gap-2"
-            >
-              <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
-              <span>Masuk sebagai Guru BK</span>
-            </router-link>
-            <button
-              type="button"
-              @click="isKelolaBeritaModalOpen = false"
-              class="w-full py-2.5 px-5 rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-colors"
-            >
-              Tutup
             </button>
           </div>
         </div>

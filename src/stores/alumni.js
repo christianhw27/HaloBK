@@ -2,16 +2,22 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from './auth'
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
 import * as XLSX from 'xlsx'
 
 export const useAlumniStore = defineStore('alumni', () => {
   const STORAGE_KEY = 'hallo_alumni_verified_v3'
   const PENDING_STORAGE_KEY = 'hallo_alumni_pending_v3'
+  const PENDING_STUDENTS_STORAGE_KEY = 'hallo_student_updates_pending_v1'
 
   // Data awal kosong murni (tanpa dummy)
   const alumniList = ref([])
   const pendingList = ref([])
+  const pendingStudentUpdates = ref([])
   const isLoading = ref(false)
+
+  // Total seluruh antrean yang membutuhkan persetujuan Guru BK (Alumni + Biodata Siswa)
+  const totalPendingCount = computed(() => pendingList.value.length + pendingStudentUpdates.value.length)
 
   // Filters
   const selectedCohort = ref('ALL')
@@ -32,7 +38,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       institution: item.instansi || item.institution || '',
       major: item.jurusan_posisi || item.major || '-',
       message: item.pesan || item.message || '',
-      photo: item.foto_url || item.photo || null,
+      photo: getOptimizedImageUrl(item.foto_url || item.photo || null),
       timestamp: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
@@ -57,7 +63,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       institution: 'SMA Negeri 2 Ngawi',
       major: `Siswa Aktif Kelas ${item.kelas || '-'}`,
       message: 'Siswa Aktif Angkatan 61 SMA Negeri 2 Ngawi.',
-      photo: item.foto_url || null,
+      photo: getOptimizedImageUrl(item.foto_url || null),
       timestamp: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
         day: 'numeric',
         month: 'short',
@@ -74,6 +80,41 @@ export const useAlumniStore = defineStore('alumni', () => {
       pekerjaan_ortu: item.pekerjaan_ortu || '-',
       no_wa_ortu: item.no_wa_ortu || '-',
       asal_smp: item.asal_smp || '-'
+    }
+  }
+
+  // Mapping antrean pengajuan perubahan biodata siswa aktif
+  function mapDbToStudentUpdate(item) {
+    let parsed = {}
+    try {
+      parsed = typeof item.pesan === 'string' ? JSON.parse(item.pesan) : (item.pesan || {})
+    } catch (e) {
+      parsed = {}
+    }
+
+    return {
+      id: item.id,
+      nama: item.nama_lengkap || '',
+      nis: item.nis || '-',
+      kelas: item.kelas_terakhir || '-',
+      tahun_lulus: item.tahun_lulus || 2027,
+      no_wa: item.no_wa || '-',
+      foto_url: item.foto_url || null,
+      submittedAt: item.created_at ? new Date(item.created_at).toLocaleString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }) : 'Baru saja',
+      proposedData: {
+        nama: item.nama_lengkap || '',
+        nis: item.nis || '-',
+        kelas: item.kelas_terakhir || '-',
+        no_wa: item.no_wa || '',
+        foto_url: item.foto_url || null,
+        ...parsed
+      }
     }
   }
 
@@ -136,7 +177,14 @@ export const useAlumniStore = defineStore('alumni', () => {
           .order('created_at', { ascending: false })
 
         if (errPending) throw errPending
-        pendingList.value = (pendingData || []).map(mapDbToAlumni)
+        const allPending = pendingData || []
+
+        // Pisahkan antrean: Lapor Diri Alumni vs Pengajuan Perubahan Biodata Siswa Aktif
+        const alumniPending = allPending.filter((p) => p.kategori !== 'Update Biodata Siswa')
+        const studentPending = allPending.filter((p) => p.kategori === 'Update Biodata Siswa')
+
+        pendingList.value = alumniPending.map(mapDbToAlumni)
+        pendingStudentUpdates.value = studentPending.map(mapDbToStudentUpdate)
 
       } catch (err) {
         console.warn('Gagal mengambil data dari Supabase:', err)
@@ -149,9 +197,13 @@ export const useAlumniStore = defineStore('alumni', () => {
 
         const storedPending = localStorage.getItem(PENDING_STORAGE_KEY)
         pendingList.value = storedPending ? JSON.parse(storedPending) : []
+
+        const storedStudentPending = localStorage.getItem(PENDING_STUDENTS_STORAGE_KEY)
+        pendingStudentUpdates.value = storedStudentPending ? JSON.parse(storedStudentPending) : []
       } catch (e) {
         alumniList.value = []
         pendingList.value = []
+        pendingStudentUpdates.value = []
       }
     }
 
@@ -162,6 +214,7 @@ export const useAlumniStore = defineStore('alumni', () => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(alumniList.value))
       localStorage.setItem(PENDING_STORAGE_KEY, JSON.stringify(pendingList.value))
+      localStorage.setItem(PENDING_STUDENTS_STORAGE_KEY, JSON.stringify(pendingStudentUpdates.value))
     } catch (e) {
       console.warn('LocalStorage error:', e)
     }
@@ -349,6 +402,208 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
+  // Helper: Cek apakah siswa tertentu memiliki pengajuan biodata yang menunggu ACC
+  function checkStudentPendingStatus(nis) {
+    if (!nis || nis === '-') return null
+    return pendingStudentUpdates.value.find((p) => String(p.nis) === String(nis)) || null
+  }
+
+  // Aksi Siswa: Simpan / Perbarui Pengajuan Biodata (Tidak langsung tersimpan ke users, menunggu ACC Guru BK)
+  // Menjaga agar tidak terjadi data ganda (update baris yang ada jika siswa edit berkali-kali)
+  async function submitStudentUpdate(fields) {
+    const authStore = useAuthStore()
+    const currentNis = String(fields.nis || authStore.currentUser?.nis || authStore.userNis || '')
+    const currentNama = fields.nama || authStore.currentUser?.nama || authStore.userName || 'Siswa'
+    const currentKelas = fields.kelas || authStore.currentUser?.kelas || 'XI-1'
+    const currentCohort = parseInt(authStore.currentUser?.tahun_lulus || 2027)
+
+    const extraFields = {
+      ttl: fields.ttl || null,
+      alamat_lengkap: fields.alamat_lengkap || null,
+      jenis_tinggal: fields.jenis_tinggal || null,
+      alat_transportasi: fields.alat_transportasi || null,
+      no_wa: fields.no_wa || null,
+      email: fields.email || null,
+      nama_ortu: fields.nama_ortu || null,
+      pekerjaan_ortu: fields.pekerjaan_ortu || null,
+      no_wa_ortu: fields.no_wa_ortu || null,
+      asal_smp: fields.asal_smp || null,
+      userId: authStore.currentUser?.id || null
+    }
+
+    const payload = {
+      nama_lengkap: currentNama,
+      nis: currentNis,
+      kelas_terakhir: currentKelas,
+      tahun_lulus: currentCohort,
+      no_wa: fields.no_wa || null,
+      kategori: 'Update Biodata Siswa',
+      jalur_masuk: 'Siswa Aktif',
+      instansi: 'SMA Negeri 2 Ngawi',
+      jurusan_posisi: 'Pengajuan Biodata Siswa',
+      pesan: JSON.stringify(extraFields),
+      foto_url: fields.foto_url || null,
+      is_verified: false,
+      updated_at: new Date().toISOString()
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        // 1. Cek apakah siswa ini sudah memiliki pengajuan pending sebelumnya (agar tidak duplikat!)
+        const { data: existing } = await supabase
+          .from('alumni')
+          .select('id')
+          .eq('nis', currentNis)
+          .eq('kategori', 'Update Biodata Siswa')
+          .eq('is_verified', false)
+          .maybeSingle()
+
+        let resData = null
+        if (existing && existing.id) {
+          // Update baris pengajuan yang sudah ada dengan data terbaru
+          const { data, error } = await supabase
+            .from('alumni')
+            .update(payload)
+            .eq('id', existing.id)
+            .select()
+            .single()
+          if (error) throw error
+          resData = data
+        } else {
+          // Buat pengajuan baru
+          const { data, error } = await supabase
+            .from('alumni')
+            .insert(payload)
+            .select()
+            .single()
+          if (error) throw error
+          resData = data
+        }
+
+        await fetchData()
+        return {
+          success: true,
+          message: 'Pengajuan perubahan biodata berhasil dikirim dan menunggu verifikasi Guru BK.',
+          data: mapDbToStudentUpdate(resData)
+        }
+      } catch (err) {
+        console.error('Error simpan pengajuan biodata siswa:', err)
+        return { success: false, message: 'Gagal mengirim pengajuan: ' + err.message }
+      }
+    } else {
+      // Local storage fallback
+      const idx = pendingStudentUpdates.value.findIndex((p) => String(p.nis) === String(currentNis))
+      const mockItem = {
+        id: idx !== -1 ? pendingStudentUpdates.value[idx].id : 'STU-' + Date.now(),
+        nama: currentNama,
+        nis: currentNis,
+        kelas: currentKelas,
+        tahun_lulus: currentCohort,
+        no_wa: fields.no_wa || null,
+        foto_url: fields.foto_url || null,
+        submittedAt: 'Baru saja',
+        proposedData: {
+          nama: currentNama,
+          nis: currentNis,
+          kelas: currentKelas,
+          ...extraFields,
+          foto_url: fields.foto_url || null
+        }
+      }
+
+      if (idx !== -1) {
+        pendingStudentUpdates.value[idx] = mockItem
+      } else {
+        pendingStudentUpdates.value.unshift(mockItem)
+      }
+
+      saveToLocalStorage()
+      return {
+        success: true,
+        message: 'Pengajuan perubahan biodata berhasil disimpan (mode offline).',
+        data: mockItem
+      }
+    }
+  }
+
+  // Aksi Guru BK: Setujui (ACC) Pengajuan Biodata Siswa
+  async function approveStudentUpdate(updateItem) {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const p = updateItem.proposedData || {}
+        const userPayload = {
+          ttl: p.ttl || null,
+          alamat_lengkap: p.alamat_lengkap || null,
+          jenis_tinggal: p.jenis_tinggal || null,
+          alat_transportasi: p.alat_transportasi || null,
+          no_wa: p.no_wa || null,
+          email: p.email || null,
+          nama_ortu: p.nama_ortu || null,
+          pekerjaan_ortu: p.pekerjaan_ortu || null,
+          no_wa_ortu: p.no_wa_ortu || null,
+          asal_smp: p.asal_smp || null,
+          updated_at: new Date().toISOString()
+        }
+        if (p.foto_url) userPayload.foto_url = p.foto_url
+
+        // Update data di tabel users
+        let updateQuery = supabase.from('users').update(userPayload)
+        if (p.userId) {
+          updateQuery = updateQuery.eq('id', p.userId)
+        } else if (updateItem.nis && updateItem.nis !== '-') {
+          updateQuery = updateQuery.eq('nis', updateItem.nis)
+        } else {
+          updateQuery = updateQuery.eq('nama', updateItem.nama)
+        }
+
+        const { error: errUser } = await updateQuery
+        if (errUser) {
+          console.warn('Gagal update users via id, coba via NIS:', errUser)
+          await supabase.from('users').update(userPayload).eq('nis', updateItem.nis)
+        }
+
+        // Hapus antrean verifikasi dari tabel alumni agar tidak menumpuk
+        await supabase.from('alumni').delete().eq('id', updateItem.id)
+
+        await fetchData()
+        return { success: true, message: `Biodata ${updateItem.nama} berhasil disetujui (ACC)!` }
+      } catch (err) {
+        console.error('Gagal ACC biodata siswa:', err)
+        return { success: false, message: 'Gagal menyetujui biodata: ' + err.message }
+      }
+    } else {
+      // Local fallback
+      const idx = pendingStudentUpdates.value.findIndex((p) => p.id === updateItem.id)
+      if (idx !== -1) {
+        pendingStudentUpdates.value.splice(idx, 1)
+        saveToLocalStorage()
+      }
+      return { success: true, message: `Biodata ${updateItem.nama} berhasil disetujui!` }
+    }
+  }
+
+  // Aksi Guru BK: Tolak Pengajuan Biodata Siswa
+  async function rejectStudentUpdate(id, name = 'Siswa') {
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error } = await supabase.from('alumni').delete().eq('id', id)
+        if (error) throw error
+        await fetchData()
+        return { success: true, message: `Pengajuan perubahan biodata ${name} berhasil ditolak.` }
+      } catch (err) {
+        console.error('Gagal menolak biodata siswa:', err)
+        return { success: false, message: 'Gagal menolak pengajuan: ' + err.message }
+      }
+    } else {
+      const idx = pendingStudentUpdates.value.findIndex((p) => p.id === id)
+      if (idx !== -1) {
+        pendingStudentUpdates.value.splice(idx, 1)
+        saveToLocalStorage()
+      }
+      return { success: true, message: `Pengajuan perubahan biodata ${name} ditolak.` }
+    }
+  }
+
   // Excel Export (.xlsx)
   function exportExcel() {
     if (alumniList.value.length === 0) {
@@ -509,82 +764,183 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
-  // Admin Action: Update Alumni
-  async function updateAlumni(id, form) {
+  // Admin Action: Update Biodata Lengkap Siswa / Alumni
+  async function adminUpdateStudentOrAlumni(id, form) {
     if (isSupabaseConfigured && supabase) {
       try {
-        const payload = {
-          nama_lengkap: form.name,
-          nis: form.nis !== undefined ? (form.nis || null) : undefined,
-          kelas_terakhir: form.classRoom,
-          tahun_lulus: parseInt(form.cohort) || 2026,
-          no_wa: form.phone || null,
-          kategori: form.category,
-          jalur_masuk: form.pathway,
-          instansi: form.institution,
-          jurusan_posisi: form.major,
-          pesan: form.message || null,
-          foto_url: form.photo !== undefined ? (form.photo || null) : undefined,
+        let updatedInUsers = false
+        let updatedInAlumni = false
+
+        // 1. Siapkan payload pembaruan untuk tabel users (jika akun siswa)
+        const userPayload = {
+          nama: form.name,
+          nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
+          nisn: form.nisn && form.nisn !== '-' ? form.nisn.trim() : null,
+          kelas: form.classRoom && form.classRoom !== '-' ? form.classRoom : null,
+          tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
+          angkatan: form.angkatan ? parseInt(form.angkatan) : 61,
+          no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
+          email: form.email && form.email !== '-' ? form.email.trim() : null,
+          ttl: form.ttl && form.ttl !== '-' ? form.ttl.trim() : null,
+          alamat_lengkap: form.alamat_lengkap && form.alamat_lengkap !== '-' ? form.alamat_lengkap.trim() : null,
+          jenis_tinggal: form.jenis_tinggal && form.jenis_tinggal !== '-' ? form.jenis_tinggal : null,
+          alat_transportasi: form.alat_transportasi && form.alat_transportasi !== '-' ? form.alat_transportasi : null,
+          nama_ortu: form.nama_ortu && form.nama_ortu !== '-' ? form.nama_ortu.trim() : null,
+          pekerjaan_ortu: form.pekerjaan_ortu && form.pekerjaan_ortu !== '-' ? form.pekerjaan_ortu.trim() : null,
+          no_wa_ortu: form.no_wa_ortu && form.no_wa_ortu !== '-' ? form.no_wa_ortu.trim() : null,
+          asal_smp: form.asal_smp && form.asal_smp !== '-' ? form.asal_smp.trim() : null,
+          foto_url: form.photo !== undefined ? (form.photo || null) : null,
           updated_at: new Date().toISOString()
         }
 
-        let { error } = await supabase
-          .from('alumni')
-          .update(payload)
-          .eq('id', id)
-
-        if (error && (error.message.includes('foto_url') || error.message.includes('nis'))) {
-          if (error.message.includes('foto_url')) delete payload.foto_url
-          if (error.message.includes('nis')) delete payload.nis
-          const retry = await supabase.from('alumni').update(payload).eq('id', id)
-          error = retry.error
+        // Jika admin memasukkan kata sandi baru untuk akun siswa
+        if (form.newPassword && form.newPassword.trim()) {
+          userPayload.password = form.newPassword.trim()
         }
 
-        if (error) throw error
+        // Coba perbarui di tabel users berdasarkan ID
+        let resUser = await supabase.from('users').update(userPayload).eq('id', id).select()
+        if (resUser.error && (resUser.error.code === '42703' || resUser.error.message?.includes('foto_url'))) {
+          delete userPayload.foto_url
+          resUser = await supabase.from('users').update(userPayload).eq('id', id).select()
+        }
+
+        if (resUser.data && resUser.data.length > 0) {
+          updatedInUsers = true
+        } else if (form.nis && form.nis !== '-') {
+          // Fallback perbarui users berdasarkan NIS
+          const resUserByNis = await supabase.from('users').update(userPayload).eq('nis', form.nis).select()
+          if (resUserByNis.data && resUserByNis.data.length > 0) {
+            updatedInUsers = true
+          }
+        }
+
+        // 2. Siapkan payload pembaruan untuk tabel alumni
+        const alumniPayload = {
+          nama_lengkap: form.name,
+          nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
+          kelas_terakhir: form.classRoom && form.classRoom !== '-' ? form.classRoom : null,
+          tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
+          no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
+          kategori: form.category || 'PTN',
+          jalur_masuk: form.pathway && form.pathway !== '-' ? form.pathway : null,
+          instansi: form.institution && form.institution !== '-' ? form.institution : null,
+          jurusan_posisi: form.major && form.major !== '-' ? form.major : null,
+          pesan: form.message || null,
+          foto_url: form.photo !== undefined ? (form.photo || null) : null,
+          updated_at: new Date().toISOString()
+        }
+
+        // Coba perbarui di tabel alumni berdasarkan ID
+        let resAlumni = await supabase.from('alumni').update(alumniPayload).eq('id', id).select()
+        if (resAlumni.error && (resAlumni.error.message?.includes('foto_url') || resAlumni.error.message?.includes('nis'))) {
+          if (resAlumni.error.message?.includes('foto_url')) delete alumniPayload.foto_url
+          if (resAlumni.error.message?.includes('nis')) delete alumniPayload.nis
+          resAlumni = await supabase.from('alumni').update(alumniPayload).eq('id', id).select()
+        }
+
+        if (resAlumni.data && resAlumni.data.length > 0) {
+          updatedInAlumni = true
+        } else if (form.nis && form.nis !== '-') {
+          // Fallback perbarui alumni berdasarkan NIS
+          const resAlumniByNis = await supabase.from('alumni').update(alumniPayload).eq('nis', form.nis).select()
+          if (resAlumniByNis.data && resAlumniByNis.data.length > 0) {
+            updatedInAlumni = true
+          }
+        }
+
+        // Jika siswa lapor kuliah/karir baru (bukan 'Siswa Aktif') dan belum ada di alumni
+        if (form.category && form.category !== 'Siswa Aktif' && !updatedInAlumni && form.institution) {
+          try {
+            await supabase.from('alumni').insert({
+              nama_lengkap: form.name,
+              nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
+              kelas_terakhir: form.classRoom || 'XII',
+              tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
+              no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
+              kategori: form.category,
+              jalur_masuk: form.pathway || 'SNBP',
+              instansi: form.institution,
+              jurusan_posisi: form.major || null,
+              pesan: form.message || null,
+              foto_url: form.photo || null,
+              is_verified: true
+            })
+          } catch (e) {
+            console.warn('Gagal upsert ke alumni:', e)
+          }
+        }
+
+        // Ambil data terbaru
         await fetchData()
-        return { success: true }
+        return { success: true, message: `Biodata "${form.name}" berhasil disimpan!` }
       } catch (err) {
-        console.error('Error update alumni:', err)
-        return { success: false, message: err.message }
+        console.error('Error saat update biodata siswa/alumni:', err)
+        return { success: false, message: 'Gagal memperbarui data: ' + err.message }
       }
     } else {
-      const idx = alumniList.value.findIndex(a => a.id === id)
+      // LocalStorage mode
+      const idx = alumniList.value.findIndex(a => a.id === id || (a.nis && a.nis === form.nis))
       if (idx !== -1) {
         alumniList.value[idx] = {
           ...alumniList.value[idx],
           name: form.name,
-          nis: form.nis !== undefined ? form.nis : (alumniList.value[idx].nis || '-'),
-          classRoom: form.classRoom,
-          cohort: String(form.cohort),
+          nis: form.nis || '-',
+          nisn: form.nisn || alumniList.value[idx].nisn || '-',
+          classRoom: form.classRoom || '-',
+          cohort: String(form.cohort || '2027'),
+          angkatan: form.angkatan || alumniList.value[idx].angkatan || 61,
           phone: form.phone || '-',
-          category: form.category,
-          pathway: form.pathway,
-          institution: form.institution,
-          major: form.major,
-          message: form.message || '',
+          email: form.email || alumniList.value[idx].email || '-',
+          ttl: form.ttl || alumniList.value[idx].ttl || '-',
+          alamat_lengkap: form.alamat_lengkap || alumniList.value[idx].alamat_lengkap || '-',
+          jenis_tinggal: form.jenis_tinggal || alumniList.value[idx].jenis_tinggal || '-',
+          alat_transportasi: form.alat_transportasi || alumniList.value[idx].alat_transportasi || '-',
+          nama_ortu: form.nama_ortu || alumniList.value[idx].nama_ortu || '-',
+          pekerjaan_ortu: form.pekerjaan_ortu || alumniList.value[idx].pekerjaan_ortu || '-',
+          no_wa_ortu: form.no_wa_ortu || alumniList.value[idx].no_wa_ortu || '-',
+          asal_smp: form.asal_smp || alumniList.value[idx].asal_smp || '-',
+          category: form.category || alumniList.value[idx].category || 'PTN',
+          pathway: form.pathway || alumniList.value[idx].pathway || 'SNBP',
+          institution: form.institution || alumniList.value[idx].institution || '-',
+          major: form.major || alumniList.value[idx].major || '-',
+          message: form.message || alumniList.value[idx].message || '',
           photo: form.photo !== undefined ? form.photo : alumniList.value[idx].photo
         }
         saveToLocalStorage()
-        return { success: true }
+        return { success: true, message: `Biodata "${form.name}" berhasil disimpan!` }
       }
-      return { success: false, message: 'Data tidak ditemukan' }
+      return { success: false, message: 'Data tidak ditemukan di memori lokal.' }
     }
   }
 
-  // Admin Action: Hapus Alumni
+  // Admin Action: Update Alumni
+  async function updateAlumni(id, form) {
+    return await adminUpdateStudentOrAlumni(id, form)
+  }
+
+  // Admin Action: Hapus Alumni / Siswa
   async function deleteAlumni(id) {
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase
+        const { error: errAlumni } = await supabase
           .from('alumni')
           .delete()
           .eq('id', id)
 
-        if (error) throw error
+        const { error: errUsers } = await supabase
+          .from('users')
+          .delete()
+          .eq('id', id)
+
+        if (errAlumni && errUsers) {
+          throw (errAlumni || errUsers)
+        }
+
         await fetchData()
         return { success: true }
       } catch (err) {
-        console.error('Error delete alumni:', err)
+        console.error('Error delete alumni/siswa:', err)
         return { success: false, message: err.message }
       }
     } else {
@@ -601,6 +957,8 @@ export const useAlumniStore = defineStore('alumni', () => {
   return {
     alumniList,
     pendingList,
+    pendingStudentUpdates,
+    totalPendingCount,
     isLoading,
     selectedCohort,
     selectedCategory,
@@ -609,8 +967,13 @@ export const useAlumniStore = defineStore('alumni', () => {
     statistics,
     fetchData,
     submitLaporDiri,
+    submitStudentUpdate,
+    approveStudentUpdate,
+    rejectStudentUpdate,
+    checkStudentPendingStatus,
     addAlumni,
     updateAlumni,
+    adminUpdateStudentOrAlumni,
     deleteAlumni,
     approvePending,
     rejectPending,

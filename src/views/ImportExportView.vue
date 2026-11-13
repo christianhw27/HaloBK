@@ -1,5 +1,6 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import AdminOnlyGuard from '@/components/AdminOnlyGuard.vue'
@@ -12,6 +13,7 @@ import { getInstitutionLogo, findCampus } from '@/lib/campusList'
 import CampusCombobox from '@/components/CampusCombobox.vue'
 import * as XLSX from 'xlsx'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
 
@@ -343,8 +345,9 @@ const filteredManageList = computed(() => {
 })
 
 function openEdit(alumni) {
-  selectedEditAlumni.value = alumni
-  isEditModalOpen.value = true
+  if (!alumni?.id) return
+  const routeData = router.resolve({ name: 'edit-siswa', params: { id: alumni.id } })
+  window.open(routeData.href, '_blank')
 }
 
 async function handleDelete(alumni) {
@@ -985,14 +988,15 @@ async function handleDelete(alumni) {
                   <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
                   Detail
                 </button>
-                <button
-                  @click="openEdit(alumni)"
-                  type="button"
-                  class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5"
+                <a
+                  :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                  target="_blank"
+                  class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5 inline-flex items-center"
+                  title="Edit data siswa/alumni (buka di tab baru)"
                 >
                   <i class="fa-solid fa-pen-to-square mr-1 text-xs" aria-hidden="true"></i>
                   Edit
-                </button>
+                </a>
                 <button
                   @click="handleDelete(alumni)"
                   type="button"

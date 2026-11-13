@@ -324,7 +324,7 @@ watch(() => alumniStore.alumniList.length, async () => {
             SMA Negeri 2 Ngawi
           </span>
           <span class="text-amber-600 dark:text-amber-300">&bull;</span>
-          <span class="text-[#92400E] dark:text-amber-300">Ruang BK Smada</span>
+          <span class="text-[#92400E] dark:text-amber-300">Ruang BK SMADA</span>
         </div>
 
         <h1 id="banner-heading" class="font-display font-bold text-xl sm:text-[1.75rem] lg:text-[2.25rem] tracking-tight text-[#0F172A] dark:text-white leading-[1.25]">
@@ -336,6 +336,7 @@ watch(() => alumniStore.alumniList.length, async () => {
 
         <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
           <router-link
+            v-if="authStore.userRole !== 'siswa'"
             to="/lapor"
             class="px-5 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm sm:text-base transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm min-h-[44px]"
           >
@@ -352,12 +353,12 @@ watch(() => alumniStore.alumniList.length, async () => {
           </router-link>
 
           <router-link
-            v-if="authStore.userRole === 'admin' && alumniStore.pendingList.length > 0"
+            v-if="authStore.userRole === 'admin' && alumniStore.totalPendingCount > 0"
             to="/verifikasi"
             class="px-5 py-2.5 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-sm sm:text-base transition-colors flex items-center justify-center gap-2 min-h-[44px]"
           >
             <i class="fa-solid fa-bell text-sm" aria-hidden="true"></i>
-            <span>{{ alumniStore.pendingList.length }} Kabar Perlu Verifikasi</span>
+            <span>{{ alumniStore.totalPendingCount }} Kabar Perlu Verifikasi</span>
           </router-link>
         </div>
       </div>

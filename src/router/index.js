@@ -11,6 +11,7 @@ import ImportExportView from '@/views/ImportExportView.vue'
 import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
 import LoginView from '@/views/LoginView.vue'
 import ProfileView from '@/views/ProfileView.vue'
+import EditSiswaView from '@/views/EditSiswaView.vue'
 
 const routes = [
   {
@@ -79,6 +80,12 @@ const routes = [
     path: '/kelola-berita',
     name: 'kelola-berita',
     component: KelolaBeritaView,
+    meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/edit-siswa/:id',
+    name: 'edit-siswa',
+    component: EditSiswaView,
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {

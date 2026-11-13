@@ -1,14 +1,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useAlumniStore } from '@/stores/alumni'
 import PublicNavbar from '@/components/PublicNavbar.vue'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 
 const authStore = useAuthStore()
+const alumniStore = useAlumniStore()
 
 // Cek peran pengguna
 const isSiswa = computed(() => authStore.userRole === 'siswa')
 const isAdmin = computed(() => authStore.userRole === 'admin' || authStore.userRole === 'guru')
+
+// State status pengajuan verifikasi perubahan biodata untuk siswa
+const pendingUpdate = ref(null)
 
 // State Formulir Biodata
 const form = ref({
@@ -72,22 +77,28 @@ const TRANSPORT_OPTIONS = [
 // Sinkronkan data pengguna saat halaman dibuka
 function loadUserData() {
   const u = authStore.currentUser || {}
+  
+  // Jika ada pengajuan pending, tampilkan perubahan terakhir yang diusulkan siswa
+  const pending = isSiswa.value ? alumniStore.checkStudentPendingStatus(u.nis || authStore.userNis) : null
+  pendingUpdate.value = pending
+  const source = (isSiswa.value && pending?.proposedData) ? pending.proposedData : u
+
   form.value = {
     nama: u.nama || authStore.userName || '',
     kelas: u.kelas || 'XI 1',
     nisn: u.nisn || authStore.userNisn || '',
     nis: u.nis || authStore.userNis || '',
-    foto_url: u.foto_url || '',
-    ttl: u.ttl || '',
-    alamat_lengkap: u.alamat_lengkap || '',
-    jenis_tinggal: u.jenis_tinggal || 'Bersama Orang Tua',
-    alat_transportasi: u.alat_transportasi || 'Sepeda Motor',
-    no_wa: u.no_wa || '',
-    email: u.email || authStore.userEmail || '',
-    nama_ortu: u.nama_ortu || '',
-    pekerjaan_ortu: u.pekerjaan_ortu || '',
-    no_wa_ortu: u.no_wa_ortu || '',
-    asal_smp: u.asal_smp || ''
+    foto_url: source.foto_url !== undefined ? source.foto_url : (u.foto_url || ''),
+    ttl: source.ttl || '',
+    alamat_lengkap: source.alamat_lengkap || '',
+    jenis_tinggal: source.jenis_tinggal || 'Bersama Orang Tua',
+    alat_transportasi: source.alat_transportasi || 'Sepeda Motor',
+    no_wa: source.no_wa || '',
+    email: source.email || authStore.userEmail || '',
+    nama_ortu: source.nama_ortu || '',
+    pekerjaan_ortu: source.pekerjaan_ortu || '',
+    no_wa_ortu: source.no_wa_ortu || '',
+    asal_smp: source.asal_smp || ''
   }
 }
 
@@ -166,13 +177,27 @@ async function handleSaveBiodata() {
   clearFeedback()
   isSavingBiodata.value = true
 
-  const res = await authStore.updateProfile(form.value)
-  isSavingBiodata.value = false
+  if (isSiswa.value) {
+    // Siswa: Tidak langsung disimpan ke users, melainkan dikirim ke antrean verifikasi Guru BK
+    const res = await alumniStore.submitStudentUpdate(form.value)
+    isSavingBiodata.value = false
 
-  if (res.success) {
-    showFeedback('success', res.message || 'Biodata profil berhasil disimpan!')
+    if (res.success) {
+      pendingUpdate.value = res.data || alumniStore.checkStudentPendingStatus(form.value.nis)
+      showFeedback('success', 'Pengajuan perubahan biodata berhasil disimpan dan sedang menunggu verifikasi (ACC) dari Guru BK.')
+    } else {
+      showFeedback('error', res.message || 'Gagal mengirim pengajuan perubahan biodata.')
+    }
   } else {
-    showFeedback('error', res.message || 'Gagal menyimpan biodata profil.')
+    // Admin / Guru BK: Simpan langsung ke database users
+    const res = await authStore.updateProfile(form.value)
+    isSavingBiodata.value = false
+
+    if (res.success) {
+      showFeedback('success', res.message || 'Biodata profil berhasil disimpan!')
+    } else {
+      showFeedback('error', res.message || 'Gagal menyimpan biodata profil.')
+    }
   }
 }
 
@@ -226,6 +251,7 @@ function clearFeedback() {
 
 onMounted(async () => {
   await authStore.refreshUserProfile()
+  await alumniStore.fetchData()
   loadUserData()
 })
 </script>
@@ -250,7 +276,7 @@ onMounted(async () => {
         </router-link>
 
         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          Konfigurasi Akun &bull; {{ isAdmin ? 'Guru BK' : (isSiswa ? 'Siswa SMADA' : 'Pengguna') }}
+          Konfigurasi Akun &bull; {{ isAdmin ? 'Guru BK' : (isSiswa ? 'Siswa' : 'Pengguna') }}
         </span>
       </div>
 
@@ -273,8 +299,9 @@ onMounted(async () => {
                 />
                 <span v-else>{{ userInitials }}</span>
               </div>
-              <!-- Tombol Kamera Cepat di Sudut Avatar -->
+              <!-- Tombol Kamera Cepat di Sudut Avatar (Hanya untuk Admin / Guru BK) -->
               <button
+                v-if="isAdmin"
                 type="button"
                 @click="triggerPhotoSelect"
                 class="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center text-xs shadow-md transition-transform group-hover:scale-110"
@@ -291,7 +318,7 @@ onMounted(async () => {
                   {{ isAdmin ? 'Guru BK / Pengelola' : (isSiswa ? ('Angkatan ' + (form.angkatan || 61) + ' (Lulusan 2027)') : 'Alumni / Pengguna') }}
                 </span>
                 <span class="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-semibold text-xs border border-white/25">
-                  {{ isSiswa ? (form.kelas || 'Siswa SMADA') : (isAdmin ? 'Hak Akses Penuh' : 'Pengguna Terdaftar') }}
+                  {{ isSiswa ? (form.kelas || 'Siswa') : (isAdmin ? 'Hak Akses Penuh' : 'Pengguna Terdaftar') }}
                 </span>
               </div>
 
@@ -385,6 +412,32 @@ onMounted(async () => {
       
       <!-- KOLOM KIRI (2/3): FORMULIR FOTO, BIODATA SISWA & ORANG TUA -->
       <div class="lg:col-span-2 space-y-6">
+
+        <!-- BANNER PERINGATAN KUNING: MENUNGGU VERIFIKASI DATA (KHUSUS SISWA DENGAN PENGAJUAN PENDING) -->
+        <div
+          v-if="isSiswa && pendingUpdate"
+          class="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-amber-50 via-white to-amber-50/70 dark:from-amber-950/40 dark:via-slate-900 dark:to-amber-950/20 border-2 border-amber-300 dark:border-amber-700/80 text-amber-950 dark:text-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+        >
+          <div class="flex items-start gap-3.5">
+            <div class="w-11 h-11 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 text-xl shadow-xs">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div class="space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-display font-bold text-base text-amber-950 dark:text-amber-100">
+                  Menunggu Verifikasi Data
+                </span>
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#FEF3C7] dark:bg-amber-900 text-[#92400E] dark:text-amber-200 border border-amber-300 dark:border-amber-700 inline-flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>Perlu ACC Guru BK</span>
+                </span>
+              </div>
+              <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                Perubahan biodata Anda terakhir diajukan pada <strong class="text-amber-900 dark:text-amber-300">{{ pendingUpdate.submittedAt }}</strong> dan saat ini sedang menunggu persetujuan Guru BK. Anda tetap dapat mengedit dan menyimpan formulir di bawah ini; sistem akan otomatis memperbarui pengajuan terakhir tanpa membuat data ganda.
+              </p>
+            </div>
+          </div>
+        </div>
         
         <!-- SEKSI 0: FORM FOTO PROFIL SISWA -->
         <div class="rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-7 shadow-sm space-y-4">
@@ -433,46 +486,65 @@ onMounted(async () => {
 
             <!-- Tombol Aksi & Keterangan Foto -->
             <div class="space-y-3 flex-1 text-center sm:text-left">
-              <div class="space-y-1">
-                <p class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-                  Unggah Foto Resmi Anda
+              <!-- Jika Admin: Memiliki Hak Kelola / Unggah Foto -->
+              <template v-if="isAdmin">
+                <div class="space-y-1">
+                  <p class="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    Kelola Foto Profil
+                  </p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Gunakan foto setengah badan formal untuk identitas akun Anda.
+                  </p>
+                </div>
+
+                <!-- Pesan Error Upload Foto -->
+                <p v-if="photoUploadError" class="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                  {{ photoUploadError }}
                 </p>
-                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Gunakan foto setengah badan berseragam sekolah atau pakaian sopan berlatar belakang polos. Foto ini akan muncul di direktori resmi.
-                </p>
-              </div>
 
-              <!-- Pesan Error Upload Foto -->
-              <p v-if="photoUploadError" class="text-xs text-rose-600 dark:text-rose-400 font-semibold">
-                {{ photoUploadError }}
-              </p>
+                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    @click="triggerPhotoSelect"
+                    :disabled="isUploadingPhoto"
+                    class="px-4 py-2 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-xs sm:text-sm font-semibold transition-colors shadow-xs inline-flex items-center gap-2 disabled:opacity-50 min-h-[38px]"
+                  >
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>{{ form.foto_url ? 'Ganti Foto' : 'Pilih Berkas Foto' }}</span>
+                  </button>
 
-              <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
-                <button
-                  type="button"
-                  @click="triggerPhotoSelect"
-                  :disabled="isUploadingPhoto"
-                  class="px-4 py-2 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white text-xs sm:text-sm font-semibold transition-colors shadow-xs inline-flex items-center gap-2 disabled:opacity-50 min-h-[38px]"
-                >
-                  <i class="fa-solid fa-cloud-arrow-up"></i>
-                  <span>{{ form.foto_url ? 'Ganti Foto' : 'Pilih Berkas Foto' }}</span>
-                </button>
+                  <button
+                    v-if="form.foto_url"
+                    type="button"
+                    @click="handleRemovePhoto"
+                    class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-300 text-xs sm:text-sm font-semibold transition-colors border border-slate-200 dark:border-slate-700 min-h-[38px] inline-flex items-center gap-1.5"
+                  >
+                    <i class="fa-regular fa-trash-can text-xs"></i>
+                    <span>Hapus</span>
+                  </button>
+                </div>
 
-                <button
-                  v-if="form.foto_url"
-                  type="button"
-                  @click="handleRemovePhoto"
-                  class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-800 dark:hover:bg-rose-950/40 text-slate-600 hover:text-rose-600 dark:text-slate-300 dark:hover:text-rose-300 text-xs sm:text-sm font-semibold transition-colors border border-slate-200 dark:border-slate-700 min-h-[38px] inline-flex items-center gap-1.5"
-                >
-                  <i class="fa-regular fa-trash-can text-xs"></i>
-                  <span>Hapus</span>
-                </button>
-              </div>
+                <div class="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-slate-400 dark:text-slate-500">
+                  <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                  <span>Tersimpan di Cloudinary CDN (Format JPG, PNG, WEBP)</span>
+                </div>
+              </template>
 
-              <div class="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-slate-400 dark:text-slate-500">
-                <i class="fa-solid fa-circle-check text-emerald-500"></i>
-                <span>Tersimpan di Cloudinary CDN (Format JPG, PNG, WEBP)</span>
-              </div>
+              <!-- Jika Siswa: Hanya Tampilan Info (Siswa tidak bisa ganti foto, hanya admin) -->
+              <template v-else>
+                <div class="space-y-1.5">
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800">
+                    <i class="fa-solid fa-lock text-[10px]"></i>
+                    <span>Hak Akses Guru BK</span>
+                  </div>
+                  <p class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                    Foto Resmi Siswa
+                  </p>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Pengunggahan dan penggantian foto resmi siswa hanya dapat dilakukan oleh <strong>Administrator / Guru BK</strong> melalui Studio Manajemen Data.
+                  </p>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -759,17 +831,23 @@ onMounted(async () => {
             </div>
           </div>
 
-          <!-- Tombol Simpan Biodata -->
-          <div class="pt-3 flex justify-end">
+          <!-- Tombol Simpan Biodata & Indikator Status ACC -->
+          <div class="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div v-if="isSiswa && pendingUpdate" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200 text-xs font-bold">
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>Menunggu Verifikasi Data</span>
+            </div>
+            <div v-else></div>
+
             <button
               type="button"
               @click="handleSaveBiodata"
               :disabled="isSavingBiodata"
-              class="px-6 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm transition-colors shadow-sm inline-flex items-center gap-2 disabled:opacity-50 min-h-[44px]"
+              class="px-6 py-2.5 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-sm transition-colors shadow-sm inline-flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px]"
             >
               <i v-if="isSavingBiodata" class="fa-solid fa-spinner fa-spin"></i>
               <i v-else class="fa-solid fa-floppy-disk"></i>
-              <span>{{ isSavingBiodata ? 'Menyimpan...' : 'Simpan Perubahan Biodata' }}</span>
+              <span>{{ isSavingBiodata ? 'Menyimpan...' : (isSiswa && pendingUpdate ? 'Perbarui Pengajuan Data' : 'Simpan Perubahan Biodata') }}</span>
             </button>
           </div>
         </div>

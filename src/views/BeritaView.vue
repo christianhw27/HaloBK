@@ -853,7 +853,7 @@ watch(
       <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div class="space-y-1">
           <p class="font-semibold text-[#0F172A] dark:text-white flex items-center justify-center sm:justify-start gap-2">
-            <span>Ruang BK Smada &bull; SMA Negeri 2 Ngawi</span>
+            <span>Ruang BK SMADA &bull; SMA Negeri 2 Ngawi</span>
           </p>
           <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Jalan Ahmad Yani Tromol Pos 7, Klitik, Kecamatan Geneng, Kabupaten Ngawi, Jawa Timur 63217

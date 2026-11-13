@@ -12,7 +12,7 @@ const route = useRoute()
   </div>
 
   <!-- Tata Letak Aplikasi Tracer Study (Dengan Sidebar Tetap) -->
-  <div v-else class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/80 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-100 flex flex-col lg:flex-row font-sans transition-colors duration-200">
+  <div v-else class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/80 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
     <!-- Aksesibilitas: Tautan Langsung ke Konten Utama -->
     <a
       href="#main-content"
@@ -24,8 +24,8 @@ const route = useRoute()
     <!-- Navigasi Samping (Sidebar Desktop & Drawer Mobile) -->
     <Sidebar />
 
-    <!-- Konten Utama Aplikasi (Full Width Tanpa Margin Kosong Berlebih) -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <!-- Konten Utama Aplikasi (Full Width dengan offset sidebar desktop) -->
+    <div class="flex-1 flex flex-col min-w-0 lg:pl-64 xl:pl-72">
       <main id="main-content" class="flex-1 w-full px-3.5 sm:px-6 lg:px-8 xl:px-10 py-4 sm:py-8">
         <router-view v-slot="{ Component }">
           <transition name="fade" mode="out-in">
@@ -40,7 +40,7 @@ const route = useRoute()
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span class="inline-flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200">
               <span class="w-2 h-2 rounded-full bg-[#0284C7]" aria-hidden="true"></span>
-              Ruang BK Smada &bull; SMA Negeri 2 Ngawi
+              Ruang BK SMADA &bull; SMA Negeri 2 Ngawi
             </span>
             <span class="text-slate-400 hidden sm:inline" aria-hidden="true">&bull;</span>
             <span class="text-slate-500 dark:text-slate-400">Portal Bimbingan Konseling &amp; Tracer Study</span>

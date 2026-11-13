@@ -57,13 +57,13 @@ async function handleLogin() {
         <div class="relative flex items-center justify-center gap-3 mb-3">
           <img
             src="/logo.png"
-            alt="Logo Ruang BK Smada"
+            alt="Logo Ruang BK SMADA"
             class="w-14 h-14 rounded-2xl bg-white p-1.5 shadow-md object-contain shrink-0"
           />
         </div>
 
         <h1 class="font-display font-bold text-2xl text-white tracking-tight leading-tight">
-          Ruang BK Smada
+          Ruang BK SMADA
         </h1>
         <p class="text-xs sm:text-sm text-sky-100 mt-1 font-medium">
           Portal Tracer Study &amp; Bimbingan Konseling SMA Negeri 2 Ngawi

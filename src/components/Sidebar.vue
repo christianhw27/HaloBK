@@ -81,7 +81,7 @@ function toggleDarkMode() {
         </div>
         <div>
           <span class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-tight block">
-            Ruang BK Smada
+            Ruang BK SMADA
           </span>
           <span class="text-[11px] text-[#0369A1] dark:text-sky-300 font-medium block -mt-0.5">
             Tracer Study &amp; Karir
@@ -132,9 +132,9 @@ function toggleDarkMode() {
     ></div>
   </Transition>
 
-  <!-- SIDEBAR CONTAINER (DESKTOP: STICKY ASIDE, MOBILE: OFF-CANVAS DRAWER) -->
+  <!-- SIDEBAR CONTAINER (DESKTOP: FIXED ASIDE, MOBILE: OFF-CANVAS DRAWER) -->
   <aside
-    class="fixed lg:sticky top-0 left-0 z-50 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out lg:translate-x-0"
+    class="fixed top-0 left-0 z-40 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
     :class="isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
     aria-label="Navigasi Samping"
   >
@@ -159,7 +159,7 @@ function toggleDarkMode() {
           <div>
             <div class="flex items-center gap-1.5">
               <span class="font-display font-bold text-lg text-slate-900 dark:text-white leading-tight">
-                Ruang BK Smada
+                Ruang BK SMADA
               </span>
             </div>
             <p class="text-xs text-[#0369A1] dark:text-sky-300 font-medium mt-0.5">
@@ -186,14 +186,13 @@ function toggleDarkMode() {
             Masuk Sebagai
           </span>
           <span
+            v-if="authStore.userRole !== 'siswa'"
             class="text-xs font-bold px-2.5 py-0.5 rounded-full border"
             :class="authStore.userRole === 'admin'
               ? 'bg-[#D1FAE5] text-[#047857] border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
-              : (authStore.userRole === 'siswa'
-                ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
-                : 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800')"
+              : 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/80 dark:text-sky-300 dark:border-sky-800'"
           >
-            {{ authStore.userRole === 'admin' ? 'Guru BK' : (authStore.userRole === 'siswa' ? 'Siswa SMADA' : 'Pengunjung') }}
+            {{ authStore.userRole === 'admin' ? 'Guru BK' : 'Pengunjung' }}
           </span>
         </div>
 
@@ -207,14 +206,13 @@ function toggleDarkMode() {
             <span class="truncate font-semibold">{{ authStore.userName }}</span>
           </div>
           <span
+            v-if="authStore.userRole !== 'siswa'"
             class="text-[11px] font-medium px-2 py-0.5 rounded-full"
             :class="authStore.userRole === 'admin'
               ? 'text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/50'
-              : (authStore.userRole === 'siswa'
-                ? 'text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/50'
-                : 'text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/50')"
+              : 'text-sky-700 bg-sky-50 dark:text-sky-300 dark:bg-sky-950/50'"
           >
-            {{ authStore.userRole === 'admin' ? 'Pengelola' : (authStore.userRole === 'siswa' ? 'Siswa Aktif' : 'Tamu') }}
+            {{ authStore.userRole === 'admin' ? 'Pengelola' : 'Tamu' }}
           </span>
         </div>
       </div>
@@ -274,8 +272,9 @@ function toggleDarkMode() {
           <span>Direktori Alumni</span>
         </router-link>
 
-        <!-- 3. Lapor Diri (Hope Amber) -->
+        <!-- 3. Lapor Diri (Hope Amber - Khusus Alumni / Bukan Siswa Aktif) -->
         <router-link
+          v-if="authStore.userRole !== 'siswa'"
           to="/lapor"
           class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
           :class="route.path === '/lapor'
@@ -314,14 +313,14 @@ function toggleDarkMode() {
             <span>Verifikasi Laporan</span>
           </div>
           <span
-            v-if="alumniStore.pendingList.length > 0"
+            v-if="alumniStore.totalPendingCount > 0"
             class="px-2 py-0.5 rounded-full text-xs font-bold"
             :class="route.path === '/verifikasi'
               ? 'bg-white text-[#BE123C]'
               : 'bg-amber-500 text-slate-950'"
             aria-label="Antrean pengajuan verifikasi"
           >
-            {{ alumniStore.pendingList.length }}
+            {{ alumniStore.totalPendingCount }}
           </span>
         </router-link>
 

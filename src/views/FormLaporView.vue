@@ -1,13 +1,23 @@
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAlumniStore } from '@/stores/alumni'
+import { useAuthStore } from '@/stores/auth'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { compressImage } from '@/lib/imageHelper'
 import CampusCombobox from '@/components/CampusCombobox.vue'
 
 const router = useRouter()
 const alumniStore = useAlumniStore()
+const authStore = useAuthStore()
+
+// Cek apakah akun yang sedang login adalah siswa aktif (role siswa / angkatan 2027 ke atas)
+const isSiswaAktif = computed(() => {
+  if (authStore.userRole === 'siswa') return true
+  const cohortYear = parseInt(authStore.currentUser?.tahun_lulus || authStore.currentUser?.cohort || 0)
+  if (cohortYear >= 2027) return true
+  return false
+})
 
 const form = reactive({
   name: '',
@@ -21,6 +31,25 @@ const form = reactive({
   major: '',
   message: '',
   photo: ''
+})
+
+function populateFromUser() {
+  const user = authStore.currentUser
+  if (user) {
+    form.name = user.nama || authStore.userName || form.name
+    form.nis = user.nis || authStore.userNis || form.nis
+    form.classRoom = user.kelas || user.kelas_terakhir || form.classRoom
+    form.cohort = String(user.tahun_lulus || user.cohort || form.cohort)
+    if (user.no_wa && !form.phone) form.phone = user.no_wa
+    if (user.foto_url && !form.photo) form.photo = user.foto_url
+  } else {
+    if (authStore.userName) form.name = authStore.userName
+    if (authStore.userNis) form.nis = authStore.userNis
+  }
+}
+
+onMounted(() => {
+  populateFromUser()
 })
 
 const isSubmitted = ref(false)
@@ -77,6 +106,14 @@ function onCategoryChange() {
 }
 
 async function handleSubmit() {
+  if (isSiswaAktif.value) {
+    errorMessage.value = 'Mohon maaf, formulir Lapor Diri Tracer Study hanya dapat diisi oleh alumni yang telah lulus.'
+    return
+  }
+
+  // Sinkronisasi data identitas akun sebelum pengiriman
+  populateFromUser()
+
   isSubmitting.value = true
   errorMessage.value = ''
 
@@ -111,9 +148,47 @@ async function handleSubmit() {
       </p>
     </section>
 
-    <!-- Notifikasi Kesalahan -->
+    <!-- PEMBERITAHUAN KHUSUS SISWA AKTIF (TIDAK BISA MENGISI FORMULIR LAPOR DIRI) -->
     <div
-      v-if="errorMessage"
+      v-if="isSiswaAktif"
+      class="p-8 sm:p-10 rounded-3xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-900/60 shadow-[var(--shadow-card)] text-center space-y-5"
+    >
+      <div class="w-16 h-16 rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300 flex items-center justify-center mx-auto text-2xl shadow-sm">
+        <i class="fa-solid fa-graduation-cap"></i>
+      </div>
+      <div class="max-w-xl mx-auto space-y-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-xs font-bold">
+          <i class="fa-solid fa-lock text-[11px]"></i>
+          <span>Khusus Alumni Lulusan</span>
+        </span>
+        <h2 class="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-white">
+          Formulir Lapor Diri Khusus Alumni
+        </h2>
+        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+          Halo, <strong class="text-slate-900 dark:text-white">{{ authStore.userName }}</strong>! Anda saat ini terdaftar sebagai <strong>Siswa Aktif SMADA (Angkatan 61 / Lulusan 2027)</strong>. Formulir Lapor Diri &amp; Tracer Study baru dapat diisi setelah Anda resmi menyelesaikan pendidikan dan lulus dari SMA Negeri 2 Ngawi.
+        </p>
+      </div>
+      <div class="pt-3 flex flex-wrap items-center justify-center gap-3">
+        <router-link
+          to="/"
+          class="px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold text-sm transition-colors shadow-sm inline-flex items-center gap-2"
+        >
+          <i class="fa-solid fa-house"></i>
+          <span>Kembali ke Beranda</span>
+        </router-link>
+        <router-link
+          to="/profil"
+          class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-sm transition-colors inline-flex items-center gap-2"
+        >
+          <i class="fa-solid fa-id-card"></i>
+          <span>Lihat Biodata Saya</span>
+        </router-link>
+      </div>
+    </div>
+
+    <!-- Tampilan Notifikasi Kesalahan -->
+    <div
+      v-else-if="errorMessage"
       class="p-4 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-sm sm:text-base font-medium flex items-center gap-3"
       role="alert"
     >
@@ -123,7 +198,7 @@ async function handleSubmit() {
 
     <!-- Tampilan Sukses Pengiriman -->
     <div
-      v-if="isSubmitted"
+      v-else-if="isSubmitted"
       class="p-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 text-center space-y-3"
       role="status"
     >
@@ -136,80 +211,60 @@ async function handleSubmit() {
       </p>
     </div>
 
-    <!-- Formulir Utama -->
+    <!-- Formulir Utama (Hanya untuk Alumni) -->
     <form
       v-else
       @submit.prevent="handleSubmit"
       class="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-6"
     >
-      <!-- Bagian 1: Identitas Alumni -->
+      <!-- Bagian 1: Identitas Alumni (Otomatis dari Akun) -->
       <fieldset class="space-y-4">
         <legend class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white pb-2.5 border-b border-sky-100/80 dark:border-slate-800 w-full flex items-center gap-2.5">
           <span class="w-7 h-7 rounded-lg bg-[#E0F2FE] dark:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-xs sm:text-sm flex items-center justify-center font-bold">1</span>
           <span>Kenalan Singkat (Identitas Kamu)</span>
         </legend>
 
+        <!-- Ringkasan Identitas Otomatis Dari Akun -->
+        <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-sky-50 via-white to-amber-50/40 dark:from-slate-850 dark:via-slate-850 dark:to-slate-800 border border-sky-200/80 dark:border-slate-700/80 space-y-3">
+          <div class="flex items-center justify-between gap-2 pb-2.5 border-b border-sky-100 dark:border-slate-700">
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-circle-check text-emerald-500"></i>
+              Identitas Pelapor (Otomatis dari Akun)
+            </span>
+            <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Terverifikasi
+            </span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+            <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+              <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Nama Lengkap</span>
+              <span class="font-bold text-sm text-slate-900 dark:text-white truncate block" :title="form.name">
+                {{ form.name || '-' }}
+              </span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+              <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">NIS</span>
+              <span class="font-bold text-sm text-slate-900 dark:text-white font-mono block">
+                {{ form.nis || '-' }}
+              </span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+              <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Kelas Terakhir</span>
+              <span class="font-bold text-sm text-slate-900 dark:text-white block">
+                {{ form.classRoom || '-' }}
+              </span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/70 dark:border-slate-700">
+              <span class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400">Tahun Lulus</span>
+              <span class="font-bold text-sm text-amber-600 dark:text-amber-400 block font-mono">
+                {{ form.cohort || '-' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label for="input-name" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Nama Lengkap Alumni <span class="text-rose-500">*</span>
-            </label>
-            <input
-              id="input-name"
-              v-model="form.name"
-              type="text"
-              required
-              placeholder="Masukkan nama lengkap sesuai ijazah"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label for="input-nis" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              NIS (Nomor Induk Siswa)
-            </label>
-            <input
-              id="input-nis"
-              v-model="form.nis"
-              type="text"
-              placeholder="Contoh: 12345 (Opsional alumni lama)"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            />
-          </div>
-
-          <div>
-            <label for="input-class" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Kelas Terakhir di SMADA <span class="text-rose-500">*</span>
-            </label>
-            <select
-              id="input-class"
-              v-model="form.classRoom"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            >
-              <option v-for="i in 10" :key="i" :value="`XII-${i}`">XII-{{ i }}</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="input-cohort" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Tahun Angkatan Lulus <span class="text-rose-500">*</span>
-            </label>
-            <select
-              id="input-cohort"
-              v-model="form.cohort"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
-            >
-              <option value="2027">2027 (Angkatan 61)</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-              <option value="2024">2024</option>
-              <option value="2023">2023</option>
-              <option value="2022">2022</option>
-              <option value="2021">2021</option>
-              <option value="2020">2020</option>
-            </select>
-          </div>
-
           <div class="sm:col-span-2">
             <label for="input-phone" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Nomor WhatsApp Aktif (Opsional)

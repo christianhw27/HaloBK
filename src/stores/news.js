@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { STARTER_NEWS } from '@/lib/starterNews'
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
 
 export const useNewsStore = defineStore('news', () => {
   const STORAGE_KEY = 'hallo_berita_smada_v1'
@@ -29,7 +30,7 @@ export const useNewsStore = defineStore('news', () => {
       category: row.kategori || row.category || 'Pengumuman BK',
       summary: row.ringkasan || row.summary || '',
       content: row.isi || row.content || '',
-      imageUrl: row.gambar_url || row.imageUrl || '',
+      imageUrl: getOptimizedImageUrl(row.gambar_url || row.imageUrl || '', 800),
       author: row.penulis || row.author || 'Tim BK SMADA Ngawi',
       isFeatured: Boolean(row.is_featured ?? row.isFeatured),
       isPublished: row.is_published !== undefined ? Boolean(row.is_published) : (row.isPublished !== undefined ? Boolean(row.isPublished) : true),

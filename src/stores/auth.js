@@ -15,6 +15,10 @@ export const useAuthStore = defineStore('auth', () => {
     const rawUserData = localStorage.getItem('hallo_auth_user_data')
     if (rawUserData) {
       initialUserData = JSON.parse(rawUserData)
+      if (initialUserData && initialUserData.password) {
+        delete initialUserData.password
+        localStorage.setItem('hallo_auth_user_data', JSON.stringify(initialUserData))
+      }
     }
   } catch (e) {
     initialUserData = null
@@ -91,23 +95,27 @@ export const useAuthStore = defineStore('auth', () => {
       const role = user.role === 'admin' ? 'admin' : (user.role === 'siswa' ? 'siswa' : 'user')
       const name = user.nama || (role === 'admin' ? 'Guru BK SMADA' : 'Siswa SMADA')
 
+      // Keamanan: Hapus properti kata sandi sebelum disimpan ke state & LocalStorage
+      const safeUser = { ...user }
+      delete safeUser.password
+
       isLoggedIn.value = true
       userRole.value = role
       userName.value = name
-      userEmail.value = user.email || ''
-      userNis.value = user.nis || ''
-      userNisn.value = user.nisn || ''
-      currentUser.value = user
+      userEmail.value = safeUser.email || ''
+      userNis.value = safeUser.nis || ''
+      userNisn.value = safeUser.nisn || ''
+      currentUser.value = safeUser
 
       localStorage.setItem('hallo_auth_logged_in', 'true')
       localStorage.setItem('hallo_auth_role', role)
       localStorage.setItem('hallo_auth_name', name)
-      localStorage.setItem('hallo_auth_email', user.email || '')
-      localStorage.setItem('hallo_auth_nis', user.nis || '')
-      localStorage.setItem('hallo_auth_nisn', user.nisn || '')
-      localStorage.setItem('hallo_auth_user_data', JSON.stringify(user))
+      localStorage.setItem('hallo_auth_email', safeUser.email || '')
+      localStorage.setItem('hallo_auth_nis', safeUser.nis || '')
+      localStorage.setItem('hallo_auth_nisn', safeUser.nisn || '')
+      localStorage.setItem('hallo_auth_user_data', JSON.stringify(safeUser))
 
-      return { success: true, role, user }
+      return { success: true, role, user: safeUser }
     } catch (err) {
       console.error('Pengecualian saat login:', err)
       return { success: false, message: 'Terjadi kesalahan sistem saat memproses login.' }
@@ -128,12 +136,14 @@ export const useAuthStore = defineStore('auth', () => {
         .maybeSingle()
 
       if (!error && data) {
-        currentUser.value = data
-        userName.value = data.nama || userName.value
-        userEmail.value = data.email || ''
-        userNis.value = data.nis || ''
-        userNisn.value = data.nisn || ''
-        localStorage.setItem('hallo_auth_user_data', JSON.stringify(data))
+        const safeData = { ...data }
+        delete safeData.password
+        currentUser.value = safeData
+        userName.value = safeData.nama || userName.value
+        userEmail.value = safeData.email || ''
+        userNis.value = safeData.nis || ''
+        userNisn.value = safeData.nisn || ''
+        localStorage.setItem('hallo_auth_user_data', JSON.stringify(safeData))
       }
     } catch (err) {
       console.warn('Gagal me-refresh profil pengguna:', err)
@@ -203,6 +213,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       // Perbarui state lokal & localStorage
       const mergedUser = { ...currentUser.value, ...(data || updatePayload) }
+      delete mergedUser.password
       currentUser.value = mergedUser
       userName.value = mergedUser.nama || userName.value
       userEmail.value = mergedUser.email || ''

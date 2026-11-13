@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import DetailModal from '@/components/DetailModal.vue'
@@ -7,8 +8,13 @@ import EditModal from '@/components/EditModal.vue'
 import { CATEGORY_COLORS } from '@/lib/initialData'
 import { getInstitutionLogo } from '@/lib/campusList'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
+
+const isTeacherOrAdmin = computed(() => {
+  return authStore.userRole === 'admin' || authStore.userRole === 'guru'
+})
 
 onMounted(() => {
   alumniStore.fetchData()
@@ -80,12 +86,13 @@ function openDetail(item) {
 }
 
 function openEdit(item) {
-  selectedEditAlumni.value = item
-  isEditModalOpen.value = true
+  if (!item?.id) return
+  const routeData = router.resolve({ name: 'edit-siswa', params: { id: item.id } })
+  window.open(routeData.href, '_blank')
 }
 
 async function handleDelete(alumni) {
-  if (confirm(`Hapus data alumni "${alumni.name}" secara permanen dari database?`)) {
+  if (confirm(`Hapus data "${alumni.name}" secara permanen dari database?`)) {
     const res = await alumniStore.deleteAlumni(alumni.id)
     if (!res.success) {
       alert('Gagal menghapus data: ' + res.message)
@@ -263,7 +270,7 @@ function openWhatsApp(phone, name, inst) {
           <div class="flex items-start justify-between gap-2">
             <div class="flex items-center gap-3">
               <div v-if="alumni.photo" class="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs">
-                <img :src="alumni.photo" :alt="'Foto ' + alumni.name" class="w-full h-full object-cover" />
+                <img :src="alumni.photo" :alt="'Foto ' + alumni.name" loading="lazy" decoding="async" class="w-full h-full object-cover" />
               </div>
               <div
                 v-else
@@ -339,18 +346,19 @@ function openWhatsApp(phone, name, inst) {
           </button>
 
           <!-- Aksi Khusus Guru BK (Edit & Hapus) -->
-          <button
-            v-if="authStore.userRole === 'admin'"
-            @click="openEdit(alumni)"
-            type="button"
-            class="p-2 rounded-lg bg-slate-100 hover:bg-[#E0F2FE] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-400 text-sm transition-colors"
-            title="Edit data alumni"
+          <a
+            v-if="isTeacherOrAdmin"
+            :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+            target="_blank"
+            class="p-2 rounded-lg bg-slate-100 hover:bg-[#E0F2FE] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-400 text-sm transition-colors flex items-center justify-center"
+            title="Edit biodata siswa/alumni (buka di tab baru)"
+            aria-label="Edit data alumni"
           >
             <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-          </button>
+          </a>
 
           <button
-            v-if="authStore.userRole === 'admin'"
+            v-if="isTeacherOrAdmin"
             @click="handleDelete(alumni)"
             type="button"
             class="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800/60 text-sm transition-colors"
@@ -385,7 +393,7 @@ function openWhatsApp(phone, name, inst) {
             <td class="p-3.5 font-semibold text-slate-900 dark:text-white">
               <div class="flex items-center gap-2.5">
                 <div v-if="alumni.photo" class="w-8 h-8 rounded-xl overflow-hidden shrink-0 border border-slate-200 dark:border-slate-700">
-                  <img :src="alumni.photo" :alt="alumni.name" class="w-full h-full object-cover" />
+                  <img :src="alumni.photo" :alt="alumni.name" loading="lazy" decoding="async" class="w-full h-full object-cover" />
                 </div>
                 <div
                   v-else
@@ -448,17 +456,17 @@ function openWhatsApp(phone, name, inst) {
               >
                 <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
               </button>
-              <button
-                v-if="authStore.userRole === 'admin'"
-                @click="openEdit(alumni)"
-                type="button"
-                class="px-2.5 py-1.5 rounded bg-slate-100 hover:bg-[#E0F2FE] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-400 text-xs sm:text-sm font-semibold transition-colors mr-1"
-                title="Edit data alumni"
+              <a
+                v-if="isTeacherOrAdmin"
+                :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                target="_blank"
+                class="px-2.5 py-1.5 rounded bg-slate-100 hover:bg-[#E0F2FE] dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-400 text-xs sm:text-sm font-semibold transition-colors mr-1 inline-flex items-center justify-center"
+                title="Edit biodata siswa/alumni (buka di tab baru)"
               >
                 <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
-              </button>
+              </a>
               <button
-                v-if="authStore.userRole === 'admin'"
+                v-if="isTeacherOrAdmin"
                 @click="handleDelete(alumni)"
                 type="button"
                 class="px-2.5 py-1.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-xs sm:text-sm font-semibold transition-colors"
