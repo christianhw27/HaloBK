@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
+import { normalizeMajorName } from '@/lib/snpmbService'
 import * as XLSX from 'xlsx'
 
 export const useAlumniStore = defineStore('alumni', () => {
@@ -26,6 +27,10 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Mapping data dari format database Supabase ke format frontend
   function mapDbToAlumni(item) {
+    const rawInst = item.instansi || item.institution || ''
+    const rawMajor = item.jurusan_posisi || item.major || '-'
+    const finalMajor = normalizeMajorName(rawInst, rawMajor)
+
     return {
       id: item.id,
       name: item.nama_lengkap || item.name || '',
@@ -35,8 +40,8 @@ export const useAlumniStore = defineStore('alumni', () => {
       phone: item.no_wa || item.phone || '-',
       category: item.kategori || item.category || 'PTN',
       pathway: item.jalur_masuk || item.pathway || 'SNBP',
-      institution: item.instansi || item.institution || '',
-      major: item.jurusan_posisi || item.major || '-',
+      institution: rawInst,
+      major: finalMajor,
       message: item.pesan || item.message || '',
       photo: getOptimizedImageUrl(item.foto_url || item.photo || null),
       timestamp: item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', {
@@ -251,17 +256,26 @@ export const useAlumniStore = defineStore('alumni', () => {
     return result
   })
 
-  // Statistics
+  // Statistics (Khusus Data Alumni Lulusan - Siswa Aktif Tidak Masuk ke Statistik Tracer Study)
   const statistics = computed(() => {
-    const total = alumniList.value.length
-    const ptnCount = alumniList.value.filter(a => a.category === 'PTN').length
-    const ptsCount = alumniList.value.filter(a => a.category === 'PTS').length
-    const kedinasanCount = alumniList.value.filter(a => a.category === 'Kedinasan').length
-    const tniPolriCount = alumniList.value.filter(a => a.category === 'TNI/Polri').length
-    const kerjaCount = alumniList.value.filter(a => a.category === 'Bekerja').length
-    const wirausahaCount = alumniList.value.filter(a => a.category === 'Wirausaha').length
-    const pelatihanCount = alumniList.value.filter(a => a.category === 'Pelatihan / LPK').length
-    const masaTungguCount = alumniList.value.filter(a => a.category === 'Masa Tunggu' || a.category === 'Belum Lapor Diri').length
+    // Saring hanya alumni yang sudah lulus (keluarkan siswa aktif angkatan 61 / 2027)
+    const onlyAlumni = alumniList.value.filter((a) => {
+      if (a.category === 'Siswa Aktif' || a.isSiswa) return false
+      if (String(a.cohort) === '2027') return false
+      const inst = String(a.institution || '').toLowerCase()
+      if (inst.includes('sma negeri 2 ngawi') || inst.includes('sman 2 ngawi')) return false
+      return true
+    })
+
+    const total = onlyAlumni.length
+    const ptnCount = onlyAlumni.filter(a => a.category === 'PTN').length
+    const ptsCount = onlyAlumni.filter(a => a.category === 'PTS').length
+    const kedinasanCount = onlyAlumni.filter(a => a.category === 'Kedinasan').length
+    const tniPolriCount = onlyAlumni.filter(a => a.category === 'TNI/Polri').length
+    const kerjaCount = onlyAlumni.filter(a => a.category === 'Bekerja').length
+    const wirausahaCount = onlyAlumni.filter(a => a.category === 'Wirausaha').length
+    const pelatihanCount = onlyAlumni.filter(a => a.category === 'Pelatihan / LPK').length
+    const masaTungguCount = onlyAlumni.filter(a => a.category === 'Masa Tunggu' || a.category === 'Belum Lapor Diri').length
 
     return {
       total,

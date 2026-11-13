@@ -21,7 +21,9 @@ let donutChart = null
 let barChart = null
 
 const recentAlumni = computed(() => {
-  return alumniStore.alumniList.slice(0, 8)
+  return alumniStore.alumniList
+    .filter(a => a.category !== 'Siswa Aktif' && !a.isSiswa && String(a.cohort) !== '2027')
+    .slice(0, 8)
 })
 
 function openDetail(alumni) {
@@ -198,10 +200,15 @@ function initCharts() {
       'tidak ada',
       '-',
       'belum ada',
-      'lainnya'
+      'lainnya',
+      'sma negeri 2 ngawi',
+      'sman 2 ngawi',
+      'smada'
     ]
 
     alumniStore.alumniList.forEach(a => {
+      // Abaikan data siswa aktif (hanya alumni lulusan)
+      if (a.category === 'Siswa Aktif' || a.isSiswa || String(a.cohort) === '2027') return
       // Abaikan kategori Belum Lapor Diri / Masa Tunggu
       if (a.category === 'Masa Tunggu' || a.category === 'Belum Lapor Diri') return
 
@@ -581,7 +588,7 @@ watch(() => alumniStore.alumniList.length, async () => {
 
           <div class="flex items-center gap-3 shrink-0">
             <span
-              class="px-2.5 py-0.5 rounded text-xs font-medium border"
+              class="px-2.5 py-0.5 rounded text-xs font-medium border whitespace-nowrap inline-block shrink-0"
               :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
             >
               {{ alumni.category }}

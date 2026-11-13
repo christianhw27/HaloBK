@@ -8,6 +8,7 @@ import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { compressImage } from '@/lib/imageHelper'
 import PublicNavbar from '@/components/PublicNavbar.vue'
 import CampusCombobox from '@/components/CampusCombobox.vue'
+import ProdiCombobox from '@/components/ProdiCombobox.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -858,12 +859,11 @@ onMounted(() => {
                 <label for="edit-major" class="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
                   Program Studi / Jurusan / Posisi Pekerjaan
                 </label>
-                <input
+                <ProdiCombobox
                   id="edit-major"
                   v-model="form.major"
-                  type="text"
-                  class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-[#0284C7] focus:outline-none"
-                  placeholder="Contoh: S1 Teknik Informatika / Staff Administrasi"
+                  :campus="form.institution"
+                  placeholder="Pilih atau cari Program Studi resmi..."
                 />
               </div>
 

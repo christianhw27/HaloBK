@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
@@ -11,6 +11,7 @@ import { compressImage } from '@/lib/imageHelper'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { getInstitutionLogo, findCampus } from '@/lib/campusList'
 import CampusCombobox from '@/components/CampusCombobox.vue'
+import ProdiCombobox from '@/components/ProdiCombobox.vue'
 import * as XLSX from 'xlsx'
 
 const router = useRouter()
@@ -344,6 +345,23 @@ const filteredManageList = computed(() => {
   )
 })
 
+// Pagination untuk Kelola Data (Halaman)
+const manageCurrentPage = ref(1)
+const manageItemsPerPage = 12
+
+const manageTotalPages = computed(() => {
+  return Math.ceil(filteredManageList.value.length / manageItemsPerPage) || 1
+})
+
+const paginatedManageList = computed(() => {
+  const start = (manageCurrentPage.value - 1) * manageItemsPerPage
+  return filteredManageList.value.slice(start, start + manageItemsPerPage)
+})
+
+watch(manageSearch, () => {
+  manageCurrentPage.value = 1
+})
+
 function openEdit(alumni) {
   if (!alumni?.id) return
   const routeData = router.resolve({ name: 'edit-siswa', params: { id: alumni.id } })
@@ -392,19 +410,19 @@ async function handleDelete(alumni) {
     </section>
 
     <!-- Navigasi Tab Pengelolaan -->
-    <div class="flex flex-wrap items-center gap-2 p-2 bg-sky-50/70 dark:bg-slate-800/80 rounded-2xl border border-sky-200/70 dark:border-slate-700/80 text-sm font-semibold" role="tablist">
+    <div class="flex overflow-x-auto no-scrollbar items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-sky-50/70 dark:bg-slate-800/80 rounded-2xl border border-sky-200/70 dark:border-slate-700/80 text-xs sm:text-sm font-semibold" role="tablist">
       <button
         type="button"
         role="tab"
         :aria-selected="activeTab === 'input'"
         @click="activeTab = 'input'"
-        class="px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
         :class="activeTab === 'input'
           ? 'bg-[#0369A1] text-white shadow-sm'
           : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
       >
-        <i class="fa-solid fa-user-plus text-sm" aria-hidden="true"></i>
-        <span>1. Input Data Manual (Tambah Baru)</span>
+        <i class="fa-solid fa-user-plus text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>1. Input Manual</span>
       </button>
 
       <button
@@ -412,13 +430,13 @@ async function handleDelete(alumni) {
         role="tab"
         :aria-selected="activeTab === 'import'"
         @click="activeTab = 'import'"
-        class="px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
         :class="activeTab === 'import'
           ? 'bg-[#F59E0B] text-slate-950 shadow-sm'
           : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
       >
-        <i class="fa-solid fa-cloud-arrow-up text-sm" aria-hidden="true"></i>
-        <span>2. Import File Excel / CSV</span>
+        <i class="fa-solid fa-cloud-arrow-up text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>2. Import Excel</span>
       </button>
 
       <button
@@ -426,13 +444,13 @@ async function handleDelete(alumni) {
         role="tab"
         :aria-selected="activeTab === 'export'"
         @click="activeTab = 'export'"
-        class="px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
         :class="activeTab === 'export'
           ? 'bg-[#047857] text-white shadow-sm'
           : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
       >
-        <i class="fa-solid fa-file-excel text-sm" aria-hidden="true"></i>
-        <span>3. Export &amp; Backup Data</span>
+        <i class="fa-solid fa-file-excel text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>3. Export &amp; Backup</span>
       </button>
 
       <button
@@ -440,12 +458,12 @@ async function handleDelete(alumni) {
         role="tab"
         :aria-selected="activeTab === 'table'"
         @click="activeTab = 'table'"
-        class="px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
         :class="activeTab === 'table'
           ? 'bg-[#BE123C] text-white shadow-sm'
           : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
       >
-        <i class="fa-solid fa-list-check text-sm" aria-hidden="true"></i>
+        <i class="fa-solid fa-list-check text-xs sm:text-sm" aria-hidden="true"></i>
         <span>4. Kelola Data (Edit &amp; Hapus)</span>
       </button>
     </div>
@@ -453,7 +471,7 @@ async function handleDelete(alumni) {
     <!-- ========================================== -->
     <!-- TAB 1: FORM TAMBAH DATA MANUAL (CREATE) -->
     <!-- ========================================== -->
-    <section v-if="activeTab === 'input'" class="p-6 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-5">
+    <section v-if="activeTab === 'input'" class="p-4 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4 sm:space-y-5">
       <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
         <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
           Formulir Penambahan Alumni Manual
@@ -586,11 +604,11 @@ async function handleDelete(alumni) {
             <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Jurusan / Program Studi / Posisi
             </label>
-            <input
+            <ProdiCombobox
+              id="manual-major"
               v-model="manualForm.major"
-              type="text"
-              placeholder="Contoh: S1 Teknik Sipil"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+              :campus="manualForm.institution"
+              placeholder="Pilih atau cari Program Studi resmi..."
             />
           </div>
 
@@ -694,7 +712,7 @@ async function handleDelete(alumni) {
     <!-- ========================================== -->
     <!-- TAB 2: IMPORT FILE EXCEL                   -->
     <!-- ========================================== -->
-    <section v-else-if="activeTab === 'import'" class="p-6 sm:p-7 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
+    <section v-else-if="activeTab === 'import'" class="p-4 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4 sm:space-y-5">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
         <div>
           <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
@@ -839,7 +857,7 @@ async function handleDelete(alumni) {
     <!-- ========================================== -->
     <!-- TAB 3: EXPORT & BACKUP DATA                -->
     <!-- ========================================== -->
-    <section v-else-if="activeTab === 'export'" class="p-6 sm:p-7 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+    <section v-else-if="activeTab === 'export'" class="p-4 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4 sm:space-y-6">
       <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
         <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
           Export & Cadangan Database Alumni
@@ -903,112 +921,242 @@ async function handleDelete(alumni) {
     <!-- ========================================== -->
     <!-- TAB 4: TABEL MANAJEMEN CRUD (EDIT & HAPUS) -->
     <!-- ========================================== -->
-    <section v-else-if="activeTab === 'table'" class="p-6 sm:p-7 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+    <section v-else-if="activeTab === 'table'" class="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-3.5 sm:space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
         <div>
           <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
-            Kelola, Perbarui & Hapus Data Alumni
+            Kelola, Perbarui &amp; Hapus Data Alumni
           </h2>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Perbaiki kesalahan data nama/jurusan alumni atau hapus data duplikat secara langsung di Supabase
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Perbaiki data atau hapus data secara langsung di Supabase ({{ filteredManageList.length }} data)
           </p>
         </div>
 
         <!-- Kolom Pencarian Cepat -->
-        <div class="w-full sm:w-72">
+        <div class="relative w-full sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm pointer-events-none"></i>
           <input
             v-model="manageSearch"
             type="text"
             placeholder="Cari nama atau instansi..."
-            class="w-full px-3.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white"
+            class="w-full pl-10 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#0284C7] focus:outline-none transition-colors"
           />
+          <button
+            v-if="manageSearch"
+            type="button"
+            @click="manageSearch = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            title="Hapus pencarian"
+          >
+            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
 
-      <!-- Tabel Data Lengkap -->
-      <div v-if="filteredManageList.length > 0" class="overflow-x-auto rounded-2xl border border-sky-200/70 dark:border-slate-800">
-        <table class="w-full text-left text-sm">
-          <thead class="bg-sky-50/70 dark:bg-slate-800 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
-            <tr>
-              <th class="p-3.5">Nama Alumni</th>
-              <th class="p-3.5">Kelas / Angkatan</th>
-              <th class="p-3.5">Kategori</th>
-              <th class="p-3.5">Instansi / Kampus</th>
-              <th class="p-3.5">Jurusan / Posisi</th>
-              <th class="p-3.5 text-right">Aksi Kelola</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-            <tr
-              v-for="alumni in filteredManageList"
-              :key="alumni.id"
-              class="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+      <!-- KONTEN DAFTAR DATA -->
+      <div v-if="filteredManageList.length > 0">
+        
+        <!-- 1. TAMPILAN MOBILE: KARTU KOMPAK & NYAMAN (MD:HIDDEN) -->
+        <div class="md:hidden space-y-2.5">
+          <div
+            v-for="alumni in paginatedManageList"
+            :key="alumni.id"
+            class="p-3.5 rounded-xl bg-white dark:bg-slate-800/60 border border-sky-100/90 dark:border-slate-800 shadow-2xs space-y-2.5 hover:border-sky-300 dark:hover:border-slate-700 transition-colors"
+          >
+            <!-- Baris Atas: Nama, NIS, dan Kategori Badge -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-sm text-slate-900 dark:text-white truncate">
+                  {{ alumni.name }}
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span class="font-medium text-slate-600 dark:text-slate-300">{{ alumni.classRoom }} ({{ alumni.cohort }})</span>
+                  <template v-if="alumni.nis && alumni.nis !== '-'">
+                    <span class="text-slate-300 dark:text-slate-600">&bull;</span>
+                    <span>NIS: {{ alumni.nis }}</span>
+                  </template>
+                </div>
+              </div>
+
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shrink-0 inline-block"
+                :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
+              >
+                {{ alumni.category }}
+              </span>
+            </div>
+
+            <!-- Box Rincian Kampus & Jurusan -->
+            <div class="p-2.5 rounded-lg bg-sky-50/60 dark:bg-slate-900/60 border border-sky-100/80 dark:border-slate-800/80 space-y-1 text-xs">
+              <div class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <img
+                  v-if="getInstitutionLogo(alumni.institution)"
+                  :src="getInstitutionLogo(alumni.institution)"
+                  :alt="alumni.institution"
+                  class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                  loading="lazy"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <i v-else class="fa-solid fa-building-columns text-[#0284C7] text-xs shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ alumni.institution || '-' }}</span>
+              </div>
+              <div class="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 pl-6">
+                <i class="fa-solid fa-graduation-cap text-amber-500 text-[10px] shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ alumni.major || '-' }}</span>
+              </div>
+            </div>
+
+            <!-- Baris Tombol Aksi Lengkap & Pas di Layar -->
+            <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                @click="openDetail(alumni)"
+                type="button"
+                class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+              >
+                <i class="fa-solid fa-eye text-[11px]" aria-hidden="true"></i>
+                <span>Detail</span>
+              </button>
+
+              <a
+                :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                target="_blank"
+                class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200/80 dark:border-sky-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                title="Edit data alumni (buka di tab baru)"
+              >
+                <i class="fa-solid fa-pen-to-square text-[11px]" aria-hidden="true"></i>
+                <span>Edit</span>
+              </a>
+
+              <button
+                @click="handleDelete(alumni)"
+                type="button"
+                class="py-1.5 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                title="Hapus data alumni"
+              >
+                <i class="fa-solid fa-trash text-[11px]" aria-hidden="true"></i>
+                <span>Hapus</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. TAMPILAN DESKTOP: TABEL KOMPREHENSIF (HIDDEN MD:BLOCK) -->
+        <div class="hidden md:block overflow-x-auto rounded-2xl border border-sky-200/70 dark:border-slate-800">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-sky-50/70 dark:bg-slate-800 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
+              <tr>
+                <th class="p-3.5 whitespace-nowrap">Nama Alumni</th>
+                <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
+                <th class="p-3.5 whitespace-nowrap">Kategori</th>
+                <th class="p-3.5 whitespace-nowrap">Instansi / Kampus</th>
+                <th class="p-3.5 whitespace-nowrap">Jurusan / Posisi</th>
+                <th class="p-3.5 text-right whitespace-nowrap">Aksi Kelola</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr
+                v-for="alumni in paginatedManageList"
+                :key="alumni.id"
+                class="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+              >
+                <td class="p-3.5 font-semibold text-slate-900 dark:text-white">
+                  <div>{{ alumni.name }}</div>
+                  <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs font-normal text-slate-500 dark:text-slate-400">
+                    NIS: {{ alumni.nis }}
+                  </div>
+                </td>
+                <td class="p-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                  {{ alumni.classRoom }} ({{ alumni.cohort }})
+                </td>
+                <td class="p-3.5 whitespace-nowrap">
+                  <span
+                    class="px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap inline-block shrink-0"
+                    :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700'"
+                  >
+                    {{ alumni.category }}
+                  </span>
+                </td>
+                <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium">
+                  <div class="flex items-center gap-2">
+                    <img
+                      v-if="getInstitutionLogo(alumni.institution)"
+                      :src="getInstitutionLogo(alumni.institution)"
+                      :alt="alumni.institution"
+                      class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                      loading="lazy"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
+                    <span>{{ alumni.institution }}</span>
+                  </div>
+                </td>
+                <td class="p-3.5 text-slate-600 dark:text-slate-300">
+                  {{ alumni.major }}
+                </td>
+                <td class="p-3.5 text-right whitespace-nowrap">
+                  <button
+                    @click="openDetail(alumni)"
+                    type="button"
+                    class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors mr-1.5"
+                    title="Lihat Detail Lengkap"
+                  >
+                    <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
+                    Detail
+                  </button>
+                  <a
+                    :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                    target="_blank"
+                    class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5 inline-flex items-center"
+                    title="Edit data siswa/alumni (buka di tab baru)"
+                  >
+                    <i class="fa-solid fa-pen-to-square mr-1 text-xs" aria-hidden="true"></i>
+                    Edit
+                  </a>
+                  <button
+                    @click="handleDelete(alumni)"
+                    type="button"
+                    class="px-3 py-1.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-semibold transition-colors"
+                  >
+                    <i class="fa-solid fa-trash mr-1 text-xs" aria-hidden="true"></i>
+                    Hapus
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- KONTROL NAVIGASI HALAMAN (PAGINATION) -->
+        <div v-if="manageTotalPages > 1" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm" aria-label="Navigasi Halaman Kelola Data">
+          <div class="text-slate-500 dark:text-slate-400 text-center sm:text-left">
+            Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ((manageCurrentPage - 1) * manageItemsPerPage) + 1 }}-{{ Math.min(manageCurrentPage * manageItemsPerPage, filteredManageList.length) }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ filteredManageList.length }}</span> data
+          </div>
+
+          <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+            <button
+              :disabled="manageCurrentPage === 1"
+              @click="manageCurrentPage--"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <td class="p-3.5 font-semibold text-slate-900 dark:text-white">
-                <div>{{ alumni.name }}</div>
-                <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs font-normal text-slate-500 dark:text-slate-400">
-                  NIS: {{ alumni.nis }}
-                </div>
-              </td>
-              <td class="p-3.5 text-slate-600 dark:text-slate-300">
-                {{ alumni.classRoom }} ({{ alumni.cohort }})
-              </td>
-              <td class="p-3.5">
-                <span
-                  class="px-2.5 py-0.5 rounded-full text-xs font-semibold border"
-                  :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700'"
-                >
-                  {{ alumni.category }}
-                </span>
-              </td>
-              <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium">
-                <div class="flex items-center gap-2">
-                  <img
-                    v-if="getInstitutionLogo(alumni.institution)"
-                    :src="getInstitutionLogo(alumni.institution)"
-                    :alt="alumni.institution"
-                    class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
-                    loading="lazy"
-                    @error="(e) => e.target.style.display = 'none'"
-                  />
-                  <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
-                  <span>{{ alumni.institution }}</span>
-                </div>
-              </td>
-              <td class="p-3.5 text-slate-600 dark:text-slate-300">
-                {{ alumni.major }}
-              </td>
-              <td class="p-3.5 text-right whitespace-nowrap">
-                <button
-                  @click="openDetail(alumni)"
-                  type="button"
-                  class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors mr-1.5"
-                  title="Lihat Detail Lengkap"
-                >
-                  <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
-                  Detail
-                </button>
-                <a
-                  :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
-                  target="_blank"
-                  class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5 inline-flex items-center"
-                  title="Edit data siswa/alumni (buka di tab baru)"
-                >
-                  <i class="fa-solid fa-pen-to-square mr-1 text-xs" aria-hidden="true"></i>
-                  Edit
-                </a>
-                <button
-                  @click="handleDelete(alumni)"
-                  type="button"
-                  class="px-3 py-1.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-semibold transition-colors"
-                >
-                  <i class="fa-solid fa-trash mr-1 text-xs" aria-hidden="true"></i>
-                  Hapus
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              Sebelumnya
+            </button>
+
+            <span class="font-medium text-slate-600 dark:text-slate-300 px-2">
+              Halaman {{ manageCurrentPage }} dari {{ manageTotalPages }}
+            </span>
+
+            <button
+              :disabled="manageCurrentPage === manageTotalPages"
+              @click="manageCurrentPage++"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <div v-else class="py-10 text-center text-sm text-slate-400">

@@ -1,5 +1,6 @@
 // Direktori Lengkap Kampus, Politeknik, Kedinasan, & Perguruan Tinggi Indonesia (150+ Institusi)
 // Menggunakan Google High-Resolution Favicon CDN (128x128px PNG) tanpa unduhan lokal
+import snpmbData from '@/data/snpmbData.min.json'
 
 export const CAMPUS_LIST = [
   // ========================================================
@@ -1470,6 +1471,29 @@ function hasWordBoundaryMatch(source, target) {
   const escaped = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return new RegExp(`(^|\\s)${escaped}(\\s|$)`, 'i').test(source)
 }
+
+// Lengkapi seluruh 145 PTN resmi SNPMB (Kemendikbud) ke dalam basis data kampus
+snpmbData.forEach(p => {
+  const normName = normalizeText(p.name)
+  const exists = CAMPUS_LIST.some(c => normalizeText(c.name) === normName || c.aliases.some(a => normalizeText(a) === normName))
+  if (!exists) {
+    let domain = null
+    if (p.web) {
+      try {
+        const u = new URL(p.web)
+        domain = u.hostname.replace(/^pmb\./, '').replace(/^admisi\./, '').replace(/^spmb\./, '')
+      } catch (e) {}
+    }
+    CAMPUS_LIST.push({
+      name: p.name,
+      shortName: p.name,
+      aliases: [p.rawName.toLowerCase(), p.name.toLowerCase()],
+      domain: domain,
+      category: 'PTN',
+      city: 'Indonesia'
+    })
+  }
+})
 
 /**
  * Mencari data kampus berdasarkan nama, singkatan, atau alias

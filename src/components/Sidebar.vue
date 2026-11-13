@@ -134,7 +134,7 @@ function toggleDarkMode() {
 
   <!-- SIDEBAR CONTAINER (DESKTOP: FIXED ASIDE, MOBILE: OFF-CANVAS DRAWER) -->
   <aside
-    class="fixed top-0 left-0 z-40 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
+    class="fixed top-0 left-0 z-[60] lg:z-40 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
     :class="isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
     aria-label="Navigasi Samping"
   >

@@ -290,7 +290,7 @@ function openWhatsApp(phone, name, inst) {
             </div>
 
             <span
-              class="px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0"
+              class="px-2.5 py-0.5 rounded-full text-xs font-semibold border shrink-0 whitespace-nowrap inline-block"
               :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
             >
               {{ alumni.category }}
@@ -375,13 +375,13 @@ function openWhatsApp(phone, name, inst) {
       <table class="w-full text-left text-sm">
         <thead class="bg-sky-50/70 dark:bg-slate-800/80 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
           <tr>
-            <th class="p-3.5">Nama Alumni</th>
-            <th class="p-3.5">Kelas / Angkatan</th>
-            <th class="p-3.5">Kategori</th>
-            <th class="p-3.5">Instansi / Kampus</th>
-            <th class="p-3.5">Jurusan / Posisi</th>
-            <th class="p-3.5">Jalur</th>
-            <th class="p-3.5 text-right">Aksi</th>
+            <th class="p-3.5 whitespace-nowrap">Nama Alumni</th>
+            <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
+            <th class="p-3.5 whitespace-nowrap">Kategori</th>
+            <th class="p-3.5 whitespace-nowrap">Instansi / Kampus</th>
+            <th class="p-3.5 whitespace-nowrap">Jurusan / Posisi</th>
+            <th class="p-3.5 whitespace-nowrap">Jalur</th>
+            <th class="p-3.5 text-right whitespace-nowrap">Aksi</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -405,15 +405,15 @@ function openWhatsApp(phone, name, inst) {
                 <span>{{ alumni.name }}</span>
               </div>
             </td>
-            <td class="p-3.5 text-slate-600 dark:text-slate-300">
+            <td class="p-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
               <div>{{ alumni.classRoom }} ({{ alumni.cohort }})</div>
               <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs text-slate-400">
                 NIS: {{ alumni.nis }}
               </div>
             </td>
-            <td class="p-3.5">
+            <td class="p-3.5 whitespace-nowrap">
               <span
-                class="px-2.5 py-0.5 rounded-full text-xs font-semibold border"
+                class="px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap inline-block shrink-0"
                 :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700'"
               >
                 {{ alumni.category }}

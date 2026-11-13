@@ -6,6 +6,7 @@ import { useAuthStore } from '@/stores/auth'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { compressImage } from '@/lib/imageHelper'
 import CampusCombobox from '@/components/CampusCombobox.vue'
+import ProdiCombobox from '@/components/ProdiCombobox.vue'
 
 const router = useRouter()
 const alumniStore = useAlumniStore()
@@ -405,13 +406,11 @@ async function handleSubmit() {
             <label for="input-major" class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Jurusan / Program Studi / Posisi Pekerjaan <span class="text-rose-500">*</span>
             </label>
-            <input
+            <ProdiCombobox
               id="input-major"
               v-model="form.major"
-              type="text"
+              :campus="form.institution"
               required
-              placeholder="Contoh: S1 Teknik Informatika atau Staf Operasional"
-              class="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
             />
           </div>
 
