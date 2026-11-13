@@ -31,6 +31,11 @@ export const useAlumniStore = defineStore('alumni', () => {
     const rawMajor = item.jurusan_posisi || item.major || '-'
     const finalMajor = normalizeMajorName(rawInst, rawMajor)
 
+    const finalCategory = item.kategori || item.category || 'PTN'
+    const finalPathway = (finalCategory === 'Masa Tunggu' || finalCategory === 'Belum Lapor Diri')
+      ? '-'
+      : (item.jalur_masuk || item.pathway || '-')
+
     return {
       id: item.id,
       name: item.nama_lengkap || item.name || '',
@@ -38,8 +43,8 @@ export const useAlumniStore = defineStore('alumni', () => {
       classRoom: item.kelas_terakhir || item.classRoom || '-',
       cohort: String(item.tahun_lulus || item.cohort || ''),
       phone: item.no_wa || item.phone || '-',
-      category: item.kategori || item.category || 'PTN',
-      pathway: item.jalur_masuk || item.pathway || 'SNBP',
+      category: finalCategory,
+      pathway: finalPathway,
       institution: rawInst,
       major: finalMajor,
       message: item.pesan || item.message || '',
@@ -247,9 +252,9 @@ export const useAlumniStore = defineStore('alumni', () => {
         (item.name && item.name.toLowerCase().includes(q)) ||
         (item.nis && item.nis.toLowerCase().includes(q)) ||
         (item.institution && item.institution.toLowerCase().includes(q)) ||
-        (item.major && item.major.toLowerCase().includes(q)) ||
+        (item.major && item.major !== '-' && item.major.toLowerCase().includes(q)) ||
         (item.classRoom && item.classRoom.toLowerCase().includes(q)) ||
-        (item.pathway && item.pathway.toLowerCase().includes(q))
+        (item.category !== 'Masa Tunggu' && item.category !== 'Belum Lapor Diri' && item.pathway && item.pathway !== '-' && item.pathway.toLowerCase().includes(q))
       )
     }
 
@@ -660,7 +665,7 @@ export const useAlumniStore = defineStore('alumni', () => {
         tahun_lulus: parseInt(r.cohort) || 2026,
         no_wa: r.phone || null,
         kategori: r.category || 'PTN',
-        jalur_masuk: r.pathway || 'SNBP',
+        jalur_masuk: (r.category === 'Masa Tunggu' || r.category === 'Belum Lapor Diri') ? '-' : (r.pathway || 'SNBP'),
         instansi: r.institution,
         jurusan_posisi: r.major || null,
         pesan: r.message || null,

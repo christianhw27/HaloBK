@@ -159,7 +159,15 @@ function openParentWhatsApp() {
               <!-- Identitas Alumni di Samping Foto -->
               <div class="flex-1 text-center sm:text-left min-w-0">
                 <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs sm:text-sm font-semibold mb-2 border" :class="badgeStyle">
-                  {{ isStudent ? 'Siswa Aktif SMADA' : (alumni.category === 'Masa Tunggu' ? 'Belum Lapor Diri' : alumni.category) }} &bull; {{ isStudent ? ('Angkatan ' + (alumni.angkatan || 61)) : ('Jalur ' + alumni.pathway) }}
+                  <template v-if="isStudent">
+                    Siswa Aktif SMADA &bull; Angkatan {{ alumni.angkatan || 61 }}
+                  </template>
+                  <template v-else-if="alumni.category === 'Masa Tunggu' || alumni.category === 'Belum Lapor Diri'">
+                    Belum Lapor Diri / Gap Year
+                  </template>
+                  <template v-else>
+                    {{ alumni.category }}<template v-if="alumni.pathway && alumni.pathway !== '-'"> &bull; Jalur {{ alumni.pathway }}</template>
+                  </template>
                 </div>
                 
                 <h2 class="text-xl sm:text-2xl font-bold font-display text-white leading-tight">
@@ -345,7 +353,14 @@ function openParentWhatsApp() {
                 </div>
                 <div class="text-sm text-slate-600 dark:text-slate-300 flex items-center gap-2">
                   <i class="fa-solid fa-graduation-cap text-slate-400" aria-hidden="true"></i>
-                  <span>{{ alumni.major }} <template v-if="!isStudent">&bull; Jalur Seleksi {{ alumni.pathway }}</template></span>
+                  <span>
+                    <template v-if="alumni.category === 'Masa Tunggu' || alumni.category === 'Belum Lapor Diri'">
+                      {{ alumni.major && alumni.major !== '-' ? alumni.major : 'Belum Memilih Program Studi / Karir' }}
+                    </template>
+                    <template v-else>
+                      {{ alumni.major }}<template v-if="!isStudent && alumni.pathway && alumni.pathway !== '-'"> &bull; Jalur Seleksi {{ alumni.pathway }}</template>
+                    </template>
+                  </span>
                 </div>
               </div>
 

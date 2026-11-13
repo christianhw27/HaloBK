@@ -238,7 +238,7 @@ function handleFileSelect(e) {
             rawInst = (finalCat === 'Belum Lapor Diri' || finalCat === 'Masa Tunggu') ? 'Belum Menentukan Kampus' : '-'
           }
           if (!rawMajor) rawMajor = '-'
-          if (!rawPathway) rawPathway = finalCat === 'PTN' ? 'SNBP' : 'Mandiri'
+          if (!rawPathway) rawPathway = (finalCat === 'Belum Lapor Diri' || finalCat === 'Masa Tunggu') ? '-' : (finalCat === 'PTN' ? 'SNBP' : 'Mandiri')
 
           parsedRows.push({
             name: rawName,

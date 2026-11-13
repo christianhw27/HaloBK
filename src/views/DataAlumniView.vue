@@ -313,7 +313,14 @@ function openWhatsApp(phone, name, inst) {
             </div>
             <div class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
               <i class="fa-solid fa-graduation-cap text-amber-500 text-xs shrink-0" aria-hidden="true"></i>
-              <span class="truncate">{{ alumni.major }} (Jalur {{ alumni.pathway }})</span>
+              <span class="truncate">
+                <template v-if="alumni.category === 'Masa Tunggu' || alumni.category === 'Belum Lapor Diri'">
+                  {{ alumni.major && alumni.major !== '-' ? alumni.major : 'Belum Memilih Program Studi / Karir' }}
+                </template>
+                <template v-else>
+                  {{ alumni.major }} <span v-if="alumni.pathway && alumni.pathway !== '-'" class="text-slate-400 dark:text-slate-500 font-normal">(Jalur {{ alumni.pathway }})</span>
+                </template>
+              </span>
             </div>
           </div>
 
@@ -437,7 +444,7 @@ function openWhatsApp(phone, name, inst) {
               {{ alumni.major }}
             </td>
             <td class="p-3.5 text-slate-500 dark:text-slate-400">
-              {{ alumni.pathway }}
+              {{ (alumni.category === 'Masa Tunggu' || alumni.category === 'Belum Lapor Diri') ? '-' : (alumni.pathway || '-') }}
             </td>
             <td class="p-3.5 text-right whitespace-nowrap">
               <button
