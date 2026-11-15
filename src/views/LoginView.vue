@@ -24,8 +24,17 @@ async function handleLogin() {
   isLoading.value = false
 
   if (res.success) {
-    const redirectQuery = router.currentRoute.value.query.redirect
-    const target = redirectQuery || (res.role === 'siswa' ? '/profil' : '/dashboard')
+    const rawRedirect = router.currentRoute.value.query.redirect
+    let target = res.role === 'siswa' ? '/profil' : '/dashboard'
+    // Sanitasi redirect untuk mencegah serangan Open Redirect (CWE-601)
+    if (
+      typeof rawRedirect === 'string' &&
+      rawRedirect.startsWith('/') &&
+      !rawRedirect.startsWith('//') &&
+      !rawRedirect.includes('\\')
+    ) {
+      target = rawRedirect
+    }
     router.push(target)
   } else {
     errorMessage.value = res.message || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'

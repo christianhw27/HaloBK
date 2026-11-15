@@ -318,6 +318,19 @@ export const useAlumniStore = defineStore('alumni', () => {
           is_verified: false
         }
 
+        // 1. Prioritaskan Server-Side RPC (Input validation & server-enforced is_verified = false)
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('submit_lapor_diri', { p_data: payload })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            payload.id = rpcRes.id
+            pendingList.value.unshift(mapDbToAlumni(payload))
+            return { success: true, message: rpcRes.message }
+          }
+        } catch (e) {
+          console.warn('RPC submit_lapor_diri fallback:', e)
+        }
+
+        // 2. Direct insert fallback
         let { data, error } = await supabase
           .from('alumni')
           .insert(payload)
@@ -369,6 +382,17 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function approvePending(id) {
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Coba Server-Side RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_approve_alumni', { p_id: id })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            await fetchData()
+            return true
+          }
+        } catch (e) {
+          console.warn('RPC admin_approve_alumni fallback:', e)
+        }
+
         const { error } = await supabase
           .from('alumni')
           .update({ is_verified: true, updated_at: new Date().toISOString() })
@@ -398,6 +422,17 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function rejectPending(id) {
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Coba Server-Side RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_reject_alumni', { p_id: id })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            await fetchData()
+            return true
+          }
+        } catch (e) {
+          console.warn('RPC admin_reject_alumni fallback:', e)
+        }
+
         const { error } = await supabase
           .from('alumni')
           .delete()
@@ -549,6 +584,17 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function approveStudentUpdate(updateItem) {
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Coba Server-Side Atomic RPC (Validasi hak akses admin & update dalam 1 transaksi)
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_approve_student_update', { p_update_id: updateItem.id })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            await fetchData()
+            return { success: true, message: rpcRes.message }
+          }
+        } catch (e) {
+          console.warn('RPC admin_approve_student_update fallback:', e)
+        }
+
         const p = updateItem.proposedData || {}
         const userPayload = {
           ttl: p.ttl || null,
@@ -605,6 +651,17 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function rejectStudentUpdate(id, name = 'Siswa') {
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Coba Server-Side RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_reject_alumni', { p_id: id })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            await fetchData()
+            return { success: true, message: `Pengajuan perubahan biodata ${name} berhasil ditolak.` }
+          }
+        } catch (e) {
+          console.warn('RPC admin_reject_alumni fallback:', e)
+        }
+
         const { error } = await supabase.from('alumni').delete().eq('id', id)
         if (error) throw error
         await fetchData()
@@ -658,6 +715,17 @@ export const useAlumniStore = defineStore('alumni', () => {
     if (!Array.isArray(rows) || rows.length === 0) return 0
 
     if (isSupabaseConfigured && supabase) {
+      // 1. Coba Server-Side RPC untuk Bulk Import dengan validasi wewenang admin
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_bulk_import_alumni', { p_records: rows })
+        if (!rpcErr && rpcRes && rpcRes.success) {
+          await fetchData()
+          return rpcRes.count || rows.length
+        }
+      } catch (e) {
+        console.warn('RPC admin_bulk_import_alumni fallback:', e)
+      }
+
       const records = rows.map(r => ({
         nama_lengkap: r.name,
         nis: r.nis || null,
@@ -812,9 +880,16 @@ export const useAlumniStore = defineStore('alumni', () => {
           updated_at: new Date().toISOString()
         }
 
-        // Jika admin memasukkan kata sandi baru untuk akun siswa
+        // Jika admin memasukkan kata sandi baru untuk akun siswa, reset secara aman via server-side Bcrypt RPC
         if (form.newPassword && form.newPassword.trim()) {
-          userPayload.password = form.newPassword.trim()
+          try {
+            await supabase.rpc('admin_reset_user_password', {
+              p_user_id: id,
+              p_new_password: form.newPassword.trim()
+            })
+          } catch (e) {
+            console.warn('RPC admin_reset_user_password fallback:', e)
+          }
         }
 
         // Coba perbarui di tabel users berdasarkan ID
@@ -942,6 +1017,17 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function deleteAlumni(id) {
     if (isSupabaseConfigured && supabase) {
       try {
+        // 1. Coba Server-Side RPC
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc('admin_delete_alumni', { p_id: id })
+          if (!rpcErr && rpcRes && rpcRes.success) {
+            await fetchData()
+            return { success: true }
+          }
+        } catch (e) {
+          console.warn('RPC admin_delete_alumni fallback:', e)
+        }
+
         const { error: errAlumni } = await supabase
           .from('alumni')
           .delete()

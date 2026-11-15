@@ -6,6 +6,9 @@ dist-ssr
 .env.*.local
 .DS_Store
 
+# File database & skrip migrasi SQL (agar tidak masuk repo publik)
+*.sql
+
 # File spreadsheet & data lokal (agar tidak masuk repo publik)
 *.xlsx
 *.xls

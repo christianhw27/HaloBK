@@ -329,19 +329,39 @@ function toggleDarkMode() {
           v-if="authStore.userRole === 'admin'"
           to="/import-export"
           class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
-          :class="route.path === '/import-export'
+          :class="route.path === '/import-export' && route.query.tab !== 'users'
             ? 'bg-[#D1FAE5] text-[#047857] border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800 shadow-2xs'
             : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80 hover:text-[#047857] dark:hover:text-emerald-300'"
         >
           <span
             class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-            :class="route.path === '/import-export'
+            :class="route.path === '/import-export' && route.query.tab !== 'users'
               ? 'bg-[#047857] text-white'
               : 'bg-emerald-100/80 text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300'"
           >
             <i class="fa-solid fa-database text-sm" aria-hidden="true"></i>
           </span>
           <span>Kelola Data & Excel</span>
+        </router-link>
+
+        <!-- 6. Kelola Akun Pengguna (Trust Violet / Indigo - Khusus Guru BK) -->
+        <router-link
+          v-if="authStore.userRole === 'admin'"
+          :to="{ path: '/import-export', query: { tab: 'users' } }"
+          class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
+          :class="route.path === '/import-export' && route.query.tab === 'users'
+            ? 'bg-[#EEF2FF] text-[#4F46E5] border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-800 shadow-2xs'
+            : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-indigo-50/70 dark:hover:bg-slate-800/80 hover:text-[#4F46E5] dark:hover:text-indigo-300'"
+        >
+          <span
+            class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+            :class="route.path === '/import-export' && route.query.tab === 'users'
+              ? 'bg-[#4F46E5] text-white'
+              : 'bg-indigo-100/80 text-[#4F46E5] dark:bg-indigo-950/60 dark:text-indigo-300'"
+          >
+            <i class="fa-solid fa-users-gear text-sm" aria-hidden="true"></i>
+          </span>
+          <span>Kelola Akun</span>
         </router-link>
       </nav>
     </div>

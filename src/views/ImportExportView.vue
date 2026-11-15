@@ -1,6 +1,6 @@
 <script setup>
-import { ref, reactive, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import AdminOnlyGuard from '@/components/AdminOnlyGuard.vue'
@@ -15,11 +15,31 @@ import ProdiCombobox from '@/components/ProdiCombobox.vue'
 import * as XLSX from 'xlsx'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
 
-// Tab aktif: 'input' | 'import' | 'export' | 'table'
-const activeTab = ref('input')
+// Tab aktif: 'table' (1. Kelola Data) | 'users' (2. Kelola Akun) | 'input' (3. Input Manual) | 'import' (4. Import Excel) | 'export' (5. Export)
+const validTabs = ['table', 'users', 'input', 'import', 'export']
+const initialTab = (route.query.tab && validTabs.includes(route.query.tab)) ? route.query.tab : 'table'
+const activeTab = ref(initialTab)
+
+function setTab(tab) {
+  activeTab.value = tab
+  router.replace({ query: { ...route.query, tab } })
+}
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab && validTabs.includes(newTab) && newTab !== activeTab.value) {
+    activeTab.value = newTab
+  }
+})
+
+onMounted(async () => {
+  if (authStore.userRole === 'admin') {
+    authStore.fetchAllUsers()
+  }
+})
 
 // --- TAB 1: FORM TAMBAH MANUAL (CREATE) ---
 const manualForm = reactive({
@@ -376,6 +396,163 @@ async function handleDelete(alumni) {
     }
   }
 }
+
+// ==========================================
+// --- TAB 2: KELOLA AKUN PENGGUNA & SISWA ---
+// ==========================================
+const userSearch = ref('')
+const userRoleFilter = ref('all') // 'all' | 'siswa' | 'admin' | 'user'
+const userClassFilter = ref('all')
+const userCurrentPage = ref(1)
+const userItemsPerPage = 12
+
+// Ambil daftar kelas unik dari seluruh pengguna
+const availableClasses = computed(() => {
+  const classes = (authStore.allUsers || [])
+    .map(u => u.kelas)
+    .filter(Boolean)
+  return [...new Set(classes)].sort((a, b) => {
+    // Urutkan kelas rombel angka secara natural jika memungkinkan
+    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  })
+})
+
+// Filter data pengguna
+const filteredUsersList = computed(() => {
+  let list = authStore.allUsers || []
+
+  if (userRoleFilter.value !== 'all') {
+    list = list.filter(u => u.role === userRoleFilter.value)
+  }
+
+  if (userClassFilter.value !== 'all') {
+    list = list.filter(u => u.kelas === userClassFilter.value)
+  }
+
+  if (userSearch.value.trim()) {
+    const q = userSearch.value.toLowerCase().trim()
+    list = list.filter(u =>
+      (u.nama && u.nama.toLowerCase().includes(q)) ||
+      (u.nis && String(u.nis).toLowerCase().includes(q)) ||
+      (u.nisn && String(u.nisn).toLowerCase().includes(q)) ||
+      (u.email && u.email.toLowerCase().includes(q)) ||
+      (u.kelas && u.kelas.toLowerCase().includes(q))
+    )
+  }
+
+  return list
+})
+
+const userTotalPages = computed(() => {
+  return Math.ceil(filteredUsersList.value.length / userItemsPerPage) || 1
+})
+
+const paginatedUsersList = computed(() => {
+  const start = (userCurrentPage.value - 1) * userItemsPerPage
+  return filteredUsersList.value.slice(start, start + userItemsPerPage)
+})
+
+watch([userSearch, userRoleFilter, userClassFilter], () => {
+  userCurrentPage.value = 1
+})
+
+const userStats = computed(() => {
+  const all = authStore.allUsers || []
+  return {
+    total: all.length,
+    siswa: all.filter(u => u.role === 'siswa').length,
+    admin: all.filter(u => u.role === 'admin').length,
+    umum: all.filter(u => u.role !== 'siswa' && u.role !== 'admin').length
+  }
+})
+
+// --- MODAL EDIT AKUN PENGGUNA ---
+const isEditUserModalOpen = ref(false)
+const isSavingUser = ref(false)
+const showEditModalPassword = ref(false)
+const editUserFeedback = ref({ type: '', text: '' })
+
+const editUserForm = reactive({
+  id: '',
+  nama: '',
+  nis: '',
+  nisn: '',
+  email: '',
+  kelas: '',
+  role: 'siswa',
+  password: '',
+  angkatan: 61,
+  tahun_lulus: 2027
+})
+
+function openEditUser(user) {
+  editUserForm.id = user.id
+  editUserForm.nama = user.nama || ''
+  editUserForm.nis = user.nis || ''
+  editUserForm.nisn = user.nisn || ''
+  editUserForm.email = user.email || ''
+  editUserForm.kelas = user.kelas || ''
+  editUserForm.role = user.role || 'siswa'
+  editUserForm.password = '' // Keamanan: Kosongkan secara default
+  editUserForm.angkatan = user.angkatan || 61
+  editUserForm.tahun_lulus = user.tahun_lulus || 2027
+  showEditModalPassword.value = false
+  editUserFeedback.value = { type: '', text: '' }
+  isEditUserModalOpen.value = true
+}
+
+function closeEditUserModal() {
+  isEditUserModalOpen.value = false
+  editUserFeedback.value = { type: '', text: '' }
+}
+
+async function handleSaveUser() {
+  if (!editUserForm.nama.trim()) {
+    editUserFeedback.value = { type: 'error', text: 'Nama lengkap pengguna tidak boleh kosong.' }
+    return
+  }
+
+  if (editUserForm.password.trim() && editUserForm.password.trim().length < 6) {
+    editUserFeedback.value = { type: 'error', text: 'Kata sandi baru minimal 6 karakter.' }
+    return
+  }
+
+  isSavingUser.value = true
+  editUserFeedback.value = { type: '', text: '' }
+
+  const res = await authStore.adminUpdateUser(editUserForm.id, {
+    nama: editUserForm.nama.trim(),
+    nis: editUserForm.nis.trim() || null,
+    nisn: editUserForm.nisn.trim() || null,
+    email: editUserForm.email.trim() || null,
+    kelas: editUserForm.kelas.trim() || null,
+    role: editUserForm.role,
+    password: editUserForm.password.trim() || null,
+    angkatan: Number(editUserForm.angkatan) || 61,
+    tahun_lulus: Number(editUserForm.tahun_lulus) || 2027
+  })
+
+  isSavingUser.value = false
+  if (res.success) {
+    editUserFeedback.value = { type: 'success', text: 'Perubahan kredensial akun berhasil disimpan secara aman ke database!' }
+    setTimeout(() => {
+      closeEditUserModal()
+    }, 800)
+  } else {
+    editUserFeedback.value = { type: 'error', text: 'Gagal memperbarui akun: ' + res.message }
+  }
+}
+
+async function handleQuickResetPassword(user) {
+  if (confirm(`Reset kata sandi akun "${user.nama}" menjadi default: "smadahebat"?`)) {
+    const res = await authStore.adminResetPassword(user.id, 'smadahebat')
+    if (res.success) {
+      alert(`Kata sandi akun ${user.nama} berhasil direset ke: smadahebat`)
+    } else {
+      alert('Gagal mereset kata sandi: ' + res.message)
+    }
+  }
+}
 </script>
 
 <template>
@@ -402,76 +579,716 @@ async function handleDelete(alumni) {
         </p>
       </div>
 
-      <div class="flex items-center gap-2 self-start sm:self-auto text-sm">
+      <div class="flex items-center gap-2 self-start sm:self-auto text-sm flex-wrap">
         <span class="px-4 py-2 rounded-2xl bg-white/90 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-[#0369A1] dark:text-sky-300 font-bold shadow-xs">
-          Total Terdata: {{ alumniStore.statistics.total }}
+          Total Alumni: {{ alumniStore.statistics.total }}
+        </span>
+        <span class="px-4 py-2 rounded-2xl bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 text-[#4F46E5] dark:text-indigo-300 font-bold shadow-xs">
+          Total Akun: {{ authStore.allUsers.length || 399 }}
         </span>
       </div>
     </section>
 
     <!-- Navigasi Tab Pengelolaan -->
     <div class="flex overflow-x-auto no-scrollbar items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-sky-50/70 dark:bg-slate-800/80 rounded-2xl border border-sky-200/70 dark:border-slate-700/80 text-xs sm:text-sm font-semibold" role="tablist">
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="activeTab === 'input'"
-        @click="activeTab = 'input'"
-        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
-        :class="activeTab === 'input'
-          ? 'bg-[#0369A1] text-white shadow-sm'
-          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
-      >
-        <i class="fa-solid fa-user-plus text-xs sm:text-sm" aria-hidden="true"></i>
-        <span>1. Input Manual</span>
-      </button>
-
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="activeTab === 'import'"
-        @click="activeTab = 'import'"
-        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
-        :class="activeTab === 'import'
-          ? 'bg-[#F59E0B] text-slate-950 shadow-sm'
-          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
-      >
-        <i class="fa-solid fa-cloud-arrow-up text-xs sm:text-sm" aria-hidden="true"></i>
-        <span>2. Import Excel</span>
-      </button>
-
-      <button
-        type="button"
-        role="tab"
-        :aria-selected="activeTab === 'export'"
-        @click="activeTab = 'export'"
-        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
-        :class="activeTab === 'export'
-          ? 'bg-[#047857] text-white shadow-sm'
-          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
-      >
-        <i class="fa-solid fa-file-excel text-xs sm:text-sm" aria-hidden="true"></i>
-        <span>3. Export &amp; Backup</span>
-      </button>
-
+      
+      <!-- 1. Kelola Data (Edit & Hapus Alumni) -->
       <button
         type="button"
         role="tab"
         :aria-selected="activeTab === 'table'"
-        @click="activeTab = 'table'"
+        @click="setTab('table')"
         class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
         :class="activeTab === 'table'
           ? 'bg-[#BE123C] text-white shadow-sm'
           : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
       >
         <i class="fa-solid fa-list-check text-xs sm:text-sm" aria-hidden="true"></i>
-        <span>4. Kelola Data (Edit &amp; Hapus)</span>
+        <span>1. Kelola Data (Edit &amp; Hapus)</span>
+      </button>
+
+      <!-- 2. Kelola Akun Pengguna & Siswa -->
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'users'"
+        @click="setTab('users')"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
+        :class="activeTab === 'users'
+          ? 'bg-[#4F46E5] text-white shadow-sm'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
+      >
+        <i class="fa-solid fa-users-gear text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>2. Kelola Akun Pengguna</span>
+      </button>
+
+      <!-- 3. Input Manual -->
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'input'"
+        @click="setTab('input')"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
+        :class="activeTab === 'input'
+          ? 'bg-[#0369A1] text-white shadow-sm'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
+      >
+        <i class="fa-solid fa-user-plus text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>3. Input Manual</span>
+      </button>
+
+      <!-- 4. Import Excel -->
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'import'"
+        @click="setTab('import')"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
+        :class="activeTab === 'import'
+          ? 'bg-[#F59E0B] text-slate-950 shadow-sm'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
+      >
+        <i class="fa-solid fa-cloud-arrow-up text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>4. Import Excel</span>
+      </button>
+
+      <!-- 5. Export & Backup -->
+      <button
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === 'export'"
+        @click="setTab('export')"
+        class="shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl transition-all flex items-center gap-1.5 sm:gap-2"
+        :class="activeTab === 'export'
+          ? 'bg-[#047857] text-white shadow-sm'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-white/70 dark:hover:bg-slate-900/50 hover:text-slate-900 dark:hover:text-white'"
+      >
+        <i class="fa-solid fa-file-excel text-xs sm:text-sm" aria-hidden="true"></i>
+        <span>5. Export &amp; Backup</span>
       </button>
     </div>
 
+    <!-- ======================================================= -->
+    <!-- TAB 1: TABEL MANAJEMEN ALUMNI (KELOLA, EDIT & HAPUS)   -->
+    <!-- ======================================================= -->
+    <section v-if="activeTab === 'table'" class="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-3.5 sm:space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 text-[#BE123C] border border-rose-200 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800 text-xs font-bold mb-1">
+            <i class="fa-solid fa-list-check text-[10px]" aria-hidden="true"></i>
+            <span>Data Tracer Study Terverifikasi</span>
+          </div>
+          <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
+            Kelola, Perbarui &amp; Hapus Data Alumni
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Perbaiki data atau hapus data secara langsung di Supabase ({{ filteredManageList.length }} data)
+          </p>
+        </div>
+
+        <!-- Kolom Pencarian Cepat -->
+        <div class="relative w-full sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm pointer-events-none"></i>
+          <input
+            v-model="manageSearch"
+            type="text"
+            placeholder="Cari nama atau instansi..."
+            class="w-full pl-10 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#0284C7] focus:outline-none transition-colors"
+          />
+          <button
+            v-if="manageSearch"
+            type="button"
+            @click="manageSearch = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            title="Hapus pencarian"
+          >
+            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- KONTEN DAFTAR DATA ALUMNI -->
+      <div v-if="filteredManageList.length > 0">
+        
+        <!-- 1. TAMPILAN MOBILE: KARTU KOMPAK & NYAMAN (MD:HIDDEN) -->
+        <div class="md:hidden space-y-2.5">
+          <div
+            v-for="alumni in paginatedManageList"
+            :key="alumni.id"
+            class="p-3.5 rounded-xl bg-white dark:bg-slate-800/60 border border-sky-100/90 dark:border-slate-800 shadow-2xs space-y-2.5 hover:border-sky-300 dark:hover:border-slate-700 transition-colors"
+          >
+            <!-- Baris Atas: Nama, NIS, dan Kategori Badge -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="font-bold text-sm text-slate-900 dark:text-white truncate">
+                  {{ alumni.name }}
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                  <span class="font-medium text-slate-600 dark:text-slate-300">{{ alumni.classRoom }} ({{ alumni.cohort }})</span>
+                  <template v-if="alumni.nis && alumni.nis !== '-'">
+                    <span class="text-slate-300 dark:text-slate-600">&bull;</span>
+                    <span>NIS: {{ alumni.nis }}</span>
+                  </template>
+                </div>
+              </div>
+
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shrink-0 inline-block"
+                :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
+              >
+                {{ alumni.category }}
+              </span>
+            </div>
+
+            <!-- Box Rincian Kampus & Jurusan -->
+            <div class="p-2.5 rounded-lg bg-sky-50/60 dark:bg-slate-900/60 border border-sky-100/80 dark:border-slate-800/80 space-y-1 text-xs">
+              <div class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                <img
+                  v-if="getInstitutionLogo(alumni.institution)"
+                  :src="getInstitutionLogo(alumni.institution)"
+                  :alt="alumni.institution"
+                  class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                  loading="lazy"
+                  @error="(e) => e.target.style.display = 'none'"
+                />
+                <i v-else class="fa-solid fa-building-columns text-[#0284C7] text-xs shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ alumni.institution || '-' }}</span>
+              </div>
+              <div class="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 pl-6">
+                <i class="fa-solid fa-graduation-cap text-amber-500 text-[10px] shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ alumni.major || '-' }}</span>
+              </div>
+            </div>
+
+            <!-- Baris Tombol Aksi Lengkap & Pas di Layar -->
+            <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                @click="openDetail(alumni)"
+                type="button"
+                class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+              >
+                <i class="fa-solid fa-eye text-[11px]" aria-hidden="true"></i>
+                <span>Detail</span>
+              </button>
+
+              <a
+                :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                target="_blank"
+                class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200/80 dark:border-sky-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                title="Edit data alumni (buka di tab baru)"
+              >
+                <i class="fa-solid fa-pen-to-square text-[11px]" aria-hidden="true"></i>
+                <span>Edit</span>
+              </a>
+
+              <button
+                @click="handleDelete(alumni)"
+                type="button"
+                class="py-1.5 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                title="Hapus data alumni"
+              >
+                <i class="fa-solid fa-trash text-[11px]" aria-hidden="true"></i>
+                <span>Hapus</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. TAMPILAN DESKTOP: TABEL KOMPREHENSIF (HIDDEN MD:BLOCK) -->
+        <div class="hidden md:block overflow-x-auto rounded-2xl border border-sky-200/70 dark:border-slate-800">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-sky-50/70 dark:bg-slate-800 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
+              <tr>
+                <th class="p-3.5 whitespace-nowrap">Nama Alumni</th>
+                <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
+                <th class="p-3.5 whitespace-nowrap">Kategori</th>
+                <th class="p-3.5 whitespace-nowrap">Instansi / Kampus</th>
+                <th class="p-3.5 whitespace-nowrap">Jurusan / Posisi</th>
+                <th class="p-3.5 text-right whitespace-nowrap">Aksi Kelola</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr
+                v-for="alumni in paginatedManageList"
+                :key="alumni.id"
+                class="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
+              >
+                <td class="p-3.5 font-semibold text-slate-900 dark:text-white">
+                  <div>{{ alumni.name }}</div>
+                  <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs font-normal text-slate-500 dark:text-slate-400">
+                    NIS: {{ alumni.nis }}
+                  </div>
+                </td>
+                <td class="p-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                  {{ alumni.classRoom }} ({{ alumni.cohort }})
+                </td>
+                <td class="p-3.5 whitespace-nowrap">
+                  <span
+                    class="px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap inline-block shrink-0"
+                    :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700'"
+                  >
+                    {{ alumni.category }}
+                  </span>
+                </td>
+                <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium">
+                  <div class="flex items-center gap-2">
+                    <img
+                      v-if="getInstitutionLogo(alumni.institution)"
+                      :src="getInstitutionLogo(alumni.institution)"
+                      :alt="alumni.institution"
+                      class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                      loading="lazy"
+                      @error="(e) => e.target.style.display = 'none'"
+                    />
+                    <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
+                    <span>{{ alumni.institution }}</span>
+                  </div>
+                </td>
+                <td class="p-3.5 text-slate-600 dark:text-slate-300">
+                  {{ alumni.major }}
+                </td>
+                <td class="p-3.5 text-right whitespace-nowrap">
+                  <button
+                    @click="openDetail(alumni)"
+                    type="button"
+                    class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors mr-1.5"
+                    title="Lihat Detail Lengkap"
+                  >
+                    <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
+                    Detail
+                  </button>
+                  <a
+                    :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
+                    target="_blank"
+                    class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5 inline-flex items-center"
+                    title="Edit data siswa/alumni (buka di tab baru)"
+                  >
+                    <i class="fa-solid fa-pen-to-square mr-1 text-xs" aria-hidden="true"></i>
+                    Edit
+                  </a>
+                  <button
+                    @click="handleDelete(alumni)"
+                    type="button"
+                    class="px-3 py-1.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-semibold transition-colors"
+                  >
+                    <i class="fa-solid fa-trash mr-1 text-xs" aria-hidden="true"></i>
+                    Hapus
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- KONTROL NAVIGASI HALAMAN ALUMNI (PAGINATION) -->
+        <div v-if="manageTotalPages > 1" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm" aria-label="Navigasi Halaman Kelola Data">
+          <div class="text-slate-500 dark:text-slate-400 text-center sm:text-left">
+            Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ((manageCurrentPage - 1) * manageItemsPerPage) + 1 }}-{{ Math.min(manageCurrentPage * manageItemsPerPage, filteredManageList.length) }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ filteredManageList.length }}</span> data
+          </div>
+
+          <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+            <button
+              :disabled="manageCurrentPage === 1"
+              @click="manageCurrentPage--"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Sebelumnya
+            </button>
+
+            <span class="font-medium text-slate-600 dark:text-slate-300 px-2">
+              Halaman {{ manageCurrentPage }} dari {{ manageTotalPages }}
+            </span>
+
+            <button
+              :disabled="manageCurrentPage === manageTotalPages"
+              @click="manageCurrentPage++"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div v-else class="py-10 text-center text-sm text-slate-400">
+        Belum ada data alumni yang cocok untuk dikelola.
+      </div>
+    </section>
+
+    <!-- ======================================================= -->
+    <!-- TAB 2: MANAJEMEN AKUN PENGGUNA (SISWA & GURU BK)       -->
+    <!-- ======================================================= -->
+    <section v-else-if="activeTab === 'users'" class="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4">
+      
+      <!-- Baris Judul & Deskripsi -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 text-[#4F46E5] border border-indigo-200 dark:bg-indigo-950/70 dark:text-indigo-300 dark:border-indigo-800 text-xs font-bold mb-1">
+            <i class="fa-solid fa-user-shield text-[10px]" aria-hidden="true"></i>
+            <span>Pusat Kredensial &amp; Akun Login</span>
+          </div>
+          <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
+            Kelola Akun Siswa &amp; Pengguna
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Admin Guru BK dapat memantau username, NISN, NIS, email, serta melihat &amp; mengganti kata sandi akun ({{ filteredUsersList.length }} akun).
+          </p>
+        </div>
+
+        <!-- Tombol Refresh Data -->
+        <div class="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            type="button"
+            @click="authStore.fetchAllUsers"
+            :disabled="authStore.isLoadingUsers"
+            class="px-3.5 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/60 text-[#4F46E5] dark:text-indigo-300 hover:bg-indigo-100 text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-50"
+            title="Segarkan data akun"
+          >
+            <i class="fa-solid fa-arrows-rotate text-xs" :class="{ 'fa-spin': authStore.isLoadingUsers }" aria-hidden="true"></i>
+            <span>Segarkan Akun</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ringkasan Statistik Cepat Akun (Cards) -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+        <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
+          <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-users text-[#4F46E5]"></i>
+            <span>Total Akun</span>
+          </div>
+          <div class="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1">
+            {{ userStats.total }}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/70 dark:border-sky-800/60">
+          <div class="text-[11px] font-semibold text-[#0369A1] dark:text-sky-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-graduation-cap text-[#0284C7]"></i>
+            <span>Siswa Aktif</span>
+          </div>
+          <div class="text-lg sm:text-xl font-bold text-[#0369A1] dark:text-sky-200 mt-1">
+            {{ userStats.siswa }}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/60">
+          <div class="text-[11px] font-semibold text-[#047857] dark:text-emerald-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-user-tie text-emerald-600"></i>
+            <span>Guru BK (Admin)</span>
+          </div>
+          <div class="text-lg sm:text-xl font-bold text-[#047857] dark:text-emerald-200 mt-1">
+            {{ userStats.admin }}
+          </div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/70 dark:border-amber-800/60">
+          <div class="text-[11px] font-semibold text-[#92400E] dark:text-amber-300 flex items-center gap-1.5">
+            <i class="fa-solid fa-user text-amber-600"></i>
+            <span>Pengunjung / Tamu</span>
+          </div>
+          <div class="text-lg sm:text-xl font-bold text-[#92400E] dark:text-amber-200 mt-1">
+            {{ userStats.umum }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Pencarian Akun -->
+      <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+        
+        <!-- Search bar -->
+        <div class="relative flex-1">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm pointer-events-none"></i>
+          <input
+            v-model="userSearch"
+            type="text"
+            placeholder="Cari nama siswa, NISN, NIS, email, atau kelas..."
+            class="w-full pl-10 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none transition-colors"
+          />
+          <button
+            v-if="userSearch"
+            type="button"
+            @click="userSearch = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            title="Hapus pencarian"
+          >
+            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- Filter Role -->
+          <select
+            v-model="userRoleFilter"
+            class="py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+          >
+            <option value="all">Semua Peran</option>
+            <option value="siswa">Siswa Aktif</option>
+            <option value="admin">Guru BK (Admin)</option>
+            <option value="user">Pengunjung / Tamu</option>
+          </select>
+
+          <!-- Filter Kelas -->
+          <select
+            v-model="userClassFilter"
+            class="py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+          >
+            <option value="all">Semua Kelas</option>
+            <option v-for="cls in availableClasses" :key="cls" :value="cls">
+              Kelas {{ cls }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KONTEN DAFTAR AKUN PENGGUNA -->
+      <div v-if="filteredUsersList.length > 0">
+        
+        <!-- 1. TAMPILAN MOBILE: KARTU KOMPAK & LENGKAP (MD:HIDDEN) -->
+        <div class="md:hidden space-y-2.5">
+          <div
+            v-for="user in paginatedUsersList"
+            :key="user.id"
+            class="p-3.5 rounded-xl bg-white dark:bg-slate-800/60 border border-indigo-100/90 dark:border-slate-800 shadow-2xs space-y-2.5 hover:border-indigo-300 dark:hover:border-slate-700 transition-colors"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-[#4F46E5] dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
+                  {{ user.nama ? user.nama.substring(0, 2).toUpperCase() : 'US' }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="font-bold text-sm text-slate-900 dark:text-white truncate">
+                    {{ user.nama }}
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                    <span class="font-medium text-slate-700 dark:text-slate-300">{{ user.kelas ? 'Kelas ' + user.kelas : 'Umum' }}</span>
+                    <span class="text-slate-300 dark:text-slate-600">&bull;</span>
+                    <span>Angkatan {{ user.angkatan || 61 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badge Peran -->
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shrink-0"
+                :class="user.role === 'admin'
+                  ? 'bg-emerald-50 text-[#047857] border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800'
+                  : (user.role === 'siswa'
+                    ? 'bg-sky-50 text-[#0369A1] border-sky-200 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-800'
+                    : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700')"
+              >
+                {{ user.role === 'admin' ? 'Guru BK' : (user.role === 'siswa' ? 'Siswa' : 'Tamu') }}
+              </span>
+            </div>
+
+            <!-- Box Username & Kredensial -->
+            <div class="p-2.5 rounded-lg bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800/80 space-y-1.5 text-xs">
+              <div class="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span class="font-medium">NISN / NIS:</span>
+                <span class="font-mono font-bold text-slate-900 dark:text-slate-200">
+                  {{ user.nisn || '-' }} / {{ user.nis || '-' }}
+                </span>
+              </div>
+              <div v-if="user.email" class="flex items-center justify-between text-slate-600 dark:text-slate-400">
+                <span class="font-medium">Email:</span>
+                <span class="text-slate-800 dark:text-slate-300 truncate max-w-[170px]">{{ user.email }}</span>
+              </div>
+
+              <!-- Baris Kata Sandi Mobile (Tersimpan Aman / Bcrypt) -->
+              <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                <span class="font-medium text-slate-600 dark:text-slate-400">Kata Sandi:</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-mono text-xs font-semibold border border-emerald-200/70 dark:border-emerald-800">
+                  <i class="fa-solid fa-lock text-emerald-600 dark:text-emerald-400 text-[10px]" aria-hidden="true"></i>
+                  <span>Terenkripsi Bcrypt</span>
+                </span>
+              </div>
+            </div>
+
+            <!-- Tombol Aksi Mobile -->
+            <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+              <button
+                @click="openEditUser(user)"
+                type="button"
+                class="flex-1 py-1.5 px-2.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-[#4F46E5] dark:text-indigo-200 border border-indigo-200/80 dark:border-indigo-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+              >
+                <i class="fa-solid fa-pen-to-square text-[11px]" aria-hidden="true"></i>
+                <span>Edit Akun &amp; Sandi</span>
+              </button>
+
+              <button
+                @click="handleQuickResetPassword(user)"
+                type="button"
+                class="py-1.5 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-[#92400E] dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
+                title="Reset password ke default (smadahebat)"
+              >
+                <i class="fa-solid fa-rotate-left text-[11px]" aria-hidden="true"></i>
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. TAMPILAN DESKTOP: TABEL LENGKAP & RAPI (HIDDEN MD:BLOCK) -->
+        <div class="hidden md:block overflow-x-auto rounded-2xl border border-indigo-200/70 dark:border-slate-800">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-indigo-50/70 dark:bg-slate-800 text-[#4F46E5] dark:text-indigo-200 font-semibold text-xs sm:text-sm border-b border-indigo-100 dark:border-slate-700">
+              <tr>
+                <th class="p-3.5 whitespace-nowrap">Nama Pengguna</th>
+                <th class="p-3.5 whitespace-nowrap">Username / NISN / NIS</th>
+                <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
+                <th class="p-3.5 whitespace-nowrap">Peran</th>
+                <th class="p-3.5 whitespace-nowrap">Kata Sandi</th>
+                <th class="p-3.5 text-right whitespace-nowrap">Aksi Akun</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+              <tr
+                v-for="user in paginatedUsersList"
+                :key="user.id"
+                class="hover:bg-indigo-50/30 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <!-- Nama & Avatar -->
+                <td class="p-3.5">
+                  <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-[#4F46E5] dark:text-indigo-300 font-bold text-xs flex items-center justify-center shrink-0">
+                      {{ user.nama ? user.nama.substring(0, 2).toUpperCase() : 'US' }}
+                    </div>
+                    <div>
+                      <div class="font-bold text-slate-900 dark:text-white">
+                        {{ user.nama }}
+                      </div>
+                      <div v-if="user.email" class="text-xs text-slate-500 dark:text-slate-400">
+                        {{ user.email }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Username / NISN / NIS -->
+                <td class="p-3.5">
+                  <div class="space-y-1 text-xs">
+                    <div v-if="user.nisn" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-slate-800 dark:text-slate-200 font-semibold">
+                      <span class="text-slate-400 text-[10px]">NISN:</span> {{ user.nisn }}
+                    </div>
+                    <div v-if="user.nis" class="block font-mono text-slate-600 dark:text-slate-400">
+                      <span class="text-slate-400 text-[10px]">NIS:</span> {{ user.nis }}
+                    </div>
+                    <div v-if="!user.nisn && !user.nis" class="text-slate-400 italic">
+                      {{ user.email || '-' }}
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Kelas & Angkatan -->
+                <td class="p-3.5 whitespace-nowrap">
+                  <div class="font-medium text-slate-800 dark:text-slate-200">
+                    {{ user.kelas ? 'Kelas ' + user.kelas : 'Umum' }}
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">
+                    Angkatan {{ user.angkatan || 61 }} ({{ user.tahun_lulus || 2027 }})
+                  </div>
+                </td>
+
+                <!-- Peran -->
+                <td class="p-3.5 whitespace-nowrap">
+                  <span
+                    class="px-2.5 py-1 rounded-full text-xs font-semibold border inline-flex items-center gap-1.5"
+                    :class="user.role === 'admin'
+                      ? 'bg-emerald-50 text-[#047857] border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800'
+                      : (user.role === 'siswa'
+                        ? 'bg-sky-50 text-[#0369A1] border-sky-200 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-800'
+                        : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700')"
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="user.role === 'admin' ? 'bg-emerald-500' : (user.role === 'siswa' ? 'bg-sky-500' : 'bg-slate-400')"
+                    ></span>
+                    {{ user.role === 'admin' ? 'Guru BK (Admin)' : (user.role === 'siswa' ? 'Siswa Aktif' : 'Pengunjung') }}
+                  </span>
+                </td>
+
+                <!-- Kata Sandi dengan Status Enkripsi Bcrypt Aman -->
+                <td class="p-3.5 whitespace-nowrap">
+                  <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/50 border border-emerald-200/80 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-mono text-xs font-semibold">
+                    <i class="fa-solid fa-shield-halved text-emerald-600 dark:text-emerald-400 text-xs" aria-hidden="true"></i>
+                    <span>Tersimpan Aman (Bcrypt)</span>
+                  </div>
+                </td>
+
+                <!-- Aksi -->
+                <td class="p-3.5 text-right whitespace-nowrap">
+                  <div class="flex items-center justify-end gap-1.5">
+                    <button
+                      @click="openEditUser(user)"
+                      type="button"
+                      class="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:hover:bg-indigo-900/60 text-[#4F46E5] dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold transition-colors flex items-center gap-1"
+                      title="Edit kredensial & kata sandi akun"
+                    >
+                      <i class="fa-solid fa-pen-to-square text-[11px]" aria-hidden="true"></i>
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      @click="handleQuickResetPassword(user)"
+                      type="button"
+                      class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-[#92400E] dark:text-amber-200 border border-amber-200 dark:border-amber-800 text-xs font-semibold transition-colors flex items-center gap-1"
+                      title="Reset kata sandi ke default (smadahebat)"
+                    >
+                      <i class="fa-solid fa-rotate-left text-[11px]" aria-hidden="true"></i>
+                      <span>Reset</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginasi Akun Pengguna -->
+        <div v-if="userTotalPages > 1" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm" aria-label="Navigasi Halaman Akun Pengguna">
+          <div class="text-slate-500 dark:text-slate-400 text-center sm:text-left">
+            Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ((userCurrentPage - 1) * userItemsPerPage) + 1 }}-{{ Math.min(userCurrentPage * userItemsPerPage, filteredUsersList.length) }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ filteredUsersList.length }}</span> akun
+          </div>
+
+          <div class="flex items-center justify-center gap-1.5 sm:gap-2">
+            <button
+              :disabled="userCurrentPage === 1"
+              @click="userCurrentPage--"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Sebelumnya
+            </button>
+
+            <span class="font-medium text-slate-600 dark:text-slate-300 px-2">
+              Halaman {{ userCurrentPage }} dari {{ userTotalPages }}
+            </span>
+
+            <button
+              :disabled="userCurrentPage === userTotalPages"
+              @click="userCurrentPage++"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <div v-else class="py-10 text-center text-sm text-slate-400">
+        Tidak ditemukan akun pengguna yang sesuai dengan filter pencarian.
+      </div>
+    </section>
+
     <!-- ========================================== -->
-    <!-- TAB 1: FORM TAMBAH DATA MANUAL (CREATE) -->
+    <!-- TAB 3: FORM TAMBAH DATA MANUAL (CREATE)    -->
     <!-- ========================================== -->
-    <section v-if="activeTab === 'input'" class="p-4 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4 sm:space-y-5">
+    <section v-else-if="activeTab === 'input'" class="p-4 sm:p-7 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-4 sm:space-y-5">
       <div class="border-b border-slate-100 dark:border-slate-800 pb-3">
         <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
           Formulir Penambahan Alumni Manual
@@ -918,252 +1735,6 @@ async function handleDelete(alumni) {
       </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- TAB 4: TABEL MANAJEMEN CRUD (EDIT & HAPUS) -->
-    <!-- ========================================== -->
-    <section v-else-if="activeTab === 'table'" class="p-3.5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] space-y-3.5 sm:space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-        <div>
-          <h2 class="font-display font-semibold text-base sm:text-lg text-slate-900 dark:text-white">
-            Kelola, Perbarui &amp; Hapus Data Alumni
-          </h2>
-          <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-            Perbaiki data atau hapus data secara langsung di Supabase ({{ filteredManageList.length }} data)
-          </p>
-        </div>
-
-        <!-- Kolom Pencarian Cepat -->
-        <div class="relative w-full sm:w-72">
-          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs sm:text-sm pointer-events-none"></i>
-          <input
-            v-model="manageSearch"
-            type="text"
-            placeholder="Cari nama atau instansi..."
-            class="w-full pl-10 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#0284C7] focus:outline-none transition-colors"
-          />
-          <button
-            v-if="manageSearch"
-            type="button"
-            @click="manageSearch = ''"
-            class="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-            title="Hapus pencarian"
-          >
-            <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- KONTEN DAFTAR DATA -->
-      <div v-if="filteredManageList.length > 0">
-        
-        <!-- 1. TAMPILAN MOBILE: KARTU KOMPAK & NYAMAN (MD:HIDDEN) -->
-        <div class="md:hidden space-y-2.5">
-          <div
-            v-for="alumni in paginatedManageList"
-            :key="alumni.id"
-            class="p-3.5 rounded-xl bg-white dark:bg-slate-800/60 border border-sky-100/90 dark:border-slate-800 shadow-2xs space-y-2.5 hover:border-sky-300 dark:hover:border-slate-700 transition-colors"
-          >
-            <!-- Baris Atas: Nama, NIS, dan Kategori Badge -->
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0 flex-1">
-                <div class="font-bold text-sm text-slate-900 dark:text-white truncate">
-                  {{ alumni.name }}
-                </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                  <span class="font-medium text-slate-600 dark:text-slate-300">{{ alumni.classRoom }} ({{ alumni.cohort }})</span>
-                  <template v-if="alumni.nis && alumni.nis !== '-'">
-                    <span class="text-slate-300 dark:text-slate-600">&bull;</span>
-                    <span>NIS: {{ alumni.nis }}</span>
-                  </template>
-                </div>
-              </div>
-
-              <span
-                class="px-2 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shrink-0 inline-block"
-                :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
-              >
-                {{ alumni.category }}
-              </span>
-            </div>
-
-            <!-- Box Rincian Kampus & Jurusan -->
-            <div class="p-2.5 rounded-lg bg-sky-50/60 dark:bg-slate-900/60 border border-sky-100/80 dark:border-slate-800/80 space-y-1 text-xs">
-              <div class="font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                <img
-                  v-if="getInstitutionLogo(alumni.institution)"
-                  :src="getInstitutionLogo(alumni.institution)"
-                  :alt="alumni.institution"
-                  class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
-                  loading="lazy"
-                  @error="(e) => e.target.style.display = 'none'"
-                />
-                <i v-else class="fa-solid fa-building-columns text-[#0284C7] text-xs shrink-0" aria-hidden="true"></i>
-                <span class="truncate">{{ alumni.institution || '-' }}</span>
-              </div>
-              <div class="text-slate-600 dark:text-slate-400 flex items-center gap-1.5 pl-6">
-                <i class="fa-solid fa-graduation-cap text-amber-500 text-[10px] shrink-0" aria-hidden="true"></i>
-                <span class="truncate">{{ alumni.major || '-' }}</span>
-              </div>
-            </div>
-
-            <!-- Baris Tombol Aksi Lengkap & Pas di Layar -->
-            <div class="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/80">
-              <button
-                @click="openDetail(alumni)"
-                type="button"
-                class="flex-1 py-1.5 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-              >
-                <i class="fa-solid fa-eye text-[11px]" aria-hidden="true"></i>
-                <span>Detail</span>
-              </button>
-
-              <a
-                :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
-                target="_blank"
-                class="flex-1 py-1.5 px-2.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200/80 dark:border-sky-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-                title="Edit data alumni (buka di tab baru)"
-              >
-                <i class="fa-solid fa-pen-to-square text-[11px]" aria-hidden="true"></i>
-                <span>Edit</span>
-              </a>
-
-              <button
-                @click="handleDelete(alumni)"
-                type="button"
-                class="py-1.5 px-3 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-                title="Hapus data alumni"
-              >
-                <i class="fa-solid fa-trash text-[11px]" aria-hidden="true"></i>
-                <span>Hapus</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. TAMPILAN DESKTOP: TABEL KOMPREHENSIF (HIDDEN MD:BLOCK) -->
-        <div class="hidden md:block overflow-x-auto rounded-2xl border border-sky-200/70 dark:border-slate-800">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-sky-50/70 dark:bg-slate-800 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
-              <tr>
-                <th class="p-3.5 whitespace-nowrap">Nama Alumni</th>
-                <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
-                <th class="p-3.5 whitespace-nowrap">Kategori</th>
-                <th class="p-3.5 whitespace-nowrap">Instansi / Kampus</th>
-                <th class="p-3.5 whitespace-nowrap">Jurusan / Posisi</th>
-                <th class="p-3.5 text-right whitespace-nowrap">Aksi Kelola</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-              <tr
-                v-for="alumni in paginatedManageList"
-                :key="alumni.id"
-                class="hover:bg-sky-50/40 dark:hover:bg-slate-800/40 transition-colors"
-              >
-                <td class="p-3.5 font-semibold text-slate-900 dark:text-white">
-                  <div>{{ alumni.name }}</div>
-                  <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs font-normal text-slate-500 dark:text-slate-400">
-                    NIS: {{ alumni.nis }}
-                  </div>
-                </td>
-                <td class="p-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                  {{ alumni.classRoom }} ({{ alumni.cohort }})
-                </td>
-                <td class="p-3.5 whitespace-nowrap">
-                  <span
-                    class="px-2.5 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap inline-block shrink-0"
-                    :class="CATEGORY_COLORS[alumni.category]?.badge || 'bg-slate-100 text-slate-700'"
-                  >
-                    {{ alumni.category }}
-                  </span>
-                </td>
-                <td class="p-3.5 text-slate-800 dark:text-slate-200 font-medium">
-                  <div class="flex items-center gap-2">
-                    <img
-                      v-if="getInstitutionLogo(alumni.institution)"
-                      :src="getInstitutionLogo(alumni.institution)"
-                      :alt="alumni.institution"
-                      class="w-4 h-4 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
-                      loading="lazy"
-                      @error="(e) => e.target.style.display = 'none'"
-                    />
-                    <i v-else class="fa-solid fa-building-columns text-slate-400 text-sm shrink-0" aria-hidden="true"></i>
-                    <span>{{ alumni.institution }}</span>
-                  </div>
-                </td>
-                <td class="p-3.5 text-slate-600 dark:text-slate-300">
-                  {{ alumni.major }}
-                </td>
-                <td class="p-3.5 text-right whitespace-nowrap">
-                  <button
-                    @click="openDetail(alumni)"
-                    type="button"
-                    class="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-sm font-semibold transition-colors mr-1.5"
-                    title="Lihat Detail Lengkap"
-                  >
-                    <i class="fa-solid fa-eye mr-1 text-xs" aria-hidden="true"></i>
-                    Detail
-                  </button>
-                  <a
-                    :href="router.resolve({ name: 'edit-siswa', params: { id: alumni.id } }).href"
-                    target="_blank"
-                    class="px-3 py-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 text-[#0369A1] dark:text-sky-200 border border-sky-200 dark:border-sky-800 text-sm font-semibold transition-colors mr-1.5 inline-flex items-center"
-                    title="Edit data siswa/alumni (buka di tab baru)"
-                  >
-                    <i class="fa-solid fa-pen-to-square mr-1 text-xs" aria-hidden="true"></i>
-                    Edit
-                  </a>
-                  <button
-                    @click="handleDelete(alumni)"
-                    type="button"
-                    class="px-3 py-1.5 rounded bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-semibold transition-colors"
-                  >
-                    <i class="fa-solid fa-trash mr-1 text-xs" aria-hidden="true"></i>
-                    Hapus
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- KONTROL NAVIGASI HALAMAN (PAGINATION) -->
-        <div v-if="manageTotalPages > 1" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm" aria-label="Navigasi Halaman Kelola Data">
-          <div class="text-slate-500 dark:text-slate-400 text-center sm:text-left">
-            Menampilkan <span class="font-semibold text-slate-800 dark:text-slate-200">{{ ((manageCurrentPage - 1) * manageItemsPerPage) + 1 }}-{{ Math.min(manageCurrentPage * manageItemsPerPage, filteredManageList.length) }}</span> dari <span class="font-semibold text-slate-800 dark:text-slate-200">{{ filteredManageList.length }}</span> data
-          </div>
-
-          <div class="flex items-center justify-center gap-1.5 sm:gap-2">
-            <button
-              :disabled="manageCurrentPage === 1"
-              @click="manageCurrentPage--"
-              type="button"
-              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              Sebelumnya
-            </button>
-
-            <span class="font-medium text-slate-600 dark:text-slate-300 px-2">
-              Halaman {{ manageCurrentPage }} dari {{ manageTotalPages }}
-            </span>
-
-            <button
-              :disabled="manageCurrentPage === manageTotalPages"
-              @click="manageCurrentPage++"
-              type="button"
-              class="px-3.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            >
-              Selanjutnya
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      <div v-else class="py-10 text-center text-sm text-slate-400">
-        Belum ada data alumni yang cocok untuk dikelola.
-      </div>
-    </section>
-
     <!-- Modal Detail Alumni / Siswa -->
     <DetailModal
       :is-open="isDetailModalOpen"
@@ -1177,6 +1748,183 @@ async function handleDelete(alumni) {
       :alumni="selectedEditAlumni"
       @close="isEditModalOpen = false"
     />
+
+    <!-- MODAL EDIT AKUN & PASSWORD PENGGUNA (GURU BK / SISWA) -->
+    <div
+      v-if="isEditUserModalOpen"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
+      @click.self="closeEditUserModal"
+    >
+      <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-indigo-200/80 dark:border-slate-800 shadow-2xl p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div>
+            <h3 class="font-display font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-user-pen text-[#4F46E5]"></i>
+              <span>Edit Kredensial Akun</span>
+            </h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Perbarui username, data identitas, atau ubah kata sandi pengguna.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="closeEditUserModal"
+            class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center justify-center text-sm"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <!-- Feedback Alert -->
+        <div
+          v-if="editUserFeedback.text"
+          class="p-3 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2"
+          :class="editUserFeedback.type === 'success'
+            ? 'bg-emerald-50 text-[#047857] border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-200 dark:border-emerald-800'
+            : 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-200 dark:border-rose-800'"
+        >
+          <i class="fa-solid" :class="editUserFeedback.type === 'success' ? 'fa-circle-check text-emerald-600' : 'fa-circle-exclamation text-rose-600'"></i>
+          <span>{{ editUserFeedback.text }}</span>
+        </div>
+
+        <form @submit.prevent="handleSaveUser" class="space-y-3.5">
+          <!-- Nama Lengkap -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Nama Lengkap <span class="text-rose-500">*</span>
+            </label>
+            <input
+              v-model="editUserForm.nama"
+              type="text"
+              required
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+            />
+          </div>
+
+          <!-- NISN & NIS -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                NISN (10 Digit)
+              </label>
+              <input
+                v-model="editUserForm.nisn"
+                type="text"
+                placeholder="Contoh: 3087979101"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                NIS (Nomor Induk Siswa)
+              </label>
+              <input
+                v-model="editUserForm.nis"
+                type="text"
+                placeholder="Contoh: 17859"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Email & Kelas -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Email
+              </label>
+              <input
+                v-model="editUserForm.email"
+                type="email"
+                placeholder="opsional"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Kelas
+              </label>
+              <input
+                v-model="editUserForm.kelas"
+                type="text"
+                placeholder="Contoh: XI 9"
+                class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Peran (Role) -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              Peran Hak Akses (Role)
+            </label>
+            <select
+              v-model="editUserForm.role"
+              class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+            >
+              <option value="siswa">Siswa Aktif</option>
+              <option value="admin">Guru BK (Administrator Penuh)</option>
+              <option value="user">Pengunjung / Tamu</option>
+            </select>
+          </div>
+
+          <!-- Kata Sandi Akun -->
+          <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="block text-xs font-semibold text-slate-800 dark:text-slate-200">
+                Ganti Kata Sandi Baru <span class="text-xs text-slate-400 font-normal">(Opsional)</span>
+              </label>
+              <button
+                type="button"
+                @click="editUserForm.password = 'smadahebat'"
+                class="text-[11px] font-semibold text-[#4F46E5] dark:text-indigo-300 hover:underline"
+              >
+                Gunakan default: smadahebat
+              </button>
+            </div>
+
+            <div class="relative">
+              <input
+                v-model="editUserForm.password"
+                :type="showEditModalPassword ? 'text' : 'password'"
+                placeholder="Kosongkan jika tidak ingin mengubah kata sandi"
+                class="w-full pl-3.5 pr-10 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
+              />
+              <button
+                type="button"
+                @click="showEditModalPassword = !showEditModalPassword"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <i class="fa-solid" :class="showEditModalPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400">
+              Kata sandi akan otomatis dienkripsi dengan standar Bcrypt di server database Supabase.
+            </p>
+          </div>
+
+          <!-- Tombol Aksi Modal -->
+          <div class="pt-2 flex items-center justify-end gap-2.5">
+            <button
+              type="button"
+              @click="closeEditUserModal"
+              class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              :disabled="isSavingUser"
+              class="px-5 py-2 rounded-xl bg-[#4F46E5] hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <i v-if="isSavingUser" class="fa-solid fa-spinner fa-spin text-xs"></i>
+              <i v-else class="fa-solid fa-check text-xs"></i>
+              <span>{{ isSavingUser ? 'Menyimpan...' : 'Simpan Perubahan' }}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
     </template>
 
   </div>

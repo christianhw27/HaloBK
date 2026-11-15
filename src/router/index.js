@@ -77,6 +77,10 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/kelola-akun',
+    redirect: '/import-export?tab=users'
+  },
+  {
     path: '/kelola-berita',
     name: 'kelola-berita',
     component: KelolaBeritaView,
