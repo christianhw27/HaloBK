@@ -27,6 +27,8 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Mapping data dari format database Supabase ke format frontend
   function mapDbToAlumni(item) {
+    const authStore = useAuthStore()
+    const isAdmin = authStore.userRole === 'admin'
     const rawInst = item.instansi || item.institution || ''
     const rawMajor = item.jurusan_posisi || item.major || '-'
     const finalMajor = normalizeMajorName(rawInst, rawMajor)
@@ -42,7 +44,8 @@ export const useAlumniStore = defineStore('alumni', () => {
       nis: item.nis || '-',
       classRoom: item.kelas_terakhir || item.classRoom || '-',
       cohort: String(item.tahun_lulus || item.cohort || ''),
-      phone: item.no_wa || item.phone || '-',
+      // Proteksi Privasi: Nomor WhatsApp alumni HANYA terbuka untuk Admin Guru BK
+      phone: isAdmin ? (item.no_wa || item.phone || '-') : '-',
       category: finalCategory,
       pathway: finalPathway,
       institution: rawInst,
@@ -59,15 +62,19 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Mapping data siswa aktif Angkatan 61 ke format direktori alumni & manajemen
   function mapSiswaToAlumni(item) {
+    const authStore = useAuthStore()
+    const isAdmin = authStore.userRole === 'admin'
+
     return {
       id: item.id,
       name: item.nama || '',
       nis: item.nis || '-',
-      nisn: item.nisn || '-',
+      nisn: isAdmin ? (item.nisn || '-') : '-',
       classRoom: item.kelas || '-',
       cohort: String(item.tahun_lulus || 2027),
       angkatan: item.angkatan || 61,
-      phone: item.no_wa || '-',
+      // Proteksi Privasi: Nomor telepon siswa HANYA terbuka untuk Admin Guru BK
+      phone: isAdmin ? (item.no_wa || '-') : '-',
       category: 'Siswa Aktif',
       pathway: 'Siswa',
       institution: 'SMA Negeri 2 Ngawi',
@@ -79,17 +86,17 @@ export const useAlumniStore = defineStore('alumni', () => {
         month: 'short',
         year: 'numeric'
       }) : 'Baru saja',
-      // Metadata siswa lengkap (hanya untuk guru/admin saat membuka modal detail)
+      // Metadata siswa lengkap (HANYA tersedia untuk Guru BK, disembunyikan total dari publik)
       isSiswa: true,
-      email: item.email || '-',
-      ttl: item.ttl || '-',
-      alamat_lengkap: item.alamat_lengkap || '-',
-      jenis_tinggal: item.jenis_tinggal || '-',
-      alat_transportasi: item.alat_transportasi || '-',
-      nama_ortu: item.nama_ortu || '-',
-      pekerjaan_ortu: item.pekerjaan_ortu || '-',
-      no_wa_ortu: item.no_wa_ortu || '-',
-      asal_smp: item.asal_smp || '-'
+      email: isAdmin ? (item.email || '-') : '-',
+      ttl: isAdmin ? (item.ttl || '-') : '-',
+      alamat_lengkap: isAdmin ? (item.alamat_lengkap || '-') : '-',
+      jenis_tinggal: isAdmin ? (item.jenis_tinggal || '-') : '-',
+      alat_transportasi: isAdmin ? (item.alat_transportasi || '-') : '-',
+      nama_ortu: isAdmin ? (item.nama_ortu || '-') : '-',
+      pekerjaan_ortu: isAdmin ? (item.pekerjaan_ortu || '-') : '-',
+      no_wa_ortu: isAdmin ? (item.no_wa_ortu || '-') : '-',
+      asal_smp: isAdmin ? (item.asal_smp || '-') : '-'
     }
   }
 
@@ -134,38 +141,66 @@ export const useAlumniStore = defineStore('alumni', () => {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        // 1. Ambil data alumni terverifikasi
-        const { data: verifiedData, error: errVerified } = await supabase
-          .from('alumni')
-          .select('*')
-          .eq('is_verified', true)
-          .order('created_at', { ascending: false })
+        const authStore = useAuthStore()
+        const isAdmin = authStore.userRole === 'admin'
 
-        if (errVerified) throw errVerified
+        // 1. Ambil data alumni terverifikasi (Prioritaskan RPC aman dengan masking kontak)
+        let verifiedData = null
+        try {
+          const { data: rpcAlumni } = await supabase.rpc('get_public_alumni_directory')
+          if (rpcAlumni && rpcAlumni.length > 0) {
+            verifiedData = rpcAlumni
+          }
+        } catch (e) {
+          console.warn('RPC get_public_alumni_directory fallback:', e)
+        }
+
+        if (!verifiedData) {
+          const { data: directAlumni, error: errVerified } = await supabase
+            .from('alumni')
+            .select('*')
+            .eq('is_verified', true)
+            .order('created_at', { ascending: false })
+
+          if (errVerified) throw errVerified
+          verifiedData = directAlumni
+        }
+
         const listAlumni = (verifiedData || []).map(mapDbToAlumni)
 
-        // 2. Ambil data siswa angkatan 61 dari tabel users agar tampil di direktori alumni
+        // 2. Ambil data siswa angkatan 61: HANYA kolom publik untuk non-admin!
         let listSiswa = []
         try {
-          // Ambil data siswa lengkap (mencoba dengan foto_url jika kolom sudah ada)
-          let { data: siswaData, error: errSiswa } = await supabase
-            .from('users')
-            .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url')
-            .eq('role', 'siswa')
-            .order('nama', { ascending: true })
-
-          if (errSiswa && errSiswa.code === '42703') {
-            // Kolom foto_url belum dibuat di database, fallback ambil kolom standar
-            const fallback = await supabase
+          let siswaData = null
+          if (isAdmin) {
+            const { data } = await supabase
               .from('users')
-              .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at')
+              .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url')
               .eq('role', 'siswa')
               .order('nama', { ascending: true })
-            siswaData = fallback.data
-            errSiswa = fallback.error
+            siswaData = data
+          } else {
+            // Gunakan RPC direktori publik aman (tanpa nomor WA, tanpa alamat, tanpa data orang tua)
+            try {
+              const { data: rpcData } = await supabase.rpc('get_public_students_directory')
+              if (rpcData && rpcData.length > 0) {
+                siswaData = rpcData
+              }
+            } catch (e) {
+              console.warn('RPC get_public_students_directory fallback:', e)
+            }
+
+            if (!siswaData) {
+              const { data: fallbackData } = await supabase
+                .from('users')
+                .select('id, nama, role, nis, kelas, angkatan, tahun_lulus, created_at, foto_url')
+                .eq('role', 'siswa')
+                .order('nama', { ascending: true })
+              siswaData = fallbackData
+            }
           }
 
-          if (!errSiswa && siswaData) {
+          if (siswaData) {
             // Filter siswa yang sudah lapor mandiri di tabel alumni agar tidak duplikat
             const existingNisSet = new Set(listAlumni.map(a => a.nis).filter(Boolean))
             listSiswa = siswaData
@@ -179,22 +214,25 @@ export const useAlumniStore = defineStore('alumni', () => {
         // Gabungkan: Alumni terdahulu + Siswa Aktif Angkatan 61
         alumniList.value = [...listAlumni, ...listSiswa]
 
-        // 3. Ambil data antrean pending (untuk Admin Guru BK)
-        const { data: pendingData, error: errPending } = await supabase
-          .from('alumni')
-          .select('*')
-          .eq('is_verified', false)
-          .order('created_at', { ascending: false })
+        // 3. Antrean pending: HANYA diambil jika pengguna terbukti Admin Guru BK!
+        if (isAdmin) {
+          const { data: pendingData, error: errPending } = await supabase
+            .from('alumni')
+            .select('*')
+            .eq('is_verified', false)
+            .order('created_at', { ascending: false })
 
-        if (errPending) throw errPending
-        const allPending = pendingData || []
+          if (!errPending && pendingData) {
+            const alumniPending = pendingData.filter((p) => p.kategori !== 'Update Biodata Siswa')
+            const studentPending = pendingData.filter((p) => p.kategori === 'Update Biodata Siswa')
 
-        // Pisahkan antrean: Lapor Diri Alumni vs Pengajuan Perubahan Biodata Siswa Aktif
-        const alumniPending = allPending.filter((p) => p.kategori !== 'Update Biodata Siswa')
-        const studentPending = allPending.filter((p) => p.kategori === 'Update Biodata Siswa')
-
-        pendingList.value = alumniPending.map(mapDbToAlumni)
-        pendingStudentUpdates.value = studentPending.map(mapDbToStudentUpdate)
+            pendingList.value = alumniPending.map(mapDbToAlumni)
+            pendingStudentUpdates.value = studentPending.map(mapDbToStudentUpdate)
+          }
+        } else {
+          pendingList.value = []
+          pendingStudentUpdates.value = []
+        }
 
       } catch (err) {
         console.warn('Gagal mengambil data dari Supabase:', err)
@@ -680,8 +718,30 @@ export const useAlumniStore = defineStore('alumni', () => {
     }
   }
 
-  // Excel Export (.xlsx)
-  function exportExcel() {
+  // Excel Export (.xlsx) - KHUSUS GURU BK (PENGELOLA)
+  async function exportExcel() {
+    const authStore = useAuthStore()
+
+    // 1. Cek hak akses role lokal
+    if (authStore.userRole !== 'admin') {
+      alert('Akses Ditolak: Fitur Ekspor Data Alumni hanya dapat diakses oleh Guru BK (Pengelola).')
+      return
+    }
+
+    // 2. Validasi wewenang langsung ke server database via RPC is_admin()
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: isServerAdmin } = await supabase.rpc('is_admin')
+        if (!isServerAdmin) {
+          alert('Akses Ditolak: Sesi Anda bukan Admin Guru BK yang sah.')
+          return
+        }
+      } catch (e) {
+        alert('Akses Ditolak: Gagal memvalidasi wewenang keamanan di database.')
+        return
+      }
+    }
+
     if (alumniList.value.length === 0) {
       alert('Belum ada data alumni untuk diekspor.')
       return

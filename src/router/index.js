@@ -106,9 +106,14 @@ const router = createRouter({
   }
 })
 
-// Middleware / Navigation Guard Keamanan Rute Tracer Study
-router.beforeEach((to, from, next) => {
+// Middleware / Navigation Guard Keamanan Rute Tracer Study (Zero-Trust Server Verification)
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+
+  // Tunggu verifikasi sesi resmi dari Supabase Auth selesai sebelum mengevaluasi rute
+  if (!authStore.isAuthReady) {
+    await authStore.initAuth()
+  }
 
   // 1. Cek rute yang membutuhkan login (Akses Tracer Study)
   if (to.meta.requiresAuth && !authStore.isLoggedIn) {
@@ -126,7 +131,7 @@ router.beforeEach((to, from, next) => {
     return next({ path: '/dashboard' })
   }
 
-  // 3. Rute khusus admin
+  // 3. Rute khusus admin (Wajib lulus verifikasi admin)
   if (to.meta.requiresAdmin && authStore.userRole !== 'admin') {
     return next({ path: '/dashboard' })
   }

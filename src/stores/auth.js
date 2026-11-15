@@ -3,88 +3,101 @@ import { ref } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
-  // State reaktif otentikasi
+  // State reaktif otentikasi (Default murni TAMU / GUEST - Jangan pernah percaya localStorage sebelum diverifikasi server!)
   const isLoggedIn = ref(false)
-  const userRole = ref('user') // 'admin', 'siswa', atau 'user'
-  const userName = ref('Pengguna SMADA')
+  const userRole = ref('user') // 'admin', 'siswa', atau 'user' (tamu)
+  const userName = ref('Pengunjung')
   const userEmail = ref('')
   const userNis = ref('')
   const userNisn = ref('')
   const currentUser = ref(null)
-
-  // Inisialisasi awal sinkron dari Supabase Auth / Local Cache yang aman (tanpa password)
-  try {
-    const rawUserData = localStorage.getItem('hallo_auth_user_data')
-    if (rawUserData) {
-      const parsed = JSON.parse(rawUserData)
-      if (parsed) {
-        delete parsed.password
-        currentUser.value = parsed
-        userName.value = parsed.nama || userName.value
-        userEmail.value = parsed.email || ''
-        userNis.value = parsed.nis || ''
-        userNisn.value = parsed.nisn || ''
-        userRole.value = parsed.role || 'user'
-        isLoggedIn.value = localStorage.getItem('hallo_auth_logged_in') === 'true'
-      }
-    }
-  } catch (e) {
-    currentUser.value = null
-  }
+  const isAuthReady = ref(false)
 
   /**
-   * Inisialisasi & Verifikasi Sesi Kredensial Resmi via Supabase Auth (JWT Token)
+   * Inisialisasi & Verifikasi Sesi Kredensial Resmi via Supabase Auth (Kriptografis JWT)
+   * Kebijakan Zero-Trust: Sesi HANYA diakui jika token JWT valid di server Supabase!
    */
   async function initAuth() {
-    if (!isSupabaseConfigured || !supabase) return
+    if (!isSupabaseConfigured || !supabase) {
+      isLoggedIn.value = false
+      userRole.value = 'user'
+      userName.value = 'Pengunjung'
+      currentUser.value = null
+      isAuthReady.value = true
+      return
+    }
 
     try {
       const { data: { session }, error } = await supabase.auth.getSession()
+
+      // JIKA TIDAK ADA SESI RESMI (Atau token expired/palsu) -> RESET TOTAL KE PENGUNJUNG BIASA!
       if (error || !session?.user) {
-        // Jika sesi invalid atau expired, bersihkan state
-        if (localStorage.getItem('hallo_auth_logged_in') === 'true') {
-          // Hanya bersihkan jika tidak ada sesi Supabase aktif
-          // Biarkan session handler mengatur pembaruan
-        }
+        isLoggedIn.value = false
+        userRole.value = 'user'
+        userName.value = 'Pengunjung'
+        userEmail.value = ''
+        userNis.value = ''
+        userNisn.value = ''
+        currentUser.value = null
+
+        // Musnahkan semua key localStorage manipulasi yang mungkin disuntikkan penyerang di console
+        localStorage.removeItem('hallo_auth_logged_in')
+        localStorage.removeItem('hallo_auth_role')
+        localStorage.removeItem('hallo_auth_name')
+        localStorage.removeItem('hallo_auth_email')
+        localStorage.removeItem('hallo_auth_nis')
+        localStorage.removeItem('hallo_auth_nisn')
+        localStorage.removeItem('hallo_auth_user_data')
+        localStorage.removeItem('hallo_temp_role')
         return
       }
 
-      isLoggedIn.value = true
+      // SESI RESMI DARI SUPABASE AUTH TERBUKTI VALID
       const authUser = session.user
+      isLoggedIn.value = true
 
-      // Ambil data profil dari public.users (Hanya kolom publik, tanpa password)
+      // Ambil data profil dari public.users (Hanya kolom profil)
       const { data: profile } = await supabase
         .from('users')
         .select('id, nama, email, nis, nisn, role, kelas, angkatan, tahun_lulus, no_wa, foto_url')
         .eq('id', authUser.id)
         .maybeSingle()
 
-      if (profile) {
-        userRole.value = profile.role || 'user'
-        userName.value = profile.nama || userName.value
-        userEmail.value = profile.email || authUser.email || ''
-        userNis.value = profile.nis || ''
-        userNisn.value = profile.nisn || ''
-        currentUser.value = profile
-      } else {
-        const roleFromMeta = authUser.app_metadata?.role || authUser.user_metadata?.role || 'user'
-        userRole.value = roleFromMeta
-        userName.value = authUser.user_metadata?.nama || userName.value
-        userEmail.value = authUser.email || ''
-        currentUser.value = {
-          id: authUser.id,
-          nama: userName.value,
-          role: roleFromMeta,
-          email: userEmail.value
+      let determinedRole = profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role || 'user'
+
+      // VERIFIKASI KEAMANAN TINGKAT SERVER:
+      // Jika mengaku 'admin', validasi langsung ke database PostgreSQL via fungsi RPC is_admin()!
+      if (determinedRole === 'admin') {
+        try {
+          const { data: isServerAdmin } = await supabase.rpc('is_admin')
+          if (!isServerAdmin) {
+            console.error('[SECURITY VIOLATION] Upaya eskalasi hak akses terdeteksi! Database menolak peran admin.')
+            determinedRole = 'user'
+          }
+        } catch (e) {
+          console.warn('Gagal verifikasi RPC is_admin di database:', e)
         }
       }
 
-      localStorage.setItem('hallo_auth_logged_in', 'true')
-      localStorage.setItem('hallo_auth_role', userRole.value)
-      localStorage.setItem('hallo_auth_name', userName.value)
-      localStorage.setItem('hallo_auth_user_data', JSON.stringify(currentUser.value))
+      userRole.value = determinedRole
+      userName.value = profile?.nama || authUser.user_metadata?.nama || (determinedRole === 'admin' ? 'Guru BK SMADA' : 'Siswa SMADA')
+      userEmail.value = profile?.email || authUser.email || ''
+      userNis.value = profile?.nis || ''
+      userNisn.value = profile?.nisn || ''
+      currentUser.value = profile || {
+        id: authUser.id,
+        nama: userName.value,
+        role: determinedRole,
+        email: userEmail.value
+      }
     } catch (e) {
       console.warn('Gagal inisialisasi sesi Supabase Auth:', e)
+      isLoggedIn.value = false
+      userRole.value = 'user'
+      userName.value = 'Pengunjung'
+      currentUser.value = null
+    } finally {
+      isAuthReady.value = true
     }
   }
 
@@ -92,12 +105,11 @@ export const useAuthStore = defineStore('auth', () => {
   if (isSupabaseConfigured && supabase) {
     supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        isLoggedIn.value = true
         await initAuth()
       } else if (event === 'SIGNED_OUT') {
         isLoggedIn.value = false
         userRole.value = 'user'
-        userName.value = 'Pengguna SMADA'
+        userName.value = 'Pengunjung'
         userEmail.value = ''
         userNis.value = ''
         userNisn.value = ''
@@ -109,10 +121,11 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('hallo_auth_nis')
         localStorage.removeItem('hallo_auth_nisn')
         localStorage.removeItem('hallo_auth_user_data')
+        localStorage.removeItem('hallo_temp_role')
       }
     })
 
-    // Jalankan pengecekan sesi otomatis saat start
+    // Jalankan pengecekan sesi resmi saat start
     initAuth()
   }
 
@@ -398,6 +411,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchAllUsers() {
     if (!supabase) return { success: false, message: 'Database belum terhubung' }
+    if (userRole.value !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat mengakses daftar akun.' }
+    }
     isLoadingUsers.value = true
     try {
       // Keamanan: HANYA ambil kolom profil publik, kolom password tidak pernah diambil!
@@ -484,6 +500,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   return {
+    isAuthReady,
     isLoggedIn,
     userRole,
     userName,
