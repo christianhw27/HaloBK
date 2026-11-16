@@ -112,6 +112,15 @@ async function handleSubmit() {
     return
   }
 
+  if (form.phone && form.phone.trim()) {
+    const cleanPhone = form.phone.trim().replace(/[-\s]/g, '')
+    const phoneRegex = /^(08|628|\+628)[0-9]{7,12}$/
+    if (!phoneRegex.test(cleanPhone)) {
+      errorMessage.value = 'Format nomor WhatsApp tidak valid. Gunakan format seperti 081234567890.'
+      return
+    }
+  }
+
   // Sinkronisasi data identitas akun sebelum pengiriman
   populateFromUser()
 

@@ -385,7 +385,7 @@ watch(manageSearch, () => {
 function openEdit(alumni) {
   if (!alumni?.id) return
   const routeData = router.resolve({ name: 'edit-siswa', params: { id: alumni.id } })
-  window.open(routeData.href, '_blank')
+  window.open(routeData.href, '_blank', 'noopener,noreferrer')
 }
 
 async function handleDelete(alumni) {
@@ -512,9 +512,16 @@ async function handleSaveUser() {
     return
   }
 
-  if (editUserForm.password.trim() && editUserForm.password.trim().length < 6) {
-    editUserFeedback.value = { type: 'error', text: 'Kata sandi baru minimal 6 karakter.' }
-    return
+  if (editUserForm.password.trim()) {
+    const p = editUserForm.password.trim()
+    if (p.length < 8) {
+      editUserFeedback.value = { type: 'error', text: 'Kata sandi baru minimal 8 karakter.' }
+      return
+    }
+    if (!/[A-Z]/.test(p) || !/[0-9]/.test(p)) {
+      editUserFeedback.value = { type: 'error', text: 'Kata sandi baru harus mengandung minimal 1 huruf besar dan 1 angka.' }
+      return
+    }
   }
 
   isSavingUser.value = true
@@ -544,13 +551,27 @@ async function handleSaveUser() {
 }
 
 async function handleQuickResetPassword(user) {
-  if (confirm(`Reset kata sandi akun "${user.nama}" menjadi default: "smadahebat"?`)) {
-    const res = await authStore.adminResetPassword(user.id, 'smadahebat')
-    if (res.success) {
-      alert(`Kata sandi akun ${user.nama} berhasil direset ke: smadahebat`)
-    } else {
-      alert('Gagal mereset kata sandi: ' + res.message)
-    }
+  const newPass = prompt(
+    `Reset kata sandi akun "${user.nama}".\n\nMasukkan kata sandi baru (min 8 karakter, wajib ada huruf besar & angka):`,
+    ''
+  )
+
+  if (!newPass) return
+
+  if (newPass.trim().length < 8) {
+    alert('Kata sandi terlalu pendek. Minimal 8 karakter.')
+    return
+  }
+  if (!/[A-Z]/.test(newPass) || !/[0-9]/.test(newPass)) {
+    alert('Kata sandi harus mengandung minimal 1 huruf besar dan 1 angka.')
+    return
+  }
+
+  const res = await authStore.adminResetPassword(user.id, newPass.trim())
+  if (res.success) {
+    alert(`Kata sandi akun ${user.nama} berhasil direset.\n\nPastikan Anda menyampaikan kata sandi baru ke siswa melalui kanal yang aman.`)
+  } else {
+    alert('Gagal mereset kata sandi: ' + res.message)
   }
 }
 </script>
@@ -1122,7 +1143,7 @@ async function handleQuickResetPassword(user) {
                 @click="handleQuickResetPassword(user)"
                 type="button"
                 class="py-1.5 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-[#92400E] dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 text-xs font-semibold transition-colors flex items-center justify-center gap-1"
-                title="Reset password ke default (smadahebat)"
+                title="Reset kata sandi akun siswa"
               >
                 <i class="fa-solid fa-rotate-left text-[11px]" aria-hidden="true"></i>
                 <span>Reset</span>
@@ -1235,7 +1256,7 @@ async function handleQuickResetPassword(user) {
                       @click="handleQuickResetPassword(user)"
                       type="button"
                       class="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/60 dark:hover:bg-amber-900/60 text-[#92400E] dark:text-amber-200 border border-amber-200 dark:border-amber-800 text-xs font-semibold transition-colors flex items-center gap-1"
-                      title="Reset kata sandi ke default (smadahebat)"
+                      title="Reset kata sandi akun siswa"
                     >
                       <i class="fa-solid fa-rotate-left text-[11px]" aria-hidden="true"></i>
                       <span>Reset</span>
@@ -1876,10 +1897,11 @@ async function handleQuickResetPassword(user) {
               </label>
               <button
                 type="button"
-                @click="editUserForm.password = 'smadahebat'"
-                class="text-[11px] font-semibold text-[#4F46E5] dark:text-indigo-300 hover:underline"
+                @click="editUserForm.password = ''"
+                class="text-[11px] font-semibold text-slate-400 dark:text-slate-500 cursor-default"
+                disabled
               >
-                Gunakan default: smadahebat
+                Masukkan kata sandi baru yang kuat (min 8 karakter, huruf besar + angka)
               </button>
             </div>
 

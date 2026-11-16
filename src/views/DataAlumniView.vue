@@ -88,7 +88,7 @@ function openDetail(item) {
 function openEdit(item) {
   if (!item?.id) return
   const routeData = router.resolve({ name: 'edit-siswa', params: { id: item.id } })
-  window.open(routeData.href, '_blank')
+  window.open(routeData.href, '_blank', 'noopener,noreferrer')
 }
 
 async function handleDelete(alumni) {
@@ -105,7 +105,7 @@ function openWhatsApp(phone, name, inst) {
   let cleanNumber = phone.replace(/[^0-9]/g, '')
   if (cleanNumber.startsWith('0')) cleanNumber = '62' + cleanNumber.slice(1)
   const text = encodeURIComponent(`Halo Kak ${name}, salam dari siswa SMADA Ngawi. Ingin bertanya mengenai pengalaman di ${inst}...`)
-  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank')
+  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank', 'noopener,noreferrer')
 }
 </script>
 

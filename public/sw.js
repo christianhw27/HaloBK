@@ -69,8 +69,8 @@ self.addEventListener('fetch', (event) => {
         // Jika belum ada di cache, unduh dari jaringan sekali saja
         try {
           const networkResponse = await fetch(request)
-          // Simpan respons valid (HTTP 200 atau Opaque cross-origin CDN) ke dalam cache
-          if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
+          // Hanya simpan respons HTTP 200 yang valid ke dalam cache (menghindari caching respons error/opaque bengkak)
+          if (networkResponse && networkResponse.status === 200) {
             cache.put(request, networkResponse.clone())
           }
           return networkResponse

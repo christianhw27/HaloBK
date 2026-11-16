@@ -213,8 +213,12 @@ async function handleChangePassword() {
     showFeedback('error', 'Masukkan kata sandi baru.')
     return
   }
-  if (passForm.value.newPassword.length < 6) {
-    showFeedback('error', 'Kata sandi baru minimal 6 karakter.')
+  if (passForm.value.newPassword.length < 8) {
+    showFeedback('error', 'Kata sandi baru minimal 8 karakter.')
+    return
+  }
+  if (!/[A-Z]/.test(passForm.value.newPassword) || !/[0-9]/.test(passForm.value.newPassword)) {
+    showFeedback('error', 'Kata sandi baru harus mengandung minimal 1 huruf besar dan 1 angka.')
     return
   }
   if (passForm.value.newPassword !== passForm.value.confirmPassword) {
@@ -906,7 +910,7 @@ onMounted(async () => {
                   id="new_pass"
                   v-model="passForm.newPassword"
                   :type="showNewPassword ? 'text' : 'password'"
-                  placeholder="Minimal 6 karakter"
+                  placeholder="Minimal 8 karakter (ada huruf besar & angka)"
                   class="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-all"
                 />
                 <button

@@ -1,7 +1,11 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://yhctwdgcxykzxfgeilgf.supabase.co'
-const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_1ySPTUjtVRIoxsLyy79QAQ_OQT0h1PM'
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error('[OG API] FATAL: Environment variables VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY belum dikonfigurasi.')
+}
 
 function slugify(text) {
   if (!text) return ''
@@ -38,6 +42,7 @@ export default async function handler(req, res) {
       .from('berita')
       .select('id, judul, ringkasan, gambar_url, created_at')
       .order('created_at', { ascending: false })
+      .limit(50)
 
     if (list && list.length > 0) {
       // 1. Cocokkan ID persis
@@ -104,7 +109,9 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('X-Frame-Options', 'DENY')
+  res.setHeader('X-XSS-Protection', '1; mode=block')
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
+  res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; img-src https:; form-action 'none'; base-uri 'none';")
   res.setHeader('Access-Control-Allow-Origin', 'https://ruangbksmada.my.id')
   return res.status(200).send(html)
 }

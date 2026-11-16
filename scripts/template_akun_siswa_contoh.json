@@ -1,0 +1,32 @@
+[
+  {
+    "nama": "Siswa Contoh 1",
+    "nisn": "0012345671",
+    "nis": "19001",
+    "kelas": "X-1",
+    "password": "PasswordContoh1",
+    "role": "siswa",
+    "angkatan": 62,
+    "tahun_lulus": 2028
+  },
+  {
+    "nama": "Siswa Contoh 2",
+    "nisn": "0012345672",
+    "nis": "19002",
+    "kelas": "X-1",
+    "password": "PasswordContoh2",
+    "role": "siswa",
+    "angkatan": 62,
+    "tahun_lulus": 2028
+  },
+  {
+    "nama": "Siswa Contoh 3",
+    "nisn": "0012345673",
+    "nis": "19003",
+    "kelas": "X-2",
+    "password": "PasswordContoh3",
+    "role": "siswa",
+    "angkatan": 62,
+    "tahun_lulus": 2028
+  }
+]

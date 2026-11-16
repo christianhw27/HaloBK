@@ -72,7 +72,7 @@ function openWhatsApp() {
     ? `Halo ananda ${props.alumni.name}, dari Guru BK SMA Negeri 2 Ngawi...`
     : `Halo Kak ${props.alumni.name}, salam dari SMA Negeri 2 Ngawi. Ingin bertanya mengenai pengalaman kuliah/karir di ${props.alumni.institution}...`
   const text = encodeURIComponent(greeting)
-  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank')
+  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank', 'noopener,noreferrer')
 }
 
 function openParentWhatsApp() {
@@ -82,7 +82,7 @@ function openParentWhatsApp() {
     cleanNumber = '62' + cleanNumber.slice(1)
   }
   const text = encodeURIComponent(`Halo Bapak/Ibu wali dari ananda ${props.alumni.name}, kami dari pihak Bimbingan Konseling (BK) SMA Negeri 2 Ngawi...`)
-  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank')
+  window.open(`https://wa.me/${cleanNumber}?text=${text}`, '_blank', 'noopener,noreferrer')
 }
 </script>
 
@@ -178,8 +178,10 @@ function openParentWhatsApp() {
                   {{ isStudent ? 'Siswa Aktif SMA Negeri 2 Ngawi' : ('Alumni Angkatan ' + alumni.cohort) }} &bull; Kelas {{ alumni.classRoom }}
                 </p>
 
-                <div v-if="isStudent && alumni.nisn && alumni.nisn !== '-'" class="text-xs text-emerald-400 font-mono mt-0.5">
-                  NISN: {{ alumni.nisn }} <template v-if="alumni.nis && alumni.nis !== '-'">| NIS: {{ alumni.nis }}</template>
+                <div v-if="isTeacherOrAdmin && ((alumni.nisn && alumni.nisn !== '-') || (alumni.nis && alumni.nis !== '-'))" class="text-xs text-emerald-400 font-mono mt-0.5">
+                  <span v-if="alumni.nisn && alumni.nisn !== '-'">NISN: {{ alumni.nisn }}</span>
+                  <span v-if="alumni.nisn && alumni.nisn !== '-' && alumni.nis && alumni.nis !== '-'" class="text-slate-400 mx-1">|</span>
+                  <span v-if="alumni.nis && alumni.nis !== '-'">NIS: {{ alumni.nis }}</span>
                 </div>
 
                 <!-- Ringkasan Instansi Cepat di Samping Foto -->
@@ -209,18 +211,18 @@ function openParentWhatsApp() {
           <!-- Badan Konten Modal (Scrollable) -->
           <div class="p-5 sm:p-6 space-y-4 text-sm sm:text-base overflow-y-auto">
             
-            <!-- TAMPILAN KHUSUS: BIODATA FULL SISWA UNTUK GURU BK / ADMIN -->
-            <div v-if="isTeacherOrAdmin && isStudent" class="space-y-4">
+            <!-- TAMPILAN KHUSUS: BIODATA FULL SISWA & ALUMNI UNTUK GURU BK / ADMIN -->
+            <div v-if="isTeacherOrAdmin" class="space-y-4">
               <!-- Header Penanda Akses Terproteksi Guru -->
               <div class="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border border-emerald-500/30 flex items-center justify-between">
                 <div class="flex items-center gap-2.5 text-emerald-700 dark:text-emerald-300 font-semibold text-xs sm:text-sm">
                   <div class="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <i class="fa-solid fa-user-shield text-sm"></i>
                   </div>
-                  <span>Biodata Lengkap Siswa (Khusus Akses Guru BK)</span>
+                  <span>Biodata Lengkap Siswa (Khusus Akses Guru BK &amp; Admin)</span>
                 </div>
                 <span class="px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 text-[10px] font-bold uppercase tracking-wider border border-emerald-300/40">
-                  Data Internal
+                  Data Terproteksi
                 </span>
               </div>
 
@@ -228,7 +230,7 @@ function openParentWhatsApp() {
               <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
                   <i class="fa-solid fa-id-card text-sky-500"></i>
-                  <span>1. Identitas & Sekolah Asal</span>
+                  <span>1. Identitas &amp; Akademik</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
@@ -240,16 +242,18 @@ function openParentWhatsApp() {
                     <span class="font-bold text-slate-900 dark:text-white font-mono text-sm sm:text-base">{{ alumni.nis || '-' }}</span>
                   </div>
                   <div>
-                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Kelas & Angkatan</span>
-                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.classRoom || '-' }} (Angkatan {{ alumni.angkatan || 61 }} / Lulusan {{ alumni.cohort }})</span>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Kelas &amp; Angkatan</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">
+                      {{ alumni.classRoom || '-' }} (Angkatan {{ alumni.angkatan || (alumni.cohort ? (parseInt(alumni.cohort) - 1966) : 60) }} / Lulusan {{ alumni.cohort || '-' }})
+                    </span>
                   </div>
-                  <div>
+                  <div v-if="alumni.ttl && alumni.ttl !== '-'">
                     <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Tempat, Tanggal Lahir (TTL)</span>
-                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.ttl || '-' }}</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.ttl }}</span>
                   </div>
-                  <div class="sm:col-span-2">
+                  <div v-if="alumni.asal_smp && alumni.asal_smp !== '-'" class="sm:col-span-2">
                     <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Asal Sekolah (SMP / MTs)</span>
-                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.asal_smp || '-' }}</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.asal_smp }}</span>
                   </div>
                 </div>
               </div>
@@ -258,23 +262,25 @@ function openParentWhatsApp() {
               <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
                   <i class="fa-solid fa-house-chimney-user text-amber-500"></i>
-                  <span>2. Tempat Tinggal & Transportasi</span>
+                  <span>2. Tempat Tinggal &amp; Domisili</span>
                 </div>
                 <div class="space-y-2.5 text-sm">
                   <div>
                     <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Alamat Tempat Tinggal Lengkap</span>
-                    <span class="font-medium text-slate-800 dark:text-slate-200 leading-relaxed block">{{ alumni.alamat_lengkap || '-' }}</span>
+                    <span class="font-medium text-slate-900 dark:text-slate-100 leading-relaxed block bg-white dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                      {{ alumni.alamat_lengkap || alumni.address || '-' }}
+                    </span>
                   </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div>
+                  <div v-if="(alumni.jenis_tinggal && alumni.jenis_tinggal !== '-') || (alumni.alat_transportasi && alumni.alat_transportasi !== '-')" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div v-if="alumni.jenis_tinggal && alumni.jenis_tinggal !== '-'">
                       <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Status Jenis Tinggal</span>
                       <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-200/70">
-                        {{ alumni.jenis_tinggal || '-' }}
+                        {{ alumni.jenis_tinggal }}
                       </span>
                     </div>
-                    <div>
+                    <div v-if="alumni.alat_transportasi && alumni.alat_transportasi !== '-'">
                       <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Alat Transportasi ke Sekolah</span>
-                      <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.alat_transportasi || '-' }}</span>
+                      <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.alat_transportasi }}</span>
                     </div>
                   </div>
                 </div>
@@ -284,12 +290,14 @@ function openParentWhatsApp() {
               <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
                   <i class="fa-solid fa-address-book text-emerald-500"></i>
-                  <span>3. Kontak Siswa</span>
+                  <span>3. Kontak Pribadi Siswa</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
                     <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Nomor WhatsApp Siswa</span>
-                    <span class="font-semibold text-slate-800 dark:text-slate-200 font-mono">{{ alumni.phone && alumni.phone !== '-' ? alumni.phone : '-' }}</span>
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-400 font-mono text-base">
+                      {{ alumni.phone && alumni.phone !== '-' ? alumni.phone : '-' }}
+                    </span>
                   </div>
                   <div>
                     <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Email Siswa</span>
@@ -298,11 +306,59 @@ function openParentWhatsApp() {
                 </div>
               </div>
 
-              <!-- 4. Data Orang Tua / Wali Siswa -->
+              <!-- 4. Rincian Penempatan / Studi Lanjut / Karir -->
               <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
                 <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
+                  <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+                  <span>4. Tracer Study &amp; Studi Lanjut</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Kampus / Lembaga / Perusahaan</span>
+                    <span class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                      <img
+                        v-if="getInstitutionLogo(alumni.institution)"
+                        :src="getInstitutionLogo(alumni.institution)"
+                        :alt="alumni.institution"
+                        class="w-5 h-5 rounded object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
+                        loading="lazy"
+                        @error="(e) => e.target.style.display = 'none'"
+                      />
+                      <span>{{ alumni.institution || '-' }}</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Program Studi / Posisi</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.major || '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Jalur Masuk / Seleksi</span>
+                    <span class="font-semibold text-slate-800 dark:text-slate-200">{{ alumni.pathway || '-' }}</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 block mb-0.5">Kategori Tracer Study</span>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold" :class="badgeStyle">
+                      {{ alumni.category || '-' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5. Pesan & Motivasi Siswa -->
+              <div v-if="alumni.message">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
+                  Pesan &amp; Catatan Siswa
+                </div>
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic text-sm leading-relaxed">
+                  "{{ alumni.message }}"
+                </div>
+              </div>
+
+              <!-- 6. Data Orang Tua / Wali Siswa (Jika Ada) -->
+              <div v-if="alumni.nama_ortu && alumni.nama_ortu !== '-'" class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                <div class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1 border-b border-slate-200/50 dark:border-slate-700/50">
                   <i class="fa-solid fa-people-roof text-purple-500"></i>
-                  <span>4. Orang Tua / Wali Siswa</span>
+                  <span>5. Orang Tua / Wali Siswa</span>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                   <div>
@@ -332,7 +388,7 @@ function openParentWhatsApp() {
               </div>
             </div>
 
-            <!-- TAMPILAN STANDAR: ALUMNI ATAU AKSES NON-GURU -->
+            <!-- TAMPILAN STANDAR: PENGUNJUNG PUBLIK / NON-GURU -->
             <template v-else>
               <!-- Rincian Instansi / Lembaga Lengkap -->
               <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-2">
@@ -367,7 +423,7 @@ function openParentWhatsApp() {
               <!-- Pesan Motivasi Alumni / Info Siswa -->
               <div>
                 <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-wider">
-                  {{ isStudent ? 'Catatan Siswa' : 'Pesan & Motivasi untuk Siswa SMADA' }}
+                  {{ isStudent ? 'Catatan Siswa' : 'Pesan &amp; Motivasi untuk Siswa SMADA' }}
                 </div>
                 <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 italic leading-relaxed text-sm sm:text-base">
                   "{{ alumni.message || 'Semangat terus meraih cita-cita untuk seluruh adik-adik kelas SMA Negeri 2 Ngawi.' }}"

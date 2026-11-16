@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { STARTER_NEWS } from '@/lib/starterNews'
 import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
+import { useAuthStore } from './auth'
 
 export const useNewsStore = defineStore('news', () => {
   const STORAGE_KEY = 'hallo_berita_smada_v1'
@@ -207,6 +208,11 @@ export const useNewsStore = defineStore('news', () => {
 
   // CREATE: Tambah Berita Baru
   async function createNews(form) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menambahkan berita.' }
+    }
+
     if (isSupabaseConfigured && supabase && !isTableMissing.value) {
       try {
         // Jika dijadikan berita utama, lepaskan status featured pada berita lain
@@ -264,6 +270,11 @@ export const useNewsStore = defineStore('news', () => {
 
   // UPDATE: Perbarui Berita
   async function updateNews(id, form) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat memperbarui berita.' }
+    }
+
     if (isSupabaseConfigured && supabase && !isTableMissing.value) {
       try {
         if (form.isFeatured) {
@@ -322,6 +333,11 @@ export const useNewsStore = defineStore('news', () => {
 
   // DELETE: Hapus Berita
   async function deleteNews(id) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menghapus berita.' }
+    }
+
     if (isSupabaseConfigured && supabase && !isTableMissing.value) {
       try {
         const { error } = await supabase
@@ -385,6 +401,11 @@ export const useNewsStore = defineStore('news', () => {
 
   // Muat 5 Artikel Contoh BK (Untuk Admin mengisi cepat bila tabel masih kosong)
   async function seedStarterNews() {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat mengisi artikel starter.' }
+    }
+
     if (isSupabaseConfigured && supabase && !isTableMissing.value) {
       try {
         const records = STARTER_NEWS.map(item => ({
@@ -453,6 +474,11 @@ export const useNewsStore = defineStore('news', () => {
 
   // Memperbarui teks berjalan secara GLOBAL di Supabase (Semua Pengunjung Melihat Teks Ini)
   async function updateTickerText(newText) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat memperbarui teks pengumuman berjalan.' }
+    }
+
     const cleaned = (newText || '').trim() || DEFAULT_TICKER_TEXT
     tickerText.value = cleaned
     localStorage.setItem(TICKER_STORAGE_KEY, cleaned)

@@ -3,6 +3,22 @@ import { ref } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 
 export const useAuthStore = defineStore('auth', () => {
+  function sanitizeUserDataForStorage(u) {
+    if (!u) return null
+    return {
+      id: u.id,
+      nama: u.nama,
+      email: u.email,
+      role: u.role,
+      nis: u.nis,
+      nisn: u.nisn,
+      kelas: u.kelas,
+      angkatan: u.angkatan,
+      tahun_lulus: u.tahun_lulus,
+      foto_url: u.foto_url
+    }
+  }
+
   // State reaktif otentikasi (Default murni TAMU / GUEST - Jangan pernah percaya localStorage sebelum diverifikasi server!)
   const isLoggedIn = ref(false)
   const userRole = ref('user') // 'admin', 'siswa', atau 'user' (tamu)
@@ -75,7 +91,9 @@ export const useAuthStore = defineStore('auth', () => {
             determinedRole = 'user'
           }
         } catch (e) {
-          console.warn('Gagal verifikasi RPC is_admin di database:', e)
+          console.warn('Gagal verifikasi RPC is_admin di database, reset ke role aman:', e)
+          // FAIL-CLOSED: Jangan pernah berikan akses admin jika verifikasi database gagal
+          determinedRole = 'user'
         }
       }
 
@@ -141,6 +159,13 @@ export const useAuthStore = defineStore('auth', () => {
       return { success: false, message: 'NISN / NIS / Email dan kata sandi wajib diisi.' }
     }
 
+    // Sanitasi ketat identifier: hanya perbolehkan karakter alfanumerik, @, titik, dash, underscore
+    // Mencegah PostgREST filter injection (operator seperti eq., or., dll.)
+    const validIdentifierRegex = /^[a-zA-Z0-9@._-]+$/
+    if (!validIdentifierRegex.test(cleanId) || cleanId.length > 100) {
+      return { success: false, message: 'Format NISN, NIS, atau Email tidak valid.' }
+    }
+
     if (!isSupabaseConfigured || !supabase) {
       return { 
         success: false, 
@@ -165,11 +190,12 @@ export const useAuthStore = defineStore('auth', () => {
         if (cleanId.includes('@')) {
           targetEmail = cleanId
         } else {
-          // Cari email / format nisn di tabel users tanpa mengekspos password
+          // Cari email / format nisn di tabel users dengan sanitasi string literal
+          const safeId = cleanId.replace(/[^a-zA-Z0-9._-]/g, '')
           const { data: userLookup } = await supabase
             .from('users')
             .select('email, nisn, nis')
-            .or(`nisn.eq.${cleanId},nis.eq.${cleanId},email.ilike.${cleanId}`)
+            .or(`nisn.eq."${safeId}",nis.eq."${safeId}",email.ilike."${safeId}"`)
             .maybeSingle()
 
           if (userLookup) {
@@ -178,8 +204,11 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
+      // Hindari user enumeration: tampilkan pesan kesalahan umum yang seragam
+      const genericAuthErrorMessage = 'Kata sandi atau identitas login salah. Silakan periksa kembali.'
+
       if (!targetEmail) {
-        return { success: false, message: 'Akun dengan NISN, NIS, atau Email tersebut tidak ditemukan.' }
+        return { success: false, message: genericAuthErrorMessage }
       }
 
       // 2. Autentikasi SERVER-SIDE via Supabase Auth (Bcrypt Hashed)
@@ -191,7 +220,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (authError) {
         return { 
           success: false, 
-          message: 'Kata sandi atau identitas login salah. Silakan periksa kembali kata sandi Anda.' 
+          message: genericAuthErrorMessage 
         }
       }
 
@@ -205,11 +234,13 @@ export const useAuthStore = defineStore('auth', () => {
         .maybeSingle()
 
       if (!profile) {
-        // Fallback jika id profile dicari via identifier
+        // Fallback jika id profile dicari via identifier ter-sanitasi
+        const safeTargetEmail = targetEmail.replace(/[^a-zA-Z0-9@._-]/g, '')
+        const safeId = cleanId.replace(/[^a-zA-Z0-9._-]/g, '')
         const { data: fallbackProfile } = await supabase
           .from('users')
           .select('id, nama, email, nis, nisn, role, kelas, angkatan, tahun_lulus, no_wa, foto_url')
-          .or(`email.ilike.${targetEmail},nisn.eq.${cleanId},nis.eq.${cleanId}`)
+          .or(`email.ilike."${safeTargetEmail}",nisn.eq."${safeId}",nis.eq."${safeId}"`)
           .maybeSingle()
         profile = fallbackProfile
       }
@@ -228,7 +259,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('hallo_auth_logged_in', 'true')
       localStorage.setItem('hallo_auth_role', role)
       localStorage.setItem('hallo_auth_name', name)
-      localStorage.setItem('hallo_auth_user_data', JSON.stringify(currentUser.value))
+      localStorage.setItem('hallo_auth_user_data', JSON.stringify(sanitizeUserDataForStorage(currentUser.value)))
 
       return { success: true, role, user: currentUser.value }
     } catch (err) {
@@ -256,7 +287,7 @@ export const useAuthStore = defineStore('auth', () => {
         userEmail.value = data.email || ''
         userNis.value = data.nis || ''
         userNisn.value = data.nisn || ''
-        localStorage.setItem('hallo_auth_user_data', JSON.stringify(data))
+        localStorage.setItem('hallo_auth_user_data', JSON.stringify(sanitizeUserDataForStorage(data)))
       }
     } catch (err) {
       console.warn('Gagal me-refresh profil pengguna:', err)
@@ -269,6 +300,11 @@ export const useAuthStore = defineStore('auth', () => {
   async function updateProfile(fields) {
     if (!currentUser.value?.id) {
       return { success: false, message: 'Sesi login tidak valid. Silakan login kembali.' }
+    }
+
+    // Siswa tidak diizinkan mengubah database users secara langsung — wajib melalui antrean verifikasi BK
+    if (userRole.value === 'siswa') {
+      return { success: false, message: 'Akses ditolak: Siswa wajib mengajukan perubahan data melalui antrean verifikasi Guru BK.' }
     }
 
     if (!isSupabaseConfigured || !supabase) {
@@ -326,7 +362,7 @@ export const useAuthStore = defineStore('auth', () => {
       currentUser.value = mergedUser
       userName.value = mergedUser.nama || userName.value
       userEmail.value = mergedUser.email || ''
-      localStorage.setItem('hallo_auth_user_data', JSON.stringify(mergedUser))
+      localStorage.setItem('hallo_auth_user_data', JSON.stringify(sanitizeUserDataForStorage(mergedUser)))
       localStorage.setItem('hallo_auth_name', userName.value)
 
       return { success: true, message: 'Biodata profil berhasil disimpan!' }
@@ -345,8 +381,11 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const cleanNewPass = (newPassword || '').trim()
-    if (cleanNewPass.length < 6) {
-      return { success: false, message: 'Kata sandi baru minimal 6 karakter.' }
+    if (cleanNewPass.length < 8) {
+      return { success: false, message: 'Kata sandi baru minimal 8 karakter.' }
+    }
+    if (!/[A-Z]/.test(cleanNewPass) || !/[0-9]/.test(cleanNewPass)) {
+      return { success: false, message: 'Kata sandi harus mengandung minimal 1 huruf besar dan 1 angka.' }
     }
 
     try {
@@ -439,6 +478,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function adminUpdateUser(userId, updatedFields) {
     if (!supabase) return { success: false, message: 'Database belum terhubung' }
+    if (userRole.value !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat memperbarui akun pengguna.' }
+    }
     try {
       const payload = {
         nama: updatedFields.nama,
@@ -480,22 +522,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function adminResetPassword(userId, newPassword = 'smadahebat') {
-    if (!supabase) return { success: false, message: 'Database belum terhubung' }
+  async function adminResetPassword(userId, newPassword) {
+    if (!supabase) return { success: false, message: 'Database belum terhubung.' }
+    if (userRole.value !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat mereset kata sandi akun pengguna.' }
+    }
+
+    // Wajibkan password baru secara eksplisit — tidak boleh ada default
+    if (!newPassword || !newPassword.trim()) {
+      return { success: false, message: 'Kata sandi baru wajib diisi. Tidak ada kata sandi bawaan demi keamanan.' }
+    }
+
+    const cleanPass = newPassword.trim()
+
+    // Validasi kekuatan password minimum
+    if (cleanPass.length < 8) {
+      return { success: false, message: 'Kata sandi baru minimal 8 karakter.' }
+    }
+    if (!/[A-Z]/.test(cleanPass) || !/[0-9]/.test(cleanPass)) {
+      return { success: false, message: 'Kata sandi harus mengandung minimal 1 huruf besar dan 1 angka.' }
+    }
+
     try {
       // Panggil RPC aman di sisi server database (Bcrypt hashing)
       const { data, error } = await supabase.rpc('admin_reset_user_password', {
         p_user_id: userId,
-        p_new_password: newPassword
+        p_new_password: cleanPass
       })
 
       if (error) {
-        return { success: false, message: error.message }
+        return { success: false, message: 'Gagal mereset kata sandi. Silakan coba lagi.' }
       }
 
       return data || { success: true, message: 'Kata sandi berhasil direset dan dienkripsi.' }
     } catch (err) {
-      return { success: false, message: err.message }
+      return { success: false, message: 'Terjadi kesalahan saat mereset kata sandi.' }
     }
   }
 

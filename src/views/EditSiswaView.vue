@@ -169,14 +169,14 @@ async function loadStudentData() {
             id: alumniData.id,
             name: alumniData.nama_lengkap,
             nis: alumniData.nis,
-            nisn: '',
+            nisn: alumniData.nisn || '',
             classRoom: alumniData.kelas_terakhir,
             cohort: String(alumniData.tahun_lulus || 2026),
-            angkatan: 60,
-            phone: alumniData.no_wa,
+            angkatan: alumniData.tahun_lulus ? (alumniData.tahun_lulus - 1966) : 60,
+            phone: alumniData.no_wa || '',
             email: '',
             ttl: '',
-            alamat_lengkap: '',
+            alamat_lengkap: alumniData.alamat_lengkap || '',
             jenis_tinggal: 'Bersama Orang Tua',
             alat_transportasi: 'Sepeda Motor',
             nama_ortu: '',
@@ -277,6 +277,20 @@ async function handleSave() {
     showFeedback('error', 'Nama lengkap siswa tidak boleh kosong!')
     window.scrollTo({ top: 0, behavior: 'smooth' })
     return
+  }
+
+  if (form.value.newPassword && form.value.newPassword.trim()) {
+    const p = form.value.newPassword.trim()
+    if (p.length < 8) {
+      showFeedback('error', 'Kata sandi baru minimal 8 karakter.')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    if (!/[A-Z]/.test(p) || !/[0-9]/.test(p)) {
+      showFeedback('error', 'Kata sandi baru harus mengandung minimal 1 huruf besar dan 1 angka.')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
   }
 
   isSaving.value = true
@@ -920,7 +934,7 @@ onMounted(() => {
                   </button>
                 </div>
                 <p class="text-[11px] text-slate-400 mt-1">
-                  Masukkan minimal 6 karakter jika ingin mereset password akun siswa ini.
+                  Masukkan minimal 8 karakter (kombinasi huruf besar &amp; angka) jika ingin mereset password akun siswa ini.
                 </p>
               </div>
             </div>

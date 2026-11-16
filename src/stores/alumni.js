@@ -42,10 +42,14 @@ export const useAlumniStore = defineStore('alumni', () => {
       id: item.id,
       name: item.nama_lengkap || item.name || '',
       nis: item.nis || '-',
+      // Proteksi Privasi: NISN alumni HANYA terbuka untuk Admin Guru BK
+      nisn: isAdmin ? (item.nisn || '-') : '-',
       classRoom: item.kelas_terakhir || item.classRoom || '-',
       cohort: String(item.tahun_lulus || item.cohort || ''),
       // Proteksi Privasi: Nomor WhatsApp alumni HANYA terbuka untuk Admin Guru BK
       phone: isAdmin ? (item.no_wa || item.phone || '-') : '-',
+      // Proteksi Privasi: Alamat Tempat Tinggal alumni HANYA terbuka untuk Admin Guru BK
+      alamat_lengkap: isAdmin ? (item.alamat_lengkap || item.alamat || item.address || '-') : '-',
       category: finalCategory,
       pathway: finalPathway,
       institution: rawInst,
@@ -144,26 +148,42 @@ export const useAlumniStore = defineStore('alumni', () => {
         const authStore = useAuthStore()
         const isAdmin = authStore.userRole === 'admin'
 
-        // 1. Ambil data alumni terverifikasi (Prioritaskan RPC aman dengan masking kontak)
+        // 1. Ambil data alumni terverifikasi
         let verifiedData = null
-        try {
-          const { data: rpcAlumni } = await supabase.rpc('get_public_alumni_directory')
-          if (rpcAlumni && rpcAlumni.length > 0) {
-            verifiedData = rpcAlumni
-          }
-        } catch (e) {
-          console.warn('RPC get_public_alumni_directory fallback:', e)
-        }
 
-        if (!verifiedData) {
+        if (isAdmin) {
+          // Guru BK / Admin: Ambil seluruh data lengkap tanpa masking untuk operasional bimbingan konseling
           const { data: directAlumni, error: errVerified } = await supabase
             .from('alumni')
             .select('*')
-            .eq('is_verified', true)
             .order('created_at', { ascending: false })
 
-          if (errVerified) throw errVerified
-          verifiedData = directAlumni
+          if (!errVerified && directAlumni) {
+            verifiedData = directAlumni
+          }
+        } else {
+          // Pengunjung Publik / Siswa: Gunakan RPC aman dengan masking kontak & alamat
+          try {
+            const { data: rpcAlumni } = await supabase.rpc('get_public_alumni_directory')
+            if (rpcAlumni && rpcAlumni.length > 0) {
+              verifiedData = rpcAlumni
+            }
+          } catch (e) {
+            console.warn('RPC get_public_alumni_directory fallback:', e)
+          }
+
+          if (!verifiedData) {
+            // Proteksi Privasi: Non-admin tidak boleh menerima nomor kontak WhatsApp & alamat via payload
+            const queryColumns = 'id, nama_lengkap, nis, kelas_terakhir, tahun_lulus, kategori, jalur_masuk, instansi, jurusan_posisi, pesan, foto_url, created_at, is_verified'
+            const { data: fallbackAlumni, error: errFallback } = await supabase
+              .from('alumni')
+              .select(queryColumns)
+              .eq('is_verified', true)
+              .order('created_at', { ascending: false })
+
+            if (errFallback) throw errFallback
+            verifiedData = fallbackAlumni
+          }
         }
 
         const listAlumni = (verifiedData || []).map(mapDbToAlumni)
@@ -339,19 +359,29 @@ export const useAlumniStore = defineStore('alumni', () => {
   async function submitLaporDiri(form) {
     const authStore = useAuthStore()
 
+    const cleanName = (form.name || '').trim().slice(0, 150)
+    const cleanInst = (form.institution || '').trim().slice(0, 150)
+    const cleanMajor = (form.major || '').trim().slice(0, 150)
+    const cleanMessage = (form.message || '').trim().slice(0, 1000)
+    const cleanPhone = (form.phone || '').trim().replace(/[^0-9+]/g, '').slice(0, 20)
+
+    if (!cleanName || !cleanInst) {
+      return { success: false, message: 'Nama lengkap dan institusi/kampus wajib diisi.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const payload = {
-          nama_lengkap: form.name,
-          nis: form.nis || null,
-          kelas_terakhir: form.classRoom,
+          nama_lengkap: cleanName,
+          nis: (form.nis && form.nis !== '-') ? String(form.nis).trim().slice(0, 30) : null,
+          kelas_terakhir: form.classRoom || 'XII',
           tahun_lulus: parseInt(form.cohort) || 2026,
-          no_wa: form.phone || null,
-          kategori: form.category,
-          jalur_masuk: form.pathway,
-          instansi: form.institution,
-          jurusan_posisi: form.major,
-          pesan: form.message || null,
+          no_wa: cleanPhone || null,
+          kategori: form.category || 'PTN',
+          jalur_masuk: form.pathway || 'SNBP',
+          instansi: cleanInst,
+          jurusan_posisi: cleanMajor || '-',
+          pesan: cleanMessage || null,
           foto_url: form.photo || null,
           is_verified: false
         }
@@ -418,6 +448,12 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Admin Actions: Approve (ACC)
   async function approvePending(id) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      console.error('[SECURITY VIOLATION] Akses ditolak: Hanya Guru BK (Admin) yang dapat menyetujui laporan.')
+      return false
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         // 1. Coba Server-Side RPC
@@ -458,6 +494,12 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Admin Actions: Reject
   async function rejectPending(id) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      console.error('[SECURITY VIOLATION] Akses ditolak: Hanya Guru BK (Admin) yang dapat menolak laporan.')
+      return false
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         // 1. Coba Server-Side RPC
@@ -620,6 +662,11 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Aksi Guru BK: Setujui (ACC) Pengajuan Biodata Siswa
   async function approveStudentUpdate(updateItem) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menyetujui pembaruan biodata siswa.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         // 1. Coba Server-Side Atomic RPC (Validasi hak akses admin & update dalam 1 transaksi)
@@ -687,6 +734,11 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Aksi Guru BK: Tolak Pengajuan Biodata Siswa
   async function rejectStudentUpdate(id, name = 'Siswa') {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menolak pembaruan biodata siswa.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         // 1. Coba Server-Side RPC
@@ -772,6 +824,12 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Bulk Import
   async function importData(rows) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      console.error('[SECURITY VIOLATION] Akses ditolak: Hanya Guru BK (Admin) yang dapat melakukan import data.')
+      return 0
+    }
+
     if (!Array.isArray(rows) || rows.length === 0) return 0
 
     if (isSupabaseConfigured && supabase) {
@@ -850,6 +908,11 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Admin Action: Tambah Alumni Manual (Langsung Terverifikasi)
   async function addAlumni(form) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menambahkan data alumni secara langsung.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         const payload = {
@@ -913,6 +976,11 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Admin Action: Update Biodata Lengkap Siswa / Alumni
   async function adminUpdateStudentOrAlumni(id, form) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat memperbarui biodata ini.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         let updatedInUsers = false
@@ -973,6 +1041,8 @@ export const useAlumniStore = defineStore('alumni', () => {
         const alumniPayload = {
           nama_lengkap: form.name,
           nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
+          nisn: form.nisn && form.nisn !== '-' ? form.nisn.trim() : null,
+          alamat_lengkap: form.alamat_lengkap && form.alamat_lengkap !== '-' ? form.alamat_lengkap.trim() : null,
           kelas_terakhir: form.classRoom && form.classRoom !== '-' ? form.classRoom : null,
           tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
           no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
@@ -1075,6 +1145,11 @@ export const useAlumniStore = defineStore('alumni', () => {
 
   // Admin Action: Hapus Alumni / Siswa
   async function deleteAlumni(id) {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses ditolak: Hanya Guru BK (Admin) yang dapat menghapus data.' }
+    }
+
     if (isSupabaseConfigured && supabase) {
       try {
         // 1. Coba Server-Side RPC

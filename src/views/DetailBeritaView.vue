@@ -93,7 +93,7 @@ function shareToWhatsApp() {
   if (!article.value) return
   const url = getShareableUrl()
   const text = encodeURIComponent(`*${article.value.title}*\n\n${article.value.summary || ''}\n\nBaca selengkapnya di Ruang BK Smada:\n${url}`)
-  window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank')
+  window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer')
 }
 
 function setMetaTag(attr, key, content) {

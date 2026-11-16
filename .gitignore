@@ -21,5 +21,7 @@ hallo_alumni_smada_ngawi.html
 temp/
 _drafts/
 arsip/
+scripts/output_template/
+scripts/generate_sql_import_60.js
 
 

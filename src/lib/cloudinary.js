@@ -1,7 +1,10 @@
 // Layanan Unggah & Optimasi Foto Cloudinary
-// Menggunakan direct client-side unsigned upload (tanpa backend proxy)
+// Menggunakan direct client-side unsigned upload (dengan validasi keamanan ketat)
 
 import { compressImage } from './imageHelper'
+
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const MAX_RAW_FILE_SIZE = 5 * 1024 * 1024 // Maksimal 5 MB sebelum kompresi
 
 /**
  * Cek apakah kredensial Cloudinary sudah terkonfigurasi di environment
@@ -24,6 +27,7 @@ export function isCloudinaryConfigured() {
 
 /**
  * Unggah berkas gambar langsung ke Cloudinary menggunakan Unsigned Upload Preset
+ * Dilengkapi validasi keamanan tipe payload untuk mencegah penyalahgunaan hosting file berbahaya
  * @param {File|Blob|string} fileOrDataUrl - Berkas gambar atau base64 data URI
  * @param {Object} options - Pengaturan tambahan (folder, tags)
  * @returns {Promise<string>} secure_url dari Cloudinary
@@ -37,6 +41,19 @@ export async function uploadToCloudinary(fileOrDataUrl, options = {}) {
     throw new Error(
       'Kredensial Cloudinary belum diatur. Harap masukkan VITE_CLOUDINARY_CLOUD_NAME dan VITE_CLOUDINARY_UPLOAD_PRESET pada berkas .env'
     )
+  }
+
+  // Validasi tipe payload sebelum dikirim
+  if (typeof fileOrDataUrl === 'string') {
+    if (!fileOrDataUrl.startsWith('data:image/')) {
+      throw new Error('Payload yang diunggah harus berupa berkas gambar yang valid.')
+    }
+  } else if (fileOrDataUrl instanceof Blob || fileOrDataUrl instanceof File) {
+    if (!ALLOWED_MIME_TYPES.includes(fileOrDataUrl.type)) {
+      throw new Error('Format berkas tidak diizinkan. Hanya menerima berkas JPG, PNG, atau WEBP.')
+    }
+  } else {
+    throw new Error('Tipe berkas tidak didukung untuk unggahan.')
   }
 
   const formData = new FormData()
@@ -82,9 +99,10 @@ export async function uploadToCloudinary(fileOrDataUrl, options = {}) {
 
 /**
  * Alur lengkap upload foto alumni:
- * 1. Kompresi lokal cepat di peramban (agar upload ke Cloudinary secepat kilat, <100KB)
- * 2. Unggah ke Cloudinary via direct unsigned upload
- * 3. Mengembalikan URL HTTPS publik CDN Cloudinary
+ * 1. Validasi tipe dan batas ukuran berkas mentah
+ * 2. Kompresi lokal cepat di peramban (agar upload ke Cloudinary secepat kilat, <100KB)
+ * 3. Unggah ke Cloudinary via direct unsigned upload
+ * 4. Mengembalikan URL HTTPS publik CDN Cloudinary
  * 
  * @param {File} file - Berkas file foto mentah dari input file
  * @returns {Promise<string>} URL gambar Cloudinary (HTTPS)
@@ -94,8 +112,12 @@ export async function processAndUploadPhoto(file) {
     throw new Error('Pilih berkas foto terlebih dahulu.')
   }
 
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Berkas harus berupa gambar valid (.jpg, .jpeg, .png, .webp).')
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    throw new Error('Format berkas tidak valid. Harap pilih berkas gambar .jpg, .png, atau .webp.')
+  }
+
+  if (file.size > MAX_RAW_FILE_SIZE) {
+    throw new Error('Ukuran berkas terlalu besar. Maksimal 5 MB.')
   }
 
   // 1. Kompresi gambar terlebih dahulu ke max 600px 80% JPEG
