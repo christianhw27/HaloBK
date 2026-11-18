@@ -33,6 +33,58 @@ const LOCAL_SNPMB_PTN = getAllSnpmbPtn()
 
 const LOCAL_PTN_BY_ID = new Map(LOCAL_SNPMB_PTN.map(p => [p.id, p]))
 
+// Daftar resmi 23 mata pelajaran standar SMA Negeri 2 Ngawi
+export const SMADA_MASTER_SUBJECTS = [
+  'Matematika',
+  'PAI (Pendidikan Agama Islam)',
+  'PKn / Pancasila',
+  'Bahasa Indonesia',
+  'Bahasa Inggris',
+  'Fisika',
+  'Biologi',
+  'PKWU (Prakarya dan Kewirausahaan)',
+  'Kimia',
+  'Bahasa Prancis',
+  'Sejarah',
+  'Geografi',
+  'Ekonomi',
+  'Seni Budaya',
+  'Penjasorkes (Pendidikan Jasmani, Olahraga, dan Kesehatan)',
+  'Sosiologi',
+  'TIK / KKA',
+  'Bahasa Jepang',
+  'Bahasa Jawa',
+  'Pendidikan Agama Katholik',
+  'Pendidikan Agama Kristen',
+  'BP/BK (Bimbingan dan Konseling)',
+  'PRODISTIK'
+]
+
+const SUBJECT_ORDER_MAP = new Map(SMADA_MASTER_SUBJECTS.map((name, idx) => [name.toLowerCase(), idx]))
+
+const LEGACY_SUBJECT_RENAMES = {
+  'Matematika (Umum)': 'Matematika',
+  'Pendidikan Agama dan Budi Pekerti': 'PAI (Pendidikan Agama Islam)',
+  'Pendidikan Pancasila dan Kewarganegaraan': 'PKn / Pancasila',
+  'Seni dan Budaya': 'Seni Budaya',
+  'Pendidikan Jasmani, Olahraga, dan Kesehatan': 'Penjasorkes (Pendidikan Jasmani, Olahraga, dan Kesehatan)',
+  'Informatika': 'TIK / KKA'
+}
+
+const LEGACY_SUBJECTS_TO_REMOVE = [
+  'Antropologi',
+  'Bahasa Asing Lainnya (Jepang/Mandarin/Jerman)',
+  'Bahasa dan Sastra Indonesia',
+  'Bahasa dan Sastra Inggris',
+  'Matematika Tingkat Lanjut',
+  'Matematika (Umum)',
+  'Pendidikan Agama dan Budi Pekerti',
+  'Pendidikan Pancasila dan Kewarganegaraan',
+  'Seni dan Budaya',
+  'Pendidikan Jasmani, Olahraga, dan Kesehatan',
+  'Informatika'
+]
+
 export const useEligibleStore = defineStore('eligible', () => {
   const currentAcademicYear = ref('2025/2026')
   const isLoading = ref(false)
@@ -478,13 +530,83 @@ export const useEligibleStore = defineStore('eligible', () => {
       const { data } = await supabase
         .from('subjects')
         .select('*')
-        .order('name', { ascending: true })
 
-      masterSubjects.value = data || []
+      const sorted = (data || []).sort((a, b) => {
+        const idxA = SUBJECT_ORDER_MAP.has((a.name || '').toLowerCase()) ? SUBJECT_ORDER_MAP.get(a.name.toLowerCase()) : 999
+        const idxB = SUBJECT_ORDER_MAP.has((b.name || '').toLowerCase()) ? SUBJECT_ORDER_MAP.get(b.name.toLowerCase()) : 999
+        if (idxA !== idxB) return idxA - idxB
+        return (a.name || '').localeCompare(b.name || '', 'id')
+      })
+
+      masterSubjects.value = sorted
       return masterSubjects.value
     } catch (e) {
       console.warn('Error fetching subjects:', e)
       return []
+    }
+  }
+
+  /**
+   * Sinkronisasi / rombak master mata pelajaran ke 23 mapel standar SMADA (Admin Only).
+   * Mempertahankan UUID mapel yang hanya berganti nama agar nilai siswa yang sudah ada tetap aman.
+   */
+  async function syncDefaultSubjects() {
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, message: 'Koneksi Supabase belum terkonfigurasi.' }
+    }
+    try {
+      const { data: existing, error: fetchErr } = await supabase
+        .from('subjects')
+        .select('id, name, category')
+      if (fetchErr) throw fetchErr
+
+      const byName = new Map((existing || []).map(s => [s.name, s]))
+
+      // 1. Rename mapel lama yang berpadanan agar relasi eligible_grades tetap utuh
+      for (const [oldName, newName] of Object.entries(LEGACY_SUBJECT_RENAMES)) {
+        const oldRow = byName.get(oldName)
+        if (oldRow && !byName.has(newName)) {
+          const { error: updErr } = await supabase
+            .from('subjects')
+            .update({ name: newName, category: 'Wajib' })
+            .eq('id', oldRow.id)
+          if (!updErr) {
+            byName.delete(oldName)
+            byName.set(newName, { ...oldRow, name: newName })
+          }
+        }
+      }
+
+      // 2. Hapus mapel bawaan lama yang tidak ada di daftar 23 mapel baru
+      for (const oldName of LEGACY_SUBJECTS_TO_REMOVE) {
+        const oldRow = byName.get(oldName)
+        if (oldRow) {
+          const { error: delErr } = await supabase
+            .from('subjects')
+            .delete()
+            .eq('id', oldRow.id)
+          if (!delErr) {
+            byName.delete(oldName)
+          }
+        }
+      }
+
+      // 3. Tambahkan mapel baru dari daftar 23 mapel standar SMADA yang belum ada
+      const toInsert = SMADA_MASTER_SUBJECTS
+        .filter(name => !byName.has(name))
+        .map(name => ({ name, category: 'Wajib' }))
+
+      if (toInsert.length > 0) {
+        const { error: insErr } = await supabase
+          .from('subjects')
+          .upsert(toInsert, { onConflict: 'name' })
+        if (insErr) throw insErr
+      }
+
+      await fetchMasterSubjects()
+      return { success: true, message: `Daftar mata pelajaran berhasil diperbarui (${masterSubjects.value.length} mapel standar SMADA)!` }
+    } catch (e) {
+      return { success: false, message: 'Gagal memperbarui daftar mapel: ' + (e?.message || 'Error tidak diketahui') }
     }
   }
 
@@ -868,6 +990,7 @@ export const useEligibleStore = defineStore('eligible', () => {
     uploadCertificate,
     deleteCertificate,
     fetchMasterSubjects,
+    syncDefaultSubjects,
     fetchSnpmbDbStats,
     fetchUniversities,
     fetchMajorsByUniversity,

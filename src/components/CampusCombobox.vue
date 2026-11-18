@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { searchCampuses, getInstitutionLogo } from '@/lib/campusList'
+import { searchCampuses, findCampus, getInstitutionLogo } from '@/lib/campusList'
 import { getAllSnpmbPtn, findSnpmbPtn } from '@/lib/snpmbService'
 
 const props = defineProps({
@@ -47,6 +47,34 @@ const currentLogo = computed(() => {
   return getInstitutionLogo(query.value)
 })
 
+function buildPtnOption(ptn, campusInfo = null) {
+  const info = campusInfo || findCampus(ptn.name)
+  let fallbackDomain = info?.domain || null
+  if (!fallbackDomain && ptn.web) {
+    try {
+      const u = new URL(ptn.web)
+      fallbackDomain = u.hostname.replace(/^pmb\./, '').replace(/^admisi\./, '').replace(/^spmb\./, '')
+    } catch (e) {}
+  }
+
+  const resolvedLogo =
+    info?.logoUrl ||
+    getInstitutionLogo(info?.name || ptn.name) ||
+    (fallbackDomain
+      ? `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${fallbackDomain}&size=128`
+      : null)
+
+  return {
+    name: ptn.name,
+    shortName: info?.shortName && info.shortName !== ptn.name ? info.shortName : '',
+    city: info?.city || 'Indonesia',
+    category: ptn.category || info?.category || 'PTN',
+    domain: fallbackDomain,
+    logoUrl: resolvedLogo,
+    snpmbId: String(ptn.id)
+  }
+}
+
 const filteredOptions = computed(() => {
   if (!props.onlyPtn) {
     return searchCampuses(query.value, 8)
@@ -63,12 +91,7 @@ const filteredOptions = computed(() => {
     for (const c of popular) {
       const ptn = findSnpmbPtn(c.name)
       if (ptn && !matchedPtnMap.has(ptn.id)) {
-        matchedPtnMap.set(ptn.id, {
-          name: ptn.name,
-          category: ptn.category || 'PTN',
-          logo: c.logo || getInstitutionLogo(ptn.name),
-          snpmbId: String(ptn.id)
-        })
+        matchedPtnMap.set(ptn.id, buildPtnOption(ptn, c))
       }
       if (matchedPtnMap.size >= 10) break
     }
@@ -78,24 +101,14 @@ const filteredOptions = computed(() => {
   // 1. Cek kecocokan alias/singkatan via findSnpmbPtn
   const directAlias = findSnpmbPtn(q)
   if (directAlias) {
-    matchedPtnMap.set(directAlias.id, {
-      name: directAlias.name,
-      category: directAlias.category || 'PTN',
-      logo: getInstitutionLogo(directAlias.name),
-      snpmbId: String(directAlias.id)
-    })
+    matchedPtnMap.set(directAlias.id, buildPtnOption(directAlias))
   }
 
-  // 2. Cek kecocokan dari searchCampuses (mendukung singkatan lokal)
+  // 2. Cek kecocokan dari searchCampuses (mendukung singkatan lokal & kota)
   for (const c of searchCampuses(q, 20)) {
     const ptn = findSnpmbPtn(c.name)
     if (ptn && !matchedPtnMap.has(ptn.id)) {
-      matchedPtnMap.set(ptn.id, {
-        name: ptn.name,
-        category: ptn.category || 'PTN',
-        logo: c.logo || getInstitutionLogo(ptn.name),
-        snpmbId: String(ptn.id)
-      })
+      matchedPtnMap.set(ptn.id, buildPtnOption(ptn, c))
     }
   }
 
@@ -106,12 +119,7 @@ const filteredOptions = computed(() => {
       !matchedPtnMap.has(ptn.id) &&
       (ptn.name.toLowerCase().includes(q) || (ptn.rawName || '').toLowerCase().includes(q))
     ) {
-      matchedPtnMap.set(ptn.id, {
-        name: ptn.name,
-        category: ptn.category || 'PTN',
-        logo: getInstitutionLogo(ptn.name),
-        snpmbId: String(ptn.id)
-      })
+      matchedPtnMap.set(ptn.id, buildPtnOption(ptn))
     }
   }
 
@@ -194,6 +202,7 @@ onUnmounted(() => {
       <div class="absolute left-3 flex items-center pointer-events-none">
         <img
           v-if="currentLogo"
+          :key="currentLogo"
           :src="currentLogo"
           alt="Logo"
           class="w-5 h-5 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shadow-2xs"
@@ -262,20 +271,28 @@ onUnmounted(() => {
           >
             <div class="flex items-center gap-2.5 min-w-0">
               <img
+                v-if="campus.logoUrl || campus.domain"
+                :key="campus.logoUrl || campus.domain"
                 :src="campus.logoUrl || `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://${campus.domain}&size=128`"
-                :alt="campus.shortName"
+                :alt="campus.shortName || campus.name"
                 class="w-6 h-6 rounded-md object-contain bg-white dark:bg-slate-800 p-0.5 border border-slate-200 dark:border-slate-700 shrink-0"
                 loading="lazy"
                 @error="(e) => e.target.style.display = 'none'"
               />
+              <span
+                v-else
+                class="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 text-xs"
+              >
+                <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
+              </span>
               <div class="min-w-0">
                 <div class="font-semibold truncate">
                   {{ campus.name }}
                 </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  <span>{{ campus.shortName }}</span>
-                  <span class="mx-1">&bull;</span>
-                  <span>{{ campus.city }}</span>
+                <div v-if="campus.shortName || campus.city" class="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  <span v-if="campus.shortName">{{ campus.shortName }}</span>
+                  <span v-if="campus.shortName && campus.city" class="mx-1">&bull;</span>
+                  <span v-if="campus.city">{{ campus.city }}</span>
                 </div>
               </div>
             </div>
@@ -286,9 +303,17 @@ onUnmounted(() => {
           </li>
         </ul>
 
-        <!-- Opsi Gunakan Teks Kustom (Jika tidak ada di daftar) -->
+        <!-- Pesan kosong khusus mode PTN SNPMB -->
         <div
-          v-if="query.trim()"
+          v-if="onlyPtn && filteredOptions.length === 0 && query.trim()"
+          class="p-3.5 text-xs text-slate-500 dark:text-slate-400 text-center"
+        >
+          PTN "<strong>{{ query }}</strong>" tidak ditemukan di katalog resmi SNPMB.
+        </div>
+
+        <!-- Opsi Gunakan Teks Kustom (Hanya untuk mode non-PTN / Tracer Study) -->
+        <div
+          v-if="query.trim() && !onlyPtn"
           @click="selectCustomText"
           class="p-3 bg-slate-50/70 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-sm flex items-center gap-2 text-slate-600 dark:text-slate-300 font-medium transition-colors"
         >
