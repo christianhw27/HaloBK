@@ -43,7 +43,6 @@ watch(
 <template>
   <!-- Tata Letak Aplikasi Tracer Study (Eksklusif Rute Tracer Study) -->
   <div v-if="isTracerLayout" class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/80 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
-    <EligibleCongratsModal />
     <!-- Aksesibilitas: Tautan Langsung ke Konten Utama -->
     <a
       href="#main-content"

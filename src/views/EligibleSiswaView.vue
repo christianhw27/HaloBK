@@ -6,6 +6,9 @@ import { useEligibleStore } from '@/stores/eligible'
 import EligibleSidebar from '@/components/EligibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import Toast from '@/components/Toast.vue'
+import CampusCombobox from '@/components/CampusCombobox.vue'
+import ProdiCombobox from '@/components/ProdiCombobox.vue'
+import { findSnpmbPtn, getProdiListForCampus } from '@/lib/snpmbService'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -14,16 +17,18 @@ const eligibleStore = useEligibleStore()
 const confirmModal = ref(null)
 const toast = ref(null)
 
-const activeTab = ref('pilihan') // 'pilihan' | 'nilai' | 'sertifikat' | 'teman'
+const activeTab = ref('pilihan') // 'pilihan' | 'nilai' | 'sertifikat'
 
-// State Pilihan 1 & 2
+// State Pilihan 1 & 2 (terhubung ke katalog PTN & Prodi SNPMB yang sama dengan Tracer Study)
 const p1Uni = ref('')
 const p1Major = ref('')
+const p1UniName = ref('')
+const p1MajorName = ref('')
+
 const p2Uni = ref('')
 const p2Major = ref('')
-
-const p1MajorOptions = ref([])
-const p2MajorOptions = ref([])
+const p2UniName = ref('')
+const p2MajorName = ref('')
 
 const p1Clash = ref({ total: 0, names: [] })
 const p2Clash = ref({ total: 0, names: [] })
@@ -68,6 +73,17 @@ onMounted(async () => {
   initGradesForm()
 })
 
+// Helper cari PTN & Prodi dari katalog SNPMB Tracer Study berdasarkan ID
+function findUniById(uniId) {
+  return eligibleStore.universitiesList.find(u => String(u.id) === String(uniId)) || null
+}
+
+function findMajorById(uniId, majorId) {
+  const u = findUniById(uniId)
+  if (!u || !Array.isArray(u.prodi)) return null
+  return u.prodi.find(m => String(m.id) === String(majorId)) || null
+}
+
 // Inisialisasi formulir pilihan dari store
 function initChoicesForm() {
   const choices = eligibleStore.myChoices
@@ -75,41 +91,157 @@ function initChoicesForm() {
   const c2 = choices.find(c => c.priority === 2)
 
   if (c1) {
-    p1Uni.value = c1.university_id
-    onP1UniChange(true).then(() => {
-      p1Major.value = c1.major_id
-      checkP1Clash()
-    })
+    const u1 = findUniById(c1.university_id)
+    const m1 = findMajorById(c1.university_id, c1.major_id)
+    p1Uni.value = String(c1.university_id)
+    p1Major.value = String(c1.major_id)
+    p1UniName.value = u1?.name || c1.universities?.name || ''
+    p1MajorName.value = m1?.fullName || (c1.majors ? `${c1.majors.degree || ''} ${c1.majors.name}`.trim() : '')
+    checkP1Clash()
   }
 
   if (c2) {
-    p2Uni.value = c2.university_id
-    onP2UniChange(true).then(() => {
-      p2Major.value = c2.major_id
-      checkP2Clash()
-    })
+    const u2 = findUniById(c2.university_id)
+    const m2 = findMajorById(c2.university_id, c2.major_id)
+    p2Uni.value = String(c2.university_id)
+    p2Major.value = String(c2.major_id)
+    p2UniName.value = u2?.name || c2.universities?.name || ''
+    p2MajorName.value = m2?.fullName || (c2.majors ? `${c2.majors.degree || ''} ${c2.majors.name}`.trim() : '')
+    checkP2Clash()
   }
 }
 
-async function onP1UniChange(skipResetMajor = false) {
-  if (!skipResetMajor) p1Major.value = ''
-  if (!p1Uni.value) {
-    p1MajorOptions.value = []
+// Sinkronisasi Pilihan 1 (CampusCombobox & ProdiCombobox)
+function handleP1UniSelect(campus) {
+  const ptn = findSnpmbPtn(campus?.name || p1UniName.value)
+  if (ptn) {
+    const nextId = String(ptn.id)
+    if (p1Uni.value !== nextId) {
+      p1Uni.value = nextId
+      p1Major.value = ''
+      p1MajorName.value = ''
+      p1Clash.value = { total: 0, names: [] }
+    }
+    p1UniName.value = ptn.name
+  }
+}
+
+watch(p1UniName, (val) => {
+  const clean = (val || '').trim()
+  if (!clean) {
+    p1Uni.value = ''
+    p1Major.value = ''
+    p1MajorName.value = ''
     p1Clash.value = { total: 0, names: [] }
     return
   }
-  p1MajorOptions.value = await eligibleStore.fetchMajorsByUniversity(p1Uni.value)
+  const ptn = findSnpmbPtn(clean)
+  if (ptn) {
+    const nextId = String(ptn.id)
+    if (p1Uni.value !== nextId) {
+      p1Uni.value = nextId
+      p1Major.value = ''
+      p1MajorName.value = ''
+      p1Clash.value = { total: 0, names: [] }
+    }
+  } else {
+    p1Uni.value = ''
+    p1Major.value = ''
+    p1Clash.value = { total: 0, names: [] }
+  }
+})
+
+function handleP1ProdiSelect(prodi) {
+  if (prodi?.id_prodi) {
+    p1Major.value = String(prodi.id_prodi)
+    p1MajorName.value = prodi.fullName || `${prodi.jenjang || 'S1'} ${prodi.nama}`
+    checkP1Clash()
+  }
 }
 
-async function onP2UniChange(skipResetMajor = false) {
-  if (!skipResetMajor) p2Major.value = ''
-  if (!p2Uni.value) {
-    p2MajorOptions.value = []
+watch(p1MajorName, (val) => {
+  const clean = (val || '').trim().toLowerCase()
+  if (!clean) {
+    p1Major.value = ''
+    p1Clash.value = { total: 0, names: [] }
+    return
+  }
+  const list = getProdiListForCampus(p1UniName.value)
+  const matched = list.find(p => p.fullName.toLowerCase() === clean || p.nama.toLowerCase() === clean)
+  if (matched) {
+    p1Major.value = String(matched.id_prodi)
+    checkP1Clash()
+  } else {
+    p1Major.value = ''
+    p1Clash.value = { total: 0, names: [] }
+  }
+})
+
+// Sinkronisasi Pilihan 2 (CampusCombobox & ProdiCombobox)
+function handleP2UniSelect(campus) {
+  const ptn = findSnpmbPtn(campus?.name || p2UniName.value)
+  if (ptn) {
+    const nextId = String(ptn.id)
+    if (p2Uni.value !== nextId) {
+      p2Uni.value = nextId
+      p2Major.value = ''
+      p2MajorName.value = ''
+      p2Clash.value = { total: 0, names: [] }
+    }
+    p2UniName.value = ptn.name
+  }
+}
+
+watch(p2UniName, (val) => {
+  const clean = (val || '').trim()
+  if (!clean) {
+    p2Uni.value = ''
+    p2Major.value = ''
+    p2MajorName.value = ''
     p2Clash.value = { total: 0, names: [] }
     return
   }
-  p2MajorOptions.value = await eligibleStore.fetchMajorsByUniversity(p2Uni.value)
+  const ptn = findSnpmbPtn(clean)
+  if (ptn) {
+    const nextId = String(ptn.id)
+    if (p2Uni.value !== nextId) {
+      p2Uni.value = nextId
+      p2Major.value = ''
+      p2MajorName.value = ''
+      p2Clash.value = { total: 0, names: [] }
+    }
+  } else {
+    p2Uni.value = ''
+    p2Major.value = ''
+    p2Clash.value = { total: 0, names: [] }
+  }
+})
+
+function handleP2ProdiSelect(prodi) {
+  if (prodi?.id_prodi) {
+    p2Major.value = String(prodi.id_prodi)
+    p2MajorName.value = prodi.fullName || `${prodi.jenjang || 'S1'} ${prodi.nama}`
+    checkP2Clash()
+  }
 }
+
+watch(p2MajorName, (val) => {
+  const clean = (val || '').trim().toLowerCase()
+  if (!clean) {
+    p2Major.value = ''
+    p2Clash.value = { total: 0, names: [] }
+    return
+  }
+  const list = getProdiListForCampus(p2UniName.value)
+  const matched = list.find(p => p.fullName.toLowerCase() === clean || p.nama.toLowerCase() === clean)
+  if (matched) {
+    p2Major.value = String(matched.id_prodi)
+    checkP2Clash()
+  } else {
+    p2Major.value = ''
+    p2Clash.value = { total: 0, names: [] }
+  }
+})
 
 async function checkP1Clash() {
   if (!p1Uni.value || !p1Major.value) {
@@ -138,7 +270,12 @@ async function checkP2Clash() {
 async function submitChoices() {
   choiceFeedback.value = { type: '', text: '' }
   if (!p1Uni.value || !p1Major.value) {
-    choiceFeedback.value = { type: 'error', text: 'Pilihan 1 (Universitas dan Program Studi) wajib diisi!' }
+    choiceFeedback.value = { type: 'error', text: 'Pilihan 1 (PTN dan Program Studi resmi SNPMB) wajib dipilih dari daftar!' }
+    return
+  }
+
+  if (p2UniName.value.trim() && (!p2Uni.value || !p2Major.value)) {
+    choiceFeedback.value = { type: 'error', text: 'Pilihan 2 belum lengkap. Pilih PTN & Program Studi dari daftar, atau kosongkan keduanya.' }
     return
   }
 
@@ -153,10 +290,12 @@ async function submitChoices() {
 
   if (res.success) {
     choiceFeedback.value = { type: 'success', text: res.message }
+    if (toast.value) toast.value.show(res.message, 'success')
     checkP1Clash()
     checkP2Clash()
   } else {
     choiceFeedback.value = { type: 'error', text: res.message }
+    if (toast.value) toast.value.show(res.message, 'error')
   }
 }
 
@@ -168,8 +307,55 @@ function clampGradeInt(val) {
   return num
 }
 
-function preventInvalidGradeKey(e) {
-  if (['.', ',', '-', '+', 'e', 'E'].includes(e.key)) {
+// Navigasi 4 arah (Panah Atas, Bawah, Kiri, Kanan + Enter) ala Excel pada tabel nilai rapor
+function focusGradeCell(targetRow, targetCol) {
+  const selector = `input[data-grade-cell="${targetRow}-${targetCol}"]`
+  const el = document.querySelector(selector)
+  if (el && !el.disabled) {
+    el.focus()
+    el.select()
+  }
+}
+
+function handleGradeKeydown(e, rowIdx, colIdx) {
+  const key = e.key
+  const maxRow = gradesRows.value.length - 1
+
+  if (key === 'ArrowUp') {
+    e.preventDefault()
+    if (rowIdx > 0) focusGradeCell(rowIdx - 1, colIdx)
+    return
+  }
+  if (key === 'ArrowDown' || key === 'Enter') {
+    e.preventDefault()
+    if (rowIdx < maxRow) focusGradeCell(rowIdx + 1, colIdx)
+    return
+  }
+  if (key === 'ArrowLeft') {
+    e.preventDefault()
+    if (colIdx > 1) {
+      focusGradeCell(rowIdx, colIdx - 1)
+    } else if (rowIdx > 0) {
+      focusGradeCell(rowIdx - 1, 5)
+    }
+    return
+  }
+  if (key === 'ArrowRight') {
+    e.preventDefault()
+    if (colIdx < 5) {
+      focusGradeCell(rowIdx, colIdx + 1)
+    } else if (rowIdx < maxRow) {
+      focusGradeCell(rowIdx + 1, 1)
+    }
+    return
+  }
+
+  // Izinkan shortcut Ctrl/Cmd (Copy, Paste, Select All, Undo) dan tombol edit standar
+  if (e.ctrlKey || e.metaKey) return
+  if (['Backspace', 'Delete', 'Tab', 'Home', 'End', 'Escape'].includes(key)) return
+
+  // Hanya izinkan digit angka 0-9 (blokir titik, koma, minus, plus, huruf)
+  if (!/^[0-9]$/.test(key)) {
     e.preventDefault()
   }
 }
@@ -458,37 +644,37 @@ async function handleDeleteCert(id) {
 
             <div class="space-y-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label for="p1-campus" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Perguruan Tinggi Negeri (PTN)
                 </label>
-                <select
-                  v-model="p1Uni"
-                  @change="onP1UniChange(false)"
+                <CampusCombobox
+                  id="p1-campus"
+                  v-model="p1UniName"
+                  :only-ptn="true"
                   :disabled="!eligibleStore.canEditChoices"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-60"
-                >
-                  <option value="">-- Pilih Perguruan Tinggi --</option>
-                  <option v-for="u in eligibleStore.universitiesList" :key="u.id" :value="u.id">
-                    {{ u.name }}
-                  </option>
-                </select>
+                  placeholder="Ketik nama PTN (contoh: UGM, ITS, UB, UNESA)..."
+                  @select="handleP1UniSelect"
+                />
+                <p v-if="p1UniName && !p1Uni" class="text-[11px] text-rose-500 mt-1 font-medium">
+                  Pilih salah satu PTN resmi SNPMB dari daftar saran di atas.
+                </p>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label for="p1-prodi" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Program Studi (Prodi)
                 </label>
-                <select
-                  v-model="p1Major"
-                  @change="checkP1Clash"
+                <ProdiCombobox
+                  id="p1-prodi"
+                  v-model="p1MajorName"
+                  :campus="p1UniName"
                   :disabled="!eligibleStore.canEditChoices || !p1Uni"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-60"
-                >
-                  <option value="">-- Pilih Program Studi --</option>
-                  <option v-for="m in p1MajorOptions" :key="m.id" :value="m.id">
-                    {{ m.degree }} {{ m.name }} (Daya Tampung: {{ m.quota || '-' }})
-                  </option>
-                </select>
+                  placeholder="Pilih atau cari Program Studi resmi..."
+                  @select="handleP1ProdiSelect"
+                />
+                <p v-if="p1Uni && p1MajorName && !p1Major" class="text-[11px] text-rose-500 mt-1 font-medium">
+                  Pilih program studi resmi dari daftar saran di atas.
+                </p>
               </div>
 
               <!-- WARNING BENTROK LINTAS PILIHAN 1 -->
@@ -515,37 +701,37 @@ async function handleDeleteCert(id) {
 
             <div class="space-y-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label for="p2-campus" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Perguruan Tinggi Negeri (PTN)
                 </label>
-                <select
-                  v-model="p2Uni"
-                  @change="onP2UniChange(false)"
+                <CampusCombobox
+                  id="p2-campus"
+                  v-model="p2UniName"
+                  :only-ptn="true"
                   :disabled="!eligibleStore.canEditChoices"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-60"
-                >
-                  <option value="">-- Pilih Perguruan Tinggi (Opsional) --</option>
-                  <option v-for="u in eligibleStore.universitiesList" :key="u.id" :value="u.id">
-                    {{ u.name }}
-                  </option>
-                </select>
+                  placeholder="Ketik nama PTN Pilihan 2 (opsional)..."
+                  @select="handleP2UniSelect"
+                />
+                <p v-if="p2UniName && !p2Uni" class="text-[11px] text-rose-500 mt-1 font-medium">
+                  Pilih salah satu PTN resmi SNPMB dari daftar saran di atas.
+                </p>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                <label for="p2-prodi" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Program Studi (Prodi)
                 </label>
-                <select
-                  v-model="p2Major"
-                  @change="checkP2Clash"
+                <ProdiCombobox
+                  id="p2-prodi"
+                  v-model="p2MajorName"
+                  :campus="p2UniName"
                   :disabled="!eligibleStore.canEditChoices || !p2Uni"
-                  class="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-60"
-                >
-                  <option value="">-- Pilih Program Studi (Opsional) --</option>
-                  <option v-for="m in p2MajorOptions" :key="m.id" :value="m.id">
-                    {{ m.degree }} {{ m.name }} (Daya Tampung: {{ m.quota || '-' }})
-                  </option>
-                </select>
+                  placeholder="Pilih atau cari Program Studi Pilihan 2 (opsional)..."
+                  @select="handleP2ProdiSelect"
+                />
+                <p v-if="p2Uni && p2MajorName && !p2Major" class="text-[11px] text-rose-500 mt-1 font-medium">
+                  Pilih program studi resmi dari daftar saran di atas.
+                </p>
               </div>
 
               <!-- WARNING BENTROK LINTAS PILIHAN 2 -->
@@ -591,7 +777,7 @@ async function handleDeleteCert(id) {
                 Tabel Nilai Rapor Semester 1 s.d. 5
               </h2>
               <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Isi nilai rapor bilangan bulat skala 0–100 (maksimal 100, tanpa minus &amp; tanpa koma). Rata-rata otomatis dihitung hingga 2 angka di belakang koma.
+                Isi nilai rapor bilangan bulat 0–100 (tanpa minus &amp; tanpa koma). Gunakan tombol panah (&uarr; &darr; &larr; &rarr;) atau Enter untuk berpindah sel. Rata-rata otomatis terhitung 2 angka di belakang koma.
               </p>
             </div>
 
@@ -643,17 +829,18 @@ async function handleDeleteCert(id) {
 
                   <td class="p-2 text-center" v-for="sNum in [1, 2, 3, 4, 5]" :key="sNum">
                     <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
+                      type="text"
                       inputmode="numeric"
+                      autocomplete="off"
+                      maxlength="3"
+                      :data-grade-cell="`${idx}-${sNum}`"
                       :value="row[`sem_${sNum}`]"
-                      @keydown="preventInvalidGradeKey"
+                      @focus="$event.target.select()"
+                      @keydown="handleGradeKeydown($event, idx, sNum)"
                       @input="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
                       @blur="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
                       :disabled="!eligibleStore.canEditGrades"
-                      class="w-16 px-1.5 py-1.5 rounded-lg text-center font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-[#0284C7] disabled:opacity-75"
+                      class="w-16 px-1.5 py-1.5 rounded-lg text-center font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-75 transition-colors"
                     />
                   </td>
 

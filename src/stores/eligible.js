@@ -3,6 +3,35 @@ import { ref, computed } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
+import { getAllSnpmbPtn } from '@/lib/snpmbService'
+
+// Bangun katalog PTN & Prodi yang sama persis dengan Tracer Study (145 PTN, 5.140 Prodi SNPMB)
+const LOCAL_SNPMB_PTN = getAllSnpmbPtn()
+  .map(p => ({
+    id: String(p.id),
+    code: String(p.kode || p.id),
+    name: p.name,
+    rawName: p.rawName || p.name,
+    region: 'Nasional',
+    category: p.category || 'PTN',
+    is_akademik: Boolean(p.isAkademik),
+    is_vokasi: Boolean(p.isVokasi),
+    is_ptkin: Boolean(p.isPtkin),
+    prodiCount: Array.isArray(p.prodi) ? p.prodi.length : 0,
+    prodi: (p.prodi || []).map(pr => ({
+      id: String(pr.id_prodi),
+      university_id: String(p.id),
+      code: String(pr.id_prodi),
+      name: pr.nama,
+      fullName: pr.fullName || `${pr.jenjang || 'S1'} ${pr.nama}`,
+      degree: pr.jenjang || 'S1',
+      quota: Number(pr.dayaTampung) || 0,
+      portofolio: pr.portofolio || null
+    }))
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'id'))
+
+const LOCAL_PTN_BY_ID = new Map(LOCAL_SNPMB_PTN.map(p => [p.id, p]))
 
 export const useEligibleStore = defineStore('eligible', () => {
   const currentAcademicYear = ref('2025/2026')
@@ -15,9 +44,10 @@ export const useEligibleStore = defineStore('eligible', () => {
   const myCertificates = ref([])
   const isCheckingEligible = ref(true)
 
-  // Master Data
+  // Master Data (langsung terisi dari katalog resmi SNPMB yang sama dengan Tracer Study)
   const masterSubjects = ref([])
-  const universitiesList = ref([])
+  const universitiesList = ref([...LOCAL_SNPMB_PTN])
+  const snpmbDbStats = ref({ universitiesCount: 0, majorsCount: 0, localUniversitiesCount: LOCAL_SNPMB_PTN.length, localMajorsCount: LOCAL_SNPMB_PTN.reduce((s, u) => s + u.prodiCount, 0) })
 
   // State Guru BK (Admin)
   const allEligibleStudents = ref([])
@@ -259,46 +289,55 @@ export const useEligibleStore = defineStore('eligible', () => {
 
       // 1. Simpan Pilihan 1 jika diisi
       if (p1?.university_id && p1?.major_id) {
-        await supabase
+        const { error: err1 } = await supabase
           .from('eligible_choices')
           .upsert(
             {
               eligible_student_id: eligibleId,
               priority: 1,
-              university_id: p1.university_id,
-              major_id: p1.major_id,
+              university_id: String(p1.university_id),
+              major_id: String(p1.major_id),
               updated_at: new Date().toISOString()
             },
             { onConflict: 'eligible_student_id, priority' }
           )
+        if (err1) throw err1
       }
 
       // 2. Simpan Pilihan 2 jika diisi
       if (p2?.university_id && p2?.major_id) {
-        await supabase
+        const { error: err2 } = await supabase
           .from('eligible_choices')
           .upsert(
             {
               eligible_student_id: eligibleId,
               priority: 2,
-              university_id: p2.university_id,
-              major_id: p2.major_id,
+              university_id: String(p2.university_id),
+              major_id: String(p2.major_id),
               updated_at: new Date().toISOString()
             },
             { onConflict: 'eligible_student_id, priority' }
           )
+        if (err2) throw err2
       } else if (p2?.remove) {
         // Hapus pilihan 2 jika dikosongkan
-        await supabase
+        const { error: errDel } = await supabase
           .from('eligible_choices')
           .delete()
           .eq('eligible_student_id', eligibleId)
           .eq('priority', 2)
+        if (errDel) throw errDel
       }
 
       await fetchMyChoices(eligibleId)
       return { success: true, message: 'Pilihan jurusan berhasil disimpan!' }
     } catch (e) {
+      if (e?.code === '23503' || String(e?.message || '').includes('foreign key')) {
+        return {
+          success: false,
+          message: 'Katalog PTN & Prodi SNPMB belum disinkronkan ke database. Mohon hubungi Guru BK untuk menekan tombol "Sinkronisasi Data SNPMB" terlebih dahulu.'
+        }
+      }
       return { success: false, message: 'Gagal menyimpan pilihan: ' + e.message }
     } finally {
       isLoading.value = false
@@ -449,35 +488,123 @@ export const useEligibleStore = defineStore('eligible', () => {
     }
   }
 
-  async function fetchUniversities() {
-    if (!isSupabaseConfigured || !supabase) return []
+  async function fetchSnpmbDbStats() {
+    if (!isSupabaseConfigured || !supabase) return snpmbDbStats.value
     try {
-      const { data } = await supabase
-        .from('universities')
-        .select('id, code, name, region, category')
-        .order('name', { ascending: true })
-
-      universitiesList.value = data || []
-      return universitiesList.value
+      const [uRes, mRes] = await Promise.all([
+        supabase.from('universities').select('id', { count: 'exact', head: true }),
+        supabase.from('majors').select('id', { count: 'exact', head: true })
+      ])
+      snpmbDbStats.value = {
+        ...snpmbDbStats.value,
+        universitiesCount: uRes.count || 0,
+        majorsCount: mRes.count || 0
+      }
     } catch (e) {
-      console.warn('Error fetching universities:', e)
-      return []
+      console.warn('Error fetching SNPMB DB stats:', e)
     }
+    return snpmbDbStats.value
+  }
+
+  async function fetchUniversities() {
+    // Selalu gunakan katalog lengkap 145 PTN resmi SNPMB yang sama persis dengan Tracer Study
+    universitiesList.value = [...LOCAL_SNPMB_PTN]
+    if (isSupabaseConfigured && supabase) {
+      fetchSnpmbDbStats()
+    }
+    return universitiesList.value
   }
 
   async function fetchMajorsByUniversity(uniId) {
-    if (!isSupabaseConfigured || !supabase || !uniId) return []
+    if (!uniId) return []
+    const localUni = LOCAL_PTN_BY_ID.get(String(uniId))
+    if (localUni && Array.isArray(localUni.prodi) && localUni.prodi.length > 0) {
+      return [...localUni.prodi].sort((a, b) => a.name.localeCompare(b.name, 'id'))
+    }
+    if (!isSupabaseConfigured || !supabase) return []
     try {
       const { data } = await supabase
         .from('majors')
         .select('id, university_id, code, name, degree, quota, portofolio')
-        .eq('university_id', uniId)
+        .eq('university_id', String(uniId))
         .order('name', { ascending: true })
 
       return data || []
     } catch (e) {
       console.warn('Error fetching majors:', e)
       return []
+    }
+  }
+
+  /**
+   * Sinkronisasi seluruh 145 PTN & 5.140 Program Studi resmi SNPMB (sumber yang sama dengan Tracer Study)
+   * ke tabel public.universities dan public.majors di Supabase (Khusus Guru BK / Admin).
+   */
+  async function syncSnpmbToDatabase(onProgress = null) {
+    if (!isSupabaseConfigured || !supabase) {
+      return { success: false, message: 'Koneksi Supabase belum terkonfigurasi.' }
+    }
+
+    try {
+      if (onProgress) onProgress(`Menyinkronkan ${LOCAL_SNPMB_PTN.length} PTN resmi SNPMB ke Supabase...`)
+
+      // 1. Upsert seluruh 145 PTN ke public.universities
+      const uniRows = LOCAL_SNPMB_PTN.map(u => ({
+        id: u.id,
+        code: u.code,
+        name: u.name,
+        region: u.region,
+        category: u.category,
+        is_akademik: u.is_akademik,
+        is_vokasi: u.is_vokasi,
+        is_ptkin: u.is_ptkin
+      }))
+
+      const { error: uniErr } = await supabase
+        .from('universities')
+        .upsert(uniRows, { onConflict: 'id' })
+
+      if (uniErr) throw uniErr
+
+      // 2. Kumpulkan seluruh Program Studi (~5.140 prodi) lalu upsert dalam batch 400 baris
+      const allMajorRows = []
+      for (const u of LOCAL_SNPMB_PTN) {
+        for (const m of u.prodi) {
+          allMajorRows.push({
+            id: m.id,
+            university_id: u.id,
+            code: m.code,
+            name: m.name,
+            degree: m.degree,
+            quota: m.quota,
+            portofolio: m.portofolio
+          })
+        }
+      }
+
+      const BATCH_SIZE = 400
+      for (let i = 0; i < allMajorRows.length; i += BATCH_SIZE) {
+        const chunk = allMajorRows.slice(i, i + BATCH_SIZE)
+        const done = Math.min(i + chunk.length, allMajorRows.length)
+        if (onProgress) {
+          onProgress(`Menyinkronkan Program Studi (${done} / ${allMajorRows.length})...`)
+        }
+        const { error: majErr } = await supabase
+          .from('majors')
+          .upsert(chunk, { onConflict: 'id' })
+        if (majErr) throw majErr
+      }
+
+      await fetchSnpmbDbStats()
+      return {
+        success: true,
+        message: `Berhasil menyinkronkan ${uniRows.length} PTN dan ${allMajorRows.length} Program Studi resmi SNPMB ke database!`
+      }
+    } catch (e) {
+      return {
+        success: false,
+        message: 'Gagal sinkronisasi SNPMB: ' + (e?.message || 'Error tidak diketahui')
+      }
     }
   }
 
@@ -680,6 +807,7 @@ export const useEligibleStore = defineStore('eligible', () => {
     myCertificates,
     masterSubjects,
     universitiesList,
+    snpmbDbStats,
     allEligibleStudents,
     isEligible,
     canEditGrades,
@@ -696,8 +824,10 @@ export const useEligibleStore = defineStore('eligible', () => {
     uploadCertificate,
     deleteCertificate,
     fetchMasterSubjects,
+    fetchSnpmbDbStats,
     fetchUniversities,
     fetchMajorsByUniversity,
+    syncSnpmbToDatabase,
     fetchAdminEligibleList,
     addEligibleStudent,
     removeEligibleStudent,

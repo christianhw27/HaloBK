@@ -19,6 +19,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
   id: {
     type: String,
     default: 'prodi-input'
@@ -175,14 +179,15 @@ onUnmounted(() => {
         @input="onInput"
         @focus="onFocus"
         @keydown="handleKeydown"
-        :placeholder="isPtn ? (placeholder || 'Pilih atau cari Program Studi resmi...') : 'Contoh: S1 Teknik Informatika atau Staf Operasional'"
+        :placeholder="isPtn ? (placeholder || 'Pilih atau cari Program Studi resmi...') : 'Pilih Perguruan Tinggi Negeri terlebih dahulu...'"
         :required="required"
+        :disabled="disabled"
         autocomplete="off"
-        class="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] focus:border-transparent transition-all shadow-2xs"
+        class="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] focus:border-transparent transition-all shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed"
       />
 
       <!-- Clear / Chevron Action di Kanan Input -->
-      <div class="absolute right-2.5 flex items-center gap-1">
+      <div v-if="!disabled" class="absolute right-2.5 flex items-center gap-1">
         <button
           v-if="query"
           type="button"

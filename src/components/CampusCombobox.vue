@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { searchCampuses, getInstitutionLogo } from '@/lib/campusList'
+import { getAllSnpmbPtn, findSnpmbPtn } from '@/lib/snpmbService'
 
 const props = defineProps({
   modelValue: {
@@ -12,6 +13,14 @@ const props = defineProps({
     default: 'Ketik nama kampus (contoh: UNESA, UGM, ITS)...'
   },
   required: {
+    type: Boolean,
+    default: false
+  },
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  onlyPtn: {
     type: Boolean,
     default: false
   },
@@ -39,7 +48,74 @@ const currentLogo = computed(() => {
 })
 
 const filteredOptions = computed(() => {
-  return searchCampuses(query.value, 8)
+  if (!props.onlyPtn) {
+    return searchCampuses(query.value, 8)
+  }
+
+  // Mode khusus PTN SNPMB: pakai searchCampuses (dengan alias UGM/ITS/UNESA/UB) + seluruh 145 PTN resmi SNPMB
+  const q = query.value.trim().toLowerCase()
+  const allPtn = getAllSnpmbPtn()
+  const matchedPtnMap = new Map()
+
+  if (!q) {
+    // Tampilkan kampus populer dari searchCampuses yang merupakan PTN SNPMB
+    const popular = searchCampuses('', 20)
+    for (const c of popular) {
+      const ptn = findSnpmbPtn(c.name)
+      if (ptn && !matchedPtnMap.has(ptn.id)) {
+        matchedPtnMap.set(ptn.id, {
+          name: ptn.name,
+          category: ptn.category || 'PTN',
+          logo: c.logo || getInstitutionLogo(ptn.name),
+          snpmbId: String(ptn.id)
+        })
+      }
+      if (matchedPtnMap.size >= 10) break
+    }
+    return Array.from(matchedPtnMap.values())
+  }
+
+  // 1. Cek kecocokan alias/singkatan via findSnpmbPtn
+  const directAlias = findSnpmbPtn(q)
+  if (directAlias) {
+    matchedPtnMap.set(directAlias.id, {
+      name: directAlias.name,
+      category: directAlias.category || 'PTN',
+      logo: getInstitutionLogo(directAlias.name),
+      snpmbId: String(directAlias.id)
+    })
+  }
+
+  // 2. Cek kecocokan dari searchCampuses (mendukung singkatan lokal)
+  for (const c of searchCampuses(q, 20)) {
+    const ptn = findSnpmbPtn(c.name)
+    if (ptn && !matchedPtnMap.has(ptn.id)) {
+      matchedPtnMap.set(ptn.id, {
+        name: ptn.name,
+        category: ptn.category || 'PTN',
+        logo: c.logo || getInstitutionLogo(ptn.name),
+        snpmbId: String(ptn.id)
+      })
+    }
+  }
+
+  // 3. Cek substring langsung dari 145 PTN SNPMB
+  for (const ptn of allPtn) {
+    if (matchedPtnMap.size >= 12) break
+    if (
+      !matchedPtnMap.has(ptn.id) &&
+      (ptn.name.toLowerCase().includes(q) || (ptn.rawName || '').toLowerCase().includes(q))
+    ) {
+      matchedPtnMap.set(ptn.id, {
+        name: ptn.name,
+        category: ptn.category || 'PTN',
+        logo: getInstitutionLogo(ptn.name),
+        snpmbId: String(ptn.id)
+      })
+    }
+  }
+
+  return Array.from(matchedPtnMap.values()).slice(0, 12)
 })
 
 function onInput(e) {
@@ -140,13 +216,14 @@ onUnmounted(() => {
         @keydown="handleKeydown"
         :placeholder="placeholder"
         :required="required"
+        :disabled="disabled"
         autocomplete="off"
-        class="w-full pl-10 pr-9 py-2.5 rounded-[10px] bg-slate-50 dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm sm:text-base text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors"
+        class="w-full pl-10 pr-9 py-2.5 rounded-[10px] bg-slate-50 dark:bg-slate-800 border border-[#CBD5E1] dark:border-slate-700 text-sm sm:text-base text-[#0F172A] dark:text-white placeholder:text-[#64748B] focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:border-[#0284C7] focus:ring-4 focus:ring-sky-600/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       />
 
       <!-- Tombol Bersihkan -->
       <button
-        v-if="query"
+        v-if="query && !disabled"
         @click="query = ''; emit('update:modelValue', ''); isOpen = true"
         type="button"
         class="absolute right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-sm"

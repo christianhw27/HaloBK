@@ -209,11 +209,11 @@ async function handleDeleteSubject(s) {
   toast.value.show(res.message, res.success ? 'success' : 'error')
 }
 
-// Sync SNPMB
+// Sync SNPMB (menggunakan katalog resmi SNPMB yang sama persis dengan Tracer Study)
 async function handleSyncSnpmb() {
   const confirmed = await confirmModal.value.open({
-    title: 'Sinkronisasi Data SNPMB',
-    message: 'Jalankan sinkronisasi data Perguruan Tinggi dan Program Studi dari portal SNPMB? Proses ini membutuhkan koneksi internet.',
+    title: 'Sinkronisasi Data PTN & Prodi SNPMB',
+    message: `Sinkronkan seluruh ${eligibleStore.snpmbDbStats.localUniversitiesCount} Perguruan Tinggi Negeri dan ${eligibleStore.snpmbDbStats.localMajorsCount} Program Studi (data yang sama dengan Tracer Study) ke database Supabase?`,
     confirmText: 'Mulai Sinkronisasi',
     cancelText: 'Batal',
     type: 'info'
@@ -222,13 +222,19 @@ async function handleSyncSnpmb() {
 
   isSyncingSnpmb.value = true
   syncFeedback.value = { type: '', text: '' }
-  syncProgressText.value = 'Menghubungkan ke layanan data SNPMB...'
+  syncProgressText.value = 'Mempersiapkan data PTN & Program Studi SNPMB...'
 
   try {
-    const res = await fetch('/api/sync-snpmb', { method: 'POST' }).catch(() => null)
-    await eligibleStore.fetchUniversities()
-    syncFeedback.value = { type: 'success', text: 'Data Perguruan Tinggi & Prodi berhasil disinkronkan!' }
-    toast.value.show('Data Perguruan Tinggi & Prodi berhasil disinkronkan!', 'success')
+    const res = await eligibleStore.syncSnpmbToDatabase((progressMsg) => {
+      syncProgressText.value = progressMsg
+    })
+    if (res.success) {
+      syncFeedback.value = { type: 'success', text: res.message }
+      toast.value.show(res.message, 'success')
+    } else {
+      syncFeedback.value = { type: 'error', text: res.message }
+      toast.value.show(res.message, 'error')
+    }
   } catch (err) {
     syncFeedback.value = { type: 'error', text: 'Gagal sinkronisasi data: ' + err.message }
     toast.value.show('Gagal sinkronisasi data SNPMB', 'error')
@@ -723,12 +729,18 @@ const filteredRankingList = computed(() => {
 
           <div class="p-6 rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-900/60 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="space-y-1 text-center sm:text-left">
-              <div class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <div class="font-bold text-slate-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
                 <i class="fa-solid fa-database text-[#0284C7]"></i>
-                <span>Database SNPMB Tersimpan: {{ eligibleStore.universitiesList.length }} Perguruan Tinggi</span>
+                <span>
+                  Tersimpan di Database: {{ eligibleStore.snpmbDbStats.universitiesCount }} PTN &amp; {{ eligibleStore.snpmbDbStats.majorsCount }} Prodi
+                </span>
               </div>
               <p class="text-xs text-slate-500 dark:text-slate-400">
-                Klik tombol di samping untuk mengambil update daya tampung dan jurusan terbaru.
+                Katalog Tracer Study siap sinkron: <strong>{{ eligibleStore.snpmbDbStats.localUniversitiesCount }} PTN</strong> &amp; <strong>{{ eligibleStore.snpmbDbStats.localMajorsCount }} Program Studi</strong> resmi SNPMB.
+              </p>
+              <p v-if="syncProgressText" class="text-xs font-semibold text-[#0284C7] dark:text-sky-300 pt-1">
+                <i class="fa-solid fa-spinner fa-spin mr-1"></i>
+                {{ syncProgressText }}
               </p>
             </div>
 

@@ -11,6 +11,12 @@ const authStore = useAuthStore()
 
 // State lokal per-page-load: selalu reset ke false setiap kali siswa me-refresh halaman berita
 const isDismissed = ref(false)
+// Tunggu Vue Router selesai resolve rute awal agar tidak berkedip saat refresh halaman selain Portal Berita
+const isRouterReady = ref(false)
+
+router.isReady().then(() => {
+  isRouterReady.value = true
+})
 
 // Reset status pop-up jika akun yang login berubah
 watch(() => authStore.currentUser?.id, () => {
@@ -18,7 +24,9 @@ watch(() => authStore.currentUser?.id, () => {
 })
 
 const isOpen = computed(() => {
-  const isNewsPage = route.path === '/' || route.name === 'berita'
+  if (!isRouterReady.value) return false
+  const currentPathname = typeof window !== 'undefined' ? window.location.pathname : route.path
+  const isNewsPage = route.name === 'berita' && (currentPathname === '/' || currentPathname === '')
   return (
     isNewsPage &&
     authStore.isLoggedIn &&
