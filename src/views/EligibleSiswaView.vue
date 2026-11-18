@@ -111,9 +111,18 @@ function initChoicesForm() {
   }
 }
 
+// Helper pencocokan tepat nama PTN SNPMB agar pengetikan sebagian (misal "Univ") tidak salah pilih PTN lain
+function findExactSnpmbPtn(text) {
+  const clean = (text || '').trim().toLowerCase()
+  if (!clean) return null
+  return eligibleStore.universitiesList.find(
+    u => u.name.toLowerCase() === clean || (u.rawName || '').toLowerCase() === clean
+  ) || null
+}
+
 // Sinkronisasi Pilihan 1 (CampusCombobox & ProdiCombobox)
 function handleP1UniSelect(campus) {
-  const ptn = findSnpmbPtn(campus?.name || p1UniName.value)
+  const ptn = (campus?.snpmbId ? findUniById(campus.snpmbId) : null) || findSnpmbPtn(campus?.name || p1UniName.value)
   if (ptn) {
     const nextId = String(ptn.id)
     if (p1Uni.value !== nextId) {
@@ -135,7 +144,7 @@ watch(p1UniName, (val) => {
     p1Clash.value = { total: 0, names: [] }
     return
   }
-  const ptn = findSnpmbPtn(clean)
+  const ptn = findExactSnpmbPtn(clean)
   if (ptn) {
     const nextId = String(ptn.id)
     if (p1Uni.value !== nextId) {
@@ -179,7 +188,7 @@ watch(p1MajorName, (val) => {
 
 // Sinkronisasi Pilihan 2 (CampusCombobox & ProdiCombobox)
 function handleP2UniSelect(campus) {
-  const ptn = findSnpmbPtn(campus?.name || p2UniName.value)
+  const ptn = (campus?.snpmbId ? findUniById(campus.snpmbId) : null) || findSnpmbPtn(campus?.name || p2UniName.value)
   if (ptn) {
     const nextId = String(ptn.id)
     if (p2Uni.value !== nextId) {
@@ -201,7 +210,7 @@ watch(p2UniName, (val) => {
     p2Clash.value = { total: 0, names: [] }
     return
   }
-  const ptn = findSnpmbPtn(clean)
+  const ptn = findExactSnpmbPtn(clean)
   if (ptn) {
     const nextId = String(ptn.id)
     if (p2Uni.value !== nextId) {

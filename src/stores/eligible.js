@@ -299,7 +299,7 @@ export const useEligibleStore = defineStore('eligible', () => {
               major_id: String(p1.major_id),
               updated_at: new Date().toISOString()
             },
-            { onConflict: 'eligible_student_id, priority' }
+            { onConflict: 'eligible_student_id,priority' }
           )
         if (err1) throw err1
       }
@@ -316,7 +316,7 @@ export const useEligibleStore = defineStore('eligible', () => {
               major_id: String(p2.major_id),
               updated_at: new Date().toISOString()
             },
-            { onConflict: 'eligible_student_id, priority' }
+            { onConflict: 'eligible_student_id,priority' }
           )
         if (err2) throw err2
       } else if (p2?.remove) {
@@ -380,7 +380,7 @@ export const useEligibleStore = defineStore('eligible', () => {
               sem_4: toSafeInt(row.sem_4),
               sem_5: toSafeInt(row.sem_5)
             },
-            { onConflict: 'eligible_student_id, subject_id' }
+            { onConflict: 'eligible_student_id,subject_id' }
           )
       }
 
@@ -495,10 +495,13 @@ export const useEligibleStore = defineStore('eligible', () => {
         supabase.from('universities').select('id', { count: 'exact', head: true }),
         supabase.from('majors').select('id', { count: 'exact', head: true })
       ])
+      if (uRes.error) console.warn('Error count universities:', uRes.error)
+      if (mRes.error) console.warn('Error count majors:', mRes.error)
+
       snpmbDbStats.value = {
         ...snpmbDbStats.value,
-        universitiesCount: uRes.count || 0,
-        majorsCount: mRes.count || 0
+        universitiesCount: typeof uRes.count === 'number' ? uRes.count : 0,
+        majorsCount: typeof mRes.count === 'number' ? mRes.count : 0
       }
     } catch (e) {
       console.warn('Error fetching SNPMB DB stats:', e)
@@ -510,7 +513,7 @@ export const useEligibleStore = defineStore('eligible', () => {
     // Selalu gunakan katalog lengkap 145 PTN resmi SNPMB yang sama persis dengan Tracer Study
     universitiesList.value = [...LOCAL_SNPMB_PTN]
     if (isSupabaseConfigured && supabase) {
-      fetchSnpmbDbStats()
+      await fetchSnpmbDbStats()
     }
     return universitiesList.value
   }
@@ -546,6 +549,15 @@ export const useEligibleStore = defineStore('eligible', () => {
     }
 
     try {
+      if (onProgress) onProgress('Memverifikasi hak akses Admin Guru BK...')
+      const { data: isServerAdmin, error: adminErr } = await supabase.rpc('is_admin')
+      if (adminErr || !isServerAdmin) {
+        return {
+          success: false,
+          message: 'Sesi Anda belum terverifikasi sebagai Admin Guru BK. Silakan login ulang sebagai Admin.'
+        }
+      }
+
       if (onProgress) onProgress(`Menyinkronkan ${LOCAL_SNPMB_PTN.length} PTN resmi SNPMB ke Supabase...`)
 
       // 1. Upsert seluruh 145 PTN ke public.universities
@@ -595,10 +607,17 @@ export const useEligibleStore = defineStore('eligible', () => {
         if (majErr) throw majErr
       }
 
-      await fetchSnpmbDbStats()
+      const stats = await fetchSnpmbDbStats()
+      if (stats.universitiesCount === 0 || stats.majorsCount === 0) {
+        return {
+          success: false,
+          message: 'Sinkronisasi selesai namun database masih menunjukkan 0 data. Pastikan kebijakan RLS Admin pada tabel universities & majors aktif.'
+        }
+      }
+
       return {
         success: true,
-        message: `Berhasil menyinkronkan ${uniRows.length} PTN dan ${allMajorRows.length} Program Studi resmi SNPMB ke database!`
+        message: `Berhasil menyinkronkan ${stats.universitiesCount} PTN dan ${stats.majorsCount} Program Studi resmi SNPMB ke database!`
       }
     } catch (e) {
       return {
@@ -655,7 +674,20 @@ export const useEligibleStore = defineStore('eligible', () => {
         .order('overall_average', { ascending: false })
 
       if (error) throw error
-      allEligibleStudents.value = data || []
+      allEligibleStudents.value = (data || []).map(item => ({
+        ...item,
+        eligible_choices: [...(item.eligible_choices || [])]
+          .sort((a, b) => (a.priority || 0) - (b.priority || 0))
+          .map(c => {
+            const localUni = LOCAL_PTN_BY_ID.get(String(c.university_id))
+            const localMaj = localUni?.prodi?.find(m => String(m.id) === String(c.major_id))
+            return {
+              ...c,
+              universities: c.universities || (localUni ? { id: localUni.id, name: localUni.name } : null),
+              majors: c.majors || (localMaj ? { id: localMaj.id, name: localMaj.name, degree: localMaj.degree, quota: localMaj.quota } : null)
+            }
+          })
+      }))
       return allEligibleStudents.value
     } catch (e) {
       console.warn('Error fetching admin eligible list:', e)

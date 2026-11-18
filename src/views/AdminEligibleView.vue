@@ -40,6 +40,11 @@ const syncFeedback = ref({ type: '', text: '' })
 const selectedEligibleDetail = ref(null)
 const isGradeDetailModalOpen = ref(false)
 
+const isSnpmbSynced = computed(() => {
+  const s = eligibleStore.snpmbDbStats
+  return s.universitiesCount >= s.localUniversitiesCount && s.majorsCount >= s.localMajorsCount && s.universitiesCount > 0
+})
+
 onMounted(async () => {
   if (authStore.userRole !== 'admin') {
     router.replace('/')
@@ -51,6 +56,17 @@ onMounted(async () => {
     eligibleStore.fetchMasterSubjects(),
     eligibleStore.fetchUniversities()
   ])
+
+  // Auto-sinkronisasi katalog PTN & Prodi Tracer Study (SNPMB) bila database Supabase masih kosong / belum lengkap
+  if (!isSnpmbSynced.value && !isSyncingSnpmb.value) {
+    runSyncSnpmb({ silent: true })
+  }
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'sync') {
+    eligibleStore.fetchSnpmbDbStats()
+  }
 })
 
 // Pencarian siswa aktif untuk di-add ke eligible (Live Search as you type)
@@ -210,6 +226,32 @@ async function handleDeleteSubject(s) {
 }
 
 // Sync SNPMB (menggunakan katalog resmi SNPMB yang sama persis dengan Tracer Study)
+async function runSyncSnpmb({ silent = false } = {}) {
+  if (isSyncingSnpmb.value) return
+  isSyncingSnpmb.value = true
+  if (!silent) syncFeedback.value = { type: '', text: '' }
+  syncProgressText.value = 'Mempersiapkan data PTN & Program Studi SNPMB...'
+
+  try {
+    const res = await eligibleStore.syncSnpmbToDatabase((progressMsg) => {
+      syncProgressText.value = progressMsg
+    })
+    if (res.success) {
+      syncFeedback.value = { type: 'success', text: res.message }
+      if (toast.value) toast.value.show(res.message, 'success')
+    } else {
+      syncFeedback.value = { type: 'error', text: res.message }
+      if (!silent && toast.value) toast.value.show(res.message, 'error')
+    }
+  } catch (err) {
+    syncFeedback.value = { type: 'error', text: 'Gagal sinkronisasi data: ' + err.message }
+    if (!silent && toast.value) toast.value.show('Gagal sinkronisasi data SNPMB', 'error')
+  } finally {
+    isSyncingSnpmb.value = false
+    syncProgressText.value = ''
+  }
+}
+
 async function handleSyncSnpmb() {
   const confirmed = await confirmModal.value.open({
     title: 'Sinkronisasi Data PTN & Prodi SNPMB',
@@ -220,28 +262,7 @@ async function handleSyncSnpmb() {
   })
   if (!confirmed) return
 
-  isSyncingSnpmb.value = true
-  syncFeedback.value = { type: '', text: '' }
-  syncProgressText.value = 'Mempersiapkan data PTN & Program Studi SNPMB...'
-
-  try {
-    const res = await eligibleStore.syncSnpmbToDatabase((progressMsg) => {
-      syncProgressText.value = progressMsg
-    })
-    if (res.success) {
-      syncFeedback.value = { type: 'success', text: res.message }
-      toast.value.show(res.message, 'success')
-    } else {
-      syncFeedback.value = { type: 'error', text: res.message }
-      toast.value.show(res.message, 'error')
-    }
-  } catch (err) {
-    syncFeedback.value = { type: 'error', text: 'Gagal sinkronisasi data: ' + err.message }
-    toast.value.show('Gagal sinkronisasi data SNPMB', 'error')
-  } finally {
-    isSyncingSnpmb.value = false
-    syncProgressText.value = ''
-  }
+  await runSyncSnpmb({ silent: false })
 }
 
 // Kalkulasi Auto-Ranking berdasarkan rata-rata nilai rapor siswa
@@ -288,6 +309,13 @@ const filteredRankingList = computed(() => {
         </div>
 
         <div class="flex items-center gap-2 sm:gap-3">
+          <span
+            v-if="isSyncingSnpmb"
+            class="px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 border border-sky-300/70 inline-flex items-center gap-1.5"
+          >
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span class="hidden sm:inline">Sinkronisasi SNPMB...</span>
+          </span>
           <span class="px-3 py-1.5 rounded-xl text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-300/70 shadow-2xs">
             Total Siswa: {{ eligibleStore.allEligibleStudents.length }}
           </span>
@@ -490,7 +518,7 @@ const filteredRankingList = computed(() => {
                   <td class="p-3 text-xs space-y-1">
                     <div v-for="c in (item.eligible_choices || [])" :key="c.id" class="flex items-center gap-1.5">
                       <span class="font-bold text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">P{{ c.priority }}</span>
-                      <span class="font-medium text-slate-800 dark:text-slate-200">{{ c.majors?.name }} &bull; {{ c.universities?.name }}</span>
+                      <span class="font-medium text-slate-800 dark:text-slate-200">{{ c.majors?.degree ? `${c.majors.degree} ` : '' }}{{ c.majors?.name }} &bull; {{ c.universities?.name }}</span>
                     </div>
                     <div v-if="!item.eligible_choices || item.eligible_choices.length === 0" class="text-slate-400 italic">
                       Belum memilih prodi
@@ -599,7 +627,7 @@ const filteredRankingList = computed(() => {
                   <td class="p-3 text-xs space-y-1">
                     <div v-for="c in (item.eligible_choices || [])" :key="c.id">
                       <span class="font-bold text-[10px] px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300 mr-1">P{{ c.priority }}</span>
-                      <span>{{ c.majors?.name }} ({{ c.universities?.name }})</span>
+                      <span>{{ c.majors?.degree ? `${c.majors.degree} ` : '' }}{{ c.majors?.name }} ({{ c.universities?.name }})</span>
                     </div>
                   </td>
 
@@ -729,10 +757,18 @@ const filteredRankingList = computed(() => {
 
           <div class="p-6 rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-900/60 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div class="space-y-1 text-center sm:text-left">
-              <div class="font-bold text-slate-900 dark:text-white flex items-center justify-center sm:justify-start gap-2">
+              <div class="font-bold text-slate-900 dark:text-white flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <i class="fa-solid fa-database text-[#0284C7]"></i>
                 <span>
                   Tersimpan di Database: {{ eligibleStore.snpmbDbStats.universitiesCount }} PTN &amp; {{ eligibleStore.snpmbDbStats.majorsCount }} Prodi
+                </span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                  :class="isSnpmbSynced
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'"
+                >
+                  {{ isSnpmbSynced ? 'Tersinkron' : 'Belum Lengkap' }}
                 </span>
               </div>
               <p class="text-xs text-slate-500 dark:text-slate-400">
