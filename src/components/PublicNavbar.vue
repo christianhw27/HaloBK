@@ -2,10 +2,12 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useEligibleStore } from '@/stores/eligible'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const eligibleStore = useEligibleStore()
 
 const isDark = ref(false)
 const isMobileMenuOpen = ref(false)
@@ -270,8 +272,8 @@ function toggleMobileAccordion(section) {
           </Transition>
         </div>
 
-        <!-- 2. TOMBOL AKADEMIK (DROPDOWN KE BAWAH: ELIGIBLE LOCKED - DISEMBUNYIKAN UNTUK SISWA) -->
-        <div v-if="authStore.userRole !== 'siswa'" class="relative">
+        <!-- 2. TOMBOL AKADEMIK (DROPDOWN KE BAWAH) -->
+        <div class="relative">
           <button
             type="button"
             @click.stop="toggleDropdown('akademik')"
@@ -314,18 +316,87 @@ function toggleMobileAccordion(section) {
                 </span>
               </div>
 
-              <!-- Item: Eligible (Locked) -->
+              <!-- Pilihan 1: Khusus Guru BK / Admin -->
+              <router-link
+                v-if="isGuruOrAdmin"
+                to="/admin/eligible"
+                @click="closeDropdown"
+                class="w-full text-left p-3.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-gradient-to-r from-purple-50/80 via-white to-sky-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 hover:border-purple-400 hover:shadow-md transition-all group block"
+                role="menuitem"
+              >
+                <div class="flex items-start gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-award text-xl" aria-hidden="true"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-display font-bold text-sm sm:text-base text-purple-900 dark:text-purple-200 group-hover:text-purple-700">
+                        Kelola Siswa Eligible
+                      </span>
+                      <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                        <i class="fa-solid fa-shield-halved text-[9px]"></i>
+                        Guru BK
+                      </span>
+                    </div>
+                    <p class="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                      Manajemen kuota, validasi ACC pilihan &amp; nilai, sinkronisasi SNPMB.
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-2.5 pt-2 border-t border-purple-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-purple-700 dark:text-purple-300">
+                  <span class="flex items-center gap-1.5">
+                    Buka Panel Kelola Eligible
+                  </span>
+                  <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </router-link>
+
+              <!-- Pilihan 2: Khusus Siswa Terdaftar Eligible -->
+              <router-link
+                v-else-if="authStore.userRole === 'siswa' && eligibleStore.isEligible"
+                to="/eligible"
+                @click="closeDropdown"
+                class="w-full text-left p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/80 via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 hover:border-amber-400 hover:shadow-md transition-all group block"
+                role="menuitem"
+              >
+                <div class="flex items-start gap-3.5">
+                  <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <i class="fa-solid fa-star text-xl" aria-hidden="true"></i>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="font-display font-bold text-sm sm:text-base text-amber-900 dark:text-amber-200 group-hover:text-amber-700">
+                        Portal Siswa Eligible
+                      </span>
+                      <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
+                        <i class="fa-solid fa-check text-[9px]"></i>
+                        Eligible
+                      </span>
+                    </div>
+                    <p class="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                      Atur Pilihan 1 &amp; 2 SNBP, input nilai rapor S1-S5, dan unggah sertifikat.
+                    </p>
+                  </div>
+                </div>
+                <div class="mt-2.5 pt-2 border-t border-amber-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                  <span class="flex items-center gap-1.5">
+                    Buka Portal Pilihan SNBP
+                  </span>
+                  <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                </div>
+              </router-link>
+
+              <!-- Pilihan 3: Pengunjung / Siswa Non-Eligible (Locked Info Modal) -->
               <button
+                v-else
                 type="button"
                 @click="openEligibleModal"
                 class="w-full text-left p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 hover:bg-amber-50/70 dark:bg-slate-850 dark:hover:bg-slate-800/80 transition-all cursor-pointer group block"
                 role="menuitem"
               >
                 <div class="flex items-start gap-3.5">
-                  <!-- Squircle Icon dengan Gembok -->
                   <div class="relative w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
                     <i class="fa-solid fa-award text-xl" aria-hidden="true"></i>
-                    <!-- Gembok Overlay Badge -->
                     <span class="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] shadow-sm border-2 border-white dark:border-slate-900">
                       <i class="fa-solid fa-lock text-[9px]" aria-hidden="true"></i>
                     </span>
@@ -403,9 +474,9 @@ function toggleMobileAccordion(section) {
                 </span>
               </div>
 
-              <!-- Item: Tracer Study -->
+              <!-- Item: Dashboard Tracer Study -->
               <router-link
-                to="/dashboard"
+                to="/tracer-study"
                 @click="closeDropdown"
                 class="p-3.5 rounded-xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 hover:border-sky-400 dark:hover:border-sky-700 hover:shadow-md transition-all group block"
                 role="menuitem"
@@ -417,7 +488,7 @@ function toggleMobileAccordion(section) {
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center justify-between gap-2">
                       <span class="font-display font-bold text-sm sm:text-base text-[#0284C7] dark:text-sky-300 group-hover:underline">
-                        Tracer Study
+                        Dashboard Tracer Study
                       </span>
                       <span class="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -432,7 +503,7 @@ function toggleMobileAccordion(section) {
 
                 <div class="mt-2.5 pt-2 border-t border-sky-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-[#0284C7] dark:text-sky-300">
                   <span class="flex items-center gap-1.5">
-                    Buka Dashboard Statistik
+                    Buka Dashboard Tracer Study
                   </span>
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                 </div>
@@ -642,8 +713,8 @@ function toggleMobileAccordion(section) {
                 </div>
               </div>
 
-              <!-- 2. Menu Akademik (Eligible - Disembunyikan untuk Siswa) -->
-              <div v-if="authStore.userRole !== 'siswa'" class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <!-- 2. Menu Akademik -->
+              <div class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                 <button
                   type="button"
                   @click="toggleMobileAccordion('akademik')"
@@ -662,7 +733,51 @@ function toggleMobileAccordion(section) {
                 </button>
 
                 <div v-if="mobileOpenSection === 'akademik'" class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                  <!-- Siswa Eligible -->
+                  <router-link
+                    v-if="authStore.userRole === 'siswa' && eligibleStore.isEligible"
+                    to="/eligible"
+                    @click="isMobileMenuOpen = false"
+                    class="w-full p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-left flex items-center gap-2.5 block"
+                  >
+                    <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 text-xs">
+                      <i class="fa-solid fa-award"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs text-amber-900 dark:text-amber-200">Portal Eligible</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Aktif</span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Pilihan PTN &amp; nilai rapor S1-S5
+                      </p>
+                    </div>
+                  </router-link>
+
+                  <!-- Guru BK / Admin -->
+                  <router-link
+                    v-else-if="isGuruOrAdmin"
+                    to="/admin/eligible"
+                    @click="isMobileMenuOpen = false"
+                    class="w-full p-2.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50 dark:bg-purple-950/40 text-left flex items-center gap-2.5 block"
+                  >
+                    <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 text-xs">
+                      <i class="fa-solid fa-award"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-bold text-xs text-purple-900 dark:text-purple-200">Kelola Eligible</span>
+                        <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">Guru BK</span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Validasi ACC ganda &amp; kuota SNBP
+                      </p>
+                    </div>
+                  </router-link>
+
+                  <!-- Non-Eligible / Pengunjung -->
                   <button
+                    v-else
                     type="button"
                     @click="openEligibleModal"
                     class="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-left flex items-center gap-2.5"
@@ -704,7 +819,7 @@ function toggleMobileAccordion(section) {
 
                 <div v-if="mobileOpenSection === 'alumni'" class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-2">
                   <router-link
-                    to="/dashboard"
+                    to="/tracer-study"
                     @click="isMobileMenuOpen = false"
                     class="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-left flex items-center gap-2.5 block border border-sky-200 dark:border-sky-900/60"
                   >
@@ -713,7 +828,7 @@ function toggleMobileAccordion(section) {
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center justify-between">
-                        <span class="font-bold text-xs text-[#0284C7] dark:text-sky-300">Tracer Study</span>
+                        <span class="font-bold text-xs text-[#0284C7] dark:text-sky-300">Dashboard Tracer Study</span>
                         <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Aktif</span>
                       </div>
                       <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">

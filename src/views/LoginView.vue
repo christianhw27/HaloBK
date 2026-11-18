@@ -25,13 +25,19 @@ async function handleLogin() {
 
   if (res.success) {
     const rawRedirect = router.currentRoute.value.query.redirect
-    let target = res.role === 'siswa' ? '/profil' : '/dashboard'
-    // Sanitasi redirect untuk mencegah serangan Open Redirect (CWE-601)
+    // Halaman pertama yang ditampilkan setelah login (siswa maupun guru) adalah berita ('/')
+    let target = '/'
+
+    // Sanitasi redirect jika pengguna diarahkan dari rute spesifik
     if (
       typeof rawRedirect === 'string' &&
       rawRedirect.startsWith('/') &&
       !rawRedirect.startsWith('//') &&
-      !rawRedirect.includes('\\')
+      !rawRedirect.includes('\\') &&
+      rawRedirect !== '/login' &&
+      rawRedirect !== '/dashboard' &&
+      rawRedirect !== '/tracer-study' &&
+      rawRedirect !== '/profil'
     ) {
       target = rawRedirect
     }

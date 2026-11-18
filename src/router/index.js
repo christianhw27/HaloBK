@@ -12,6 +12,9 @@ import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
 import LoginView from '@/views/LoginView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import EditSiswaView from '@/views/EditSiswaView.vue'
+import EligibleSiswaView from '@/views/EligibleSiswaView.vue'
+import AdminEligibleView from '@/views/AdminEligibleView.vue'
+import { useEligibleStore } from '@/stores/eligible'
 
 const routes = [
   {
@@ -37,10 +40,14 @@ const routes = [
     meta: { layout: 'public', requiresAuth: false }
   },
   {
-    path: '/dashboard',
-    name: 'dashboard',
+    path: '/tracer-study',
+    name: 'tracer-study',
     component: DashboardView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/dashboard',
+    redirect: '/tracer-study'
   },
   {
     path: '/data',
@@ -93,6 +100,18 @@ const routes = [
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
+    path: '/eligible',
+    name: 'eligible-siswa',
+    component: EligibleSiswaView,
+    meta: { layout: 'public', requiresAuth: true, requiresEligible: true }
+  },
+  {
+    path: '/admin/eligible',
+    name: 'admin-eligible',
+    component: AdminEligibleView,
+    meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
@@ -123,17 +142,27 @@ router.beforeEach(async (to, from, next) => {
     })
   }
 
-  // 2. Jika sudah login dan membuka halaman /login, alihkan langsung ke halaman tujuan
+  // 2. Jika sudah login dan membuka halaman /login, alihkan langsung ke portal berita
   if (to.path === '/login' && authStore.isLoggedIn) {
-    if (authStore.userRole === 'siswa') {
-      return next({ path: '/profil' })
-    }
-    return next({ path: '/dashboard' })
+    return next({ path: '/' })
   }
 
   // 3. Rute khusus admin (Wajib lulus verifikasi admin)
   if (to.meta.requiresAdmin && authStore.userRole !== 'admin') {
-    return next({ path: '/dashboard' })
+    return next({ path: '/tracer-study' })
+  }
+
+  // 4. Rute khusus siswa eligible (SNBP)
+  if (to.meta.requiresEligible) {
+    if (authStore.userRole === 'admin') {
+      return next({ path: '/admin/eligible' })
+    }
+    const eligibleStore = useEligibleStore()
+    const status = await eligibleStore.checkMyEligibleStatus()
+    if (!status) {
+      alert('Akses Ditolak: Modul ini hanya dapat diakses oleh siswa yang ditetapkan sebagai Siswa Eligible SNBP.')
+      return next({ path: '/' })
+    }
   }
 
   next()

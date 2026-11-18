@@ -12,11 +12,11 @@ defineProps({
   },
   backTo: {
     type: String,
-    default: '/dashboard'
+    default: '/tracer-study'
   },
   backLabel: {
     type: String,
-    default: 'Kembali ke Ringkasan'
+    default: 'Kembali ke Dashboard Tracer Study'
   },
   backIcon: {
     type: String,

@@ -1,18 +1,42 @@
 <script setup>
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
+import EligibleCongratsModal from '@/components/EligibleCongratsModal.vue'
+import { useAuthStore } from '@/stores/auth'
+import { useEligibleStore } from '@/stores/eligible'
 
 const route = useRoute()
+const authStore = useAuthStore()
+const eligibleStore = useEligibleStore()
+
+// Penentuan tata letak eksplisit: Hanya rute modul Tracer Study yang memuat Sidebar Tracer Study
+const isTracerLayout = computed(() => {
+  const p = route.path || ''
+  return (
+    p === '/tracer-study' ||
+    p === '/dashboard' ||
+    p === '/data' ||
+    p === '/lapor' ||
+    p === '/verifikasi' ||
+    p === '/import-export' ||
+    p.startsWith('/tracer-study/') ||
+    p.startsWith('/data/') ||
+    p.startsWith('/lapor/')
+  )
+})
+
+onMounted(async () => {
+  if (authStore.isLoggedIn && authStore.userRole === 'siswa') {
+    await eligibleStore.checkMyEligibleStatus()
+  }
+})
 </script>
 
 <template>
-  <!-- Tata Letak Publik: Portal Berita (Sebelum Masuk Aplikasi Tracer Study) -->
-  <div v-if="route.meta?.layout === 'public'" class="min-h-screen font-sans">
-    <router-view />
-  </div>
-
-  <!-- Tata Letak Aplikasi Tracer Study (Dengan Sidebar Tetap) -->
-  <div v-else class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/80 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+  <!-- Tata Letak Aplikasi Tracer Study (Eksklusif Rute Tracer Study) -->
+  <div v-if="isTracerLayout" class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/80 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
+    <EligibleCongratsModal />
     <!-- Aksesibilitas: Tautan Langsung ke Konten Utama -->
     <a
       href="#main-content"
@@ -21,7 +45,7 @@ const route = useRoute()
       Lewati ke konten utama
     </a>
 
-    <!-- Navigasi Samping (Sidebar Desktop & Drawer Mobile) -->
+    <!-- Navigasi Samping Tracer Study -->
     <Sidebar />
 
     <!-- Konten Utama Aplikasi (Full Width dengan offset sidebar desktop) -->
@@ -39,7 +63,7 @@ const route = useRoute()
         <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5 text-center sm:text-left">
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span class="inline-flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-200">
-              <span class="w-2 h-2 rounded-full bg-[#0284C7]" aria-hidden="true"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-[#0284C7]" aria-hidden="true"></span>
               Ruang BK SMADA &bull; SMA Negeri 2 Ngawi
             </span>
             <span class="text-slate-400 hidden sm:inline" aria-hidden="true">&bull;</span>
@@ -51,6 +75,13 @@ const route = useRoute()
         </div>
       </footer>
     </div>
+  </div>
+
+  <!-- Tata Letak Publik & Modul Stand-Alone (Portal Berita, Modul Siswa Eligible, Profil) -->
+  <div v-else class="min-h-screen font-sans">
+    <router-view />
+    <!-- Pop-up Ucapan Selamat Siswa Eligible Pertama Kali Login -->
+    <EligibleCongratsModal />
   </div>
 </template>
 

@@ -146,7 +146,7 @@ function toggleDarkMode() {
       
       <!-- Brand & Identitas Sekolah -->
       <div class="p-5 border-b border-sky-100 dark:border-slate-800 bg-gradient-to-br from-sky-50/90 via-white to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 flex items-center justify-between">
-        <router-link to="/dashboard" class="flex items-center gap-3 group focus-visible:rounded-xl">
+        <router-link to="/tracer-study" class="flex items-center gap-3 group focus-visible:rounded-xl">
           <img
             src="/logo.png"
             alt="Logo BK SMADA"
@@ -231,26 +231,26 @@ function toggleDarkMode() {
         </router-link>
 
         <div class="text-xs font-bold text-[#64748B] dark:text-slate-400 tracking-wide px-2 py-1">
-          Jelajahi Menu
+          Menu Tracer Study
         </div>
 
-        <!-- 1. Ringkasan (Dashboard - Trust Blue) -->
+        <!-- 1. Dashboard Tracer Study (Trust Blue) -->
         <router-link
-          to="/dashboard"
+          to="/tracer-study"
           class="w-full px-3 py-2 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border"
-          :class="route.path === '/dashboard'
+          :class="route.path === '/tracer-study' || route.path === '/dashboard'
             ? 'bg-[#E0F2FE] text-[#0369A1] border-sky-200 dark:bg-sky-950/70 dark:text-sky-200 dark:border-sky-800 shadow-2xs'
             : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-sky-50/70 dark:hover:bg-slate-800/80 hover:text-[#0369A1] dark:hover:text-sky-300'"
         >
           <span
             class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-            :class="route.path === '/dashboard'
+            :class="route.path === '/tracer-study' || route.path === '/dashboard'
               ? 'bg-[#0369A1] text-white'
               : 'bg-sky-100/80 text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300'"
           >
             <i class="fa-solid fa-chart-pie text-sm" aria-hidden="true"></i>
           </span>
-          <span>Ringkasan</span>
+          <span>Dashboard Tracer Study</span>
         </router-link>
 
         <!-- 2. Direktori Data Alumni (Growth Emerald) -->

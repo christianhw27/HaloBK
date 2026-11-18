@@ -99,7 +99,7 @@ const hasUserAccount = computed(() => {
 // Muat data siswa dari Store atau Supabase langsung
 async function loadStudentData() {
   if (authStore.userRole !== 'admin') {
-    router.replace('/dashboard')
+    router.replace('/tracer-study')
     return
   }
 

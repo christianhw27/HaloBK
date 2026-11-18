@@ -133,7 +133,7 @@ async function handleSubmit() {
   if (res.success) {
     isSubmitted.value = true
     setTimeout(() => {
-      router.push('/dashboard')
+      router.push('/tracer-study')
     }, 2200)
   } else {
     errorMessage.value = res.message || 'Gagal mengirim formulir lapor diri. Silakan coba kembali.'
@@ -442,7 +442,7 @@ async function handleSubmit() {
       <div class="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
         <button
           type="button"
-          @click="router.push('/dashboard')"
+          @click="router.push('/tracer-study')"
           class="px-5 py-2.5 rounded-xl bg-[#F1F5F9] dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 text-[#334155] dark:text-slate-300 text-sm sm:text-base font-semibold hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors"
         >
           Batal

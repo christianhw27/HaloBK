@@ -63,7 +63,7 @@ async function copyArticleInfo() {
 
 function goToTracerStudy() {
   emit('close')
-  router.push('/dashboard')
+  router.push('/tracer-study')
 }
 </script>
 

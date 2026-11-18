@@ -465,7 +465,7 @@ watch(
 
               <!-- CTA Button Langsung ke Dashboard Tracer Study -->
               <router-link
-                to="/dashboard"
+                to="/tracer-study"
                 class="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#0284C7] to-[#075985] hover:from-[#0369A1] hover:to-[#0c4a6e] text-white text-xs sm:text-sm font-semibold shadow-xs flex items-center justify-center gap-2 transition-all group"
               >
                 <span>Buka Dashboard Tracer Study</span>

@@ -943,7 +943,7 @@ onUnmounted(() => {
       <p>&copy; {{ new Date().getFullYear() }} Bimbingan dan Konseling SMA Negeri 2 Ngawi. Hak cipta dilindungi.</p>
       <div class="flex items-center gap-4">
         <router-link to="/" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Portal Berita</router-link>
-        <router-link to="/dashboard" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Tracer Study</router-link>
+        <router-link to="/tracer-study" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Dashboard Tracer Study</router-link>
         <router-link to="/profil" class="hover:text-[#0284C7] dark:hover:text-sky-400 transition-colors">Profil Biodata</router-link>
       </div>
     </div>

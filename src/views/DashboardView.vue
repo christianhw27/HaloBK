@@ -454,15 +454,15 @@ watch(selectedChartCohort, async () => {
       <div class="p-4 sm:p-5 lg:py-3.5 lg:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 text-xs font-semibold text-[#0369A1] dark:text-sky-300 mb-1">
-            <span class="px-2.5 py-0.5 rounded-full bg-white/90 dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800">
-              SMA Negeri 2 Ngawi
+            <span class="px-2.5 py-0.5 rounded-full bg-[#E0F2FE] dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800 text-[#0284C7] dark:text-sky-300 font-bold">
+              <i class="fa-solid fa-chart-pie mr-1"></i> Dashboard Tracer Study
             </span>
             <span class="text-amber-600 dark:text-amber-300">&bull;</span>
-            <span class="text-[#92400E] dark:text-amber-300">Ruang BK SMADA</span>
+            <span class="text-[#92400E] dark:text-amber-300 font-medium">Ruang BK SMADA</span>
           </div>
 
           <h1 id="banner-heading" class="font-display font-bold text-lg sm:text-xl lg:text-2xl tracking-tight text-[#0F172A] dark:text-white leading-tight">
-            Cerita &amp; Sebaran Jejak Alumni SMADA
+            Dashboard Sebaran Jejak &amp; Karir Alumni SMADA
           </h1>
           <p class="text-xs sm:text-sm text-[#334155] dark:text-slate-300 mt-1 line-clamp-1 sm:line-clamp-none max-w-2xl">
             Intip kampus tujuan, sekolah kedinasan, dan karir lulusan SMADA sebagai referensi hangat buat adik kelas.
