@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import EligibleCongratsModal from '@/components/EligibleCongratsModal.vue'
@@ -26,11 +26,18 @@ const isTracerLayout = computed(() => {
   )
 })
 
-onMounted(async () => {
-  if (authStore.isLoggedIn && authStore.userRole === 'siswa') {
-    await eligibleStore.checkMyEligibleStatus()
-  }
-})
+// Cek status Siswa Eligible secara reaktif setiap kali sesi login terverifikasi atau akun berganti
+watch(
+  () => [authStore.isLoggedIn, authStore.userRole, authStore.currentUser?.id],
+  async ([loggedIn, role, uid]) => {
+    if (loggedIn && role === 'siswa' && uid) {
+      await eligibleStore.checkMyEligibleStatus()
+    } else if (!loggedIn) {
+      eligibleStore.resetMyEligibleState()
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>

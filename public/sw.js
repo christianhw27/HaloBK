@@ -1,9 +1,11 @@
 // ============================================================
-// Service Worker: Halo BK SMADA Media & Image Cache Engine
-// Menghemat kuota penyimpanan & bandwidth Cloudinary/CDN
+// Service Worker: Halo BK SMADA Media & Image Cache Engine v2
+// Hanya meng-cache aset gambar same-origin agar tidak memicu
+// konflik CSP connect-src / CORS pada CDN eksternal (Cloudinary,
+// Supabase Storage, Logo Kampus, Unsplash).
 // ============================================================
 
-const CACHE_NAME = 'halobk-media-cache-v1'
+const CACHE_NAME = 'halobk-media-cache-v2'
 
 // Aset statis inti yang langsung dicache saat instalasi
 const PRECACHE_ASSETS = [
@@ -11,7 +13,7 @@ const PRECACHE_ASSETS = [
   '/logo.svg'
 ]
 
-// 1. Install Event: Cache aset statis inti
+// 1. Install Event: Cache aset statis inti & langsung aktifkan v2
 self.addEventListener('install', (event) => {
   self.skipWaiting()
   event.waitUntil(
@@ -23,7 +25,7 @@ self.addEventListener('install', (event) => {
   )
 })
 
-// 2. Activate Event: Hapus versi cache lama
+// 2. Activate Event: Hapus versi cache lama (termasuk v1 yang mungkin menyimpan 408)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -39,47 +41,43 @@ self.addEventListener('activate', (event) => {
   )
 })
 
-// 3. Fetch Event: Strategi Cache-First untuk Semua Gambar & Foto
+// 3. Fetch Event: Hanya tangani gambar same-origin (/logo.png, /logos/*)
+// Biarkan gambar eksternal (Cloudinary, Supabase, gstatic, Unsplash) dimuat native oleh browser!
 self.addEventListener('fetch', (event) => {
   const { request } = event
 
-  // Hanya proses HTTP GET request
   if (request.method !== 'GET') return
 
   const url = new URL(request.url)
 
-  // Identifikasi apakah request merupakan berkas gambar
-  const isImageDestination = request.destination === 'image'
-  const isImageExtension = /\.(png|jpe?g|webp|svg|gif|avif|ico)(\?.*)?$/i.test(url.pathname)
-  const isCdnMedia = url.hostname.includes('cloudinary.com') ||
-                     url.hostname.includes('unsplash.com') ||
-                     url.pathname.startsWith('/logos/') ||
-                     url.pathname === '/logo.png'
+  // PENTING: Jangan intercept gambar cross-origin agar tidak terblokir CSP connect-src atau CORS
+  if (url.origin !== self.location.origin) {
+    return
+  }
 
-  if (isImageDestination || isImageExtension || isCdnMedia) {
+  const isLocalImage =
+    url.pathname === '/logo.png' ||
+    url.pathname === '/logo.svg' ||
+    url.pathname.startsWith('/logos/')
+
+  if (isLocalImage) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        // Cek apakah gambar sudah tersimpan di cache lokal
         const cachedResponse = await cache.match(request)
         if (cachedResponse) {
-          // Sajikan langsung dari penyimpanan peramban lokal (0 KB transfer jaringan)
           return cachedResponse
         }
 
-        // Jika belum ada di cache, unduh dari jaringan sekali saja
         try {
           const networkResponse = await fetch(request)
-          // Hanya simpan respons HTTP 200 yang valid ke dalam cache (menghindari caching respons error/opaque bengkak)
           if (networkResponse && networkResponse.status === 200) {
             cache.put(request, networkResponse.clone())
           }
           return networkResponse
         } catch (fetchErr) {
-          // Jika offline atau jaringan terputus, kembalikan cache jika ada
-          return cachedResponse || new Response('', { status: 408, statusText: 'Request Timeout' })
+          return cachedResponse || fetch(request)
         }
       })
     )
   }
 })
-

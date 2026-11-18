@@ -73,11 +73,25 @@ export const useAuthStore = defineStore('auth', () => {
       isLoggedIn.value = true
 
       // Ambil data profil dari public.users (Hanya kolom profil)
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from('users')
         .select('id, nama, email, nis, nisn, role, kelas, angkatan, tahun_lulus, no_wa, foto_url')
         .eq('id', authUser.id)
         .maybeSingle()
+
+      // Fallback jika UUID di auth.users berbeda dengan UUID di public.users (cocokkan via email / NISN / NIS)
+      if (!profile && authUser.email) {
+        const safeEmail = authUser.email.replace(/[^a-zA-Z0-9@._-]/g, '')
+        const emailPrefix = safeEmail.split('@')[0]
+        const { data: fallbackProfile } = await supabase
+          .from('users')
+          .select('id, nama, email, nis, nisn, role, kelas, angkatan, tahun_lulus, no_wa, foto_url')
+          .or(`email.ilike."${safeEmail}",nisn.eq."${emailPrefix}",nis.eq."${emailPrefix}"`)
+          .maybeSingle()
+        if (fallbackProfile) {
+          profile = fallbackProfile
+        }
+      }
 
       let determinedRole = profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role || 'user'
 

@@ -51,7 +51,6 @@ onMounted(async () => {
 
   const status = await eligibleStore.checkMyEligibleStatus()
   if (!status) {
-    alert('Akses Ditolak: Anda belum terdaftar sebagai siswa eligible SNBP.')
     router.replace('/')
     return
   }

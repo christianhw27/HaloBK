@@ -160,7 +160,6 @@ router.beforeEach(async (to, from, next) => {
     const eligibleStore = useEligibleStore()
     const status = await eligibleStore.checkMyEligibleStatus()
     if (!status) {
-      alert('Akses Ditolak: Modul ini hanya dapat diakses oleh siswa yang ditetapkan sebagai Siswa Eligible SNBP.')
       return next({ path: '/' })
     }
   }

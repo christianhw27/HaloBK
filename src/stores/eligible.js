@@ -37,6 +37,17 @@ export const useEligibleStore = defineStore('eligible', () => {
   // ----------------------------------------------------
 
   /**
+   * Reset state eligible siswa saat logout atau ganti akun
+   */
+  function resetMyEligibleState() {
+    myEligibleData.value = null
+    myChoices.value = []
+    myGrades.value = []
+    myCertificates.value = []
+    isCheckingEligible.value = false
+  }
+
+  /**
    * Cek status eligible siswa yang sedang login
    */
   async function checkMyEligibleStatus() {
@@ -44,12 +55,14 @@ export const useEligibleStore = defineStore('eligible', () => {
     const authStore = useAuthStore()
 
     if (!authStore.isLoggedIn || !authStore.currentUser?.id || !isSupabaseConfigured || !supabase) {
-      myEligibleData.value = null
-      isCheckingEligible.value = false
+      resetMyEligibleState()
       return null
     }
 
     try {
+      let eligibleRecord = null
+
+      // 1. Query langsung berdasarkan currentUser.id
       const { data, error } = await supabase
         .from('eligible_students')
         .select(`
@@ -66,18 +79,35 @@ export const useEligibleStore = defineStore('eligible', () => {
         .eq('academic_year', currentAcademicYear.value)
         .maybeSingle()
 
-      if (error) {
-        console.warn('Error checking eligible status:', error.message)
-        myEligibleData.value = null
+      if (!error && data) {
+        eligibleRecord = data
       } else {
-        myEligibleData.value = data
-        if (data) {
-          await Promise.all([
-            fetchMyChoices(data.id),
-            fetchMyGrades(data.id),
-            fetchMyCertificates(authStore.currentUser.id)
-          ])
+        // 2. Fallback via RPC secure server-side (mencocokkan auth.uid() ATAU email JWT ke public.users)
+        try {
+          const { data: rpcData, error: rpcErr } = await supabase.rpc('get_my_eligible_status', {
+            p_academic_year: currentAcademicYear.value
+          })
+          if (!rpcErr && Array.isArray(rpcData) && rpcData.length > 0) {
+            eligibleRecord = rpcData[0]
+          } else if (!rpcErr && rpcData && !Array.isArray(rpcData) && rpcData.id) {
+            eligibleRecord = rpcData
+          }
+        } catch (rpcCatch) {
+          console.warn('RPC get_my_eligible_status fallback:', rpcCatch)
         }
+      }
+
+      myEligibleData.value = eligibleRecord
+      if (eligibleRecord) {
+        await Promise.all([
+          fetchMyChoices(eligibleRecord.id),
+          fetchMyGrades(eligibleRecord.id),
+          fetchMyCertificates(eligibleRecord.student_id || authStore.currentUser.id)
+        ])
+      } else {
+        myChoices.value = []
+        myGrades.value = []
+        myCertificates.value = []
       }
     } catch (e) {
       console.warn('Fail check eligible:', e)
@@ -357,7 +387,7 @@ export const useEligibleStore = defineStore('eligible', () => {
       const { data, error } = await supabase
         .from('student_certificates')
         .insert({
-          student_id: authStore.currentUser.id,
+          student_id: myEligibleData.value?.student_id || authStore.currentUser.id,
           title: title.trim(),
           image_url: imageUrl
         })
@@ -650,6 +680,7 @@ export const useEligibleStore = defineStore('eligible', () => {
     isEligible,
     canEditGrades,
     canEditChoices,
+    resetMyEligibleState,
     checkMyEligibleStatus,
     markPopupSeen,
     fetchMyChoices,
