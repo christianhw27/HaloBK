@@ -108,7 +108,7 @@ defineExpose({ open })
             <button
               type="button"
               @click="handleCancel"
-              class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm transition-colors"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
             >
               {{ options.cancelText }}
             </button>
@@ -116,11 +116,11 @@ defineExpose({ open })
             <button
               type="button"
               @click="handleConfirm"
-              class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-xs transition-colors"
+              class="px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm text-white shadow-xs transition-colors cursor-pointer"
               :class="{
                 'bg-purple-600 hover:bg-purple-700': options.type === 'primary',
                 'bg-rose-600 hover:bg-rose-700': options.type === 'danger',
-                'bg-amber-600 hover:bg-amber-700 text-slate-950': options.type === 'warning',
+                'bg-amber-600 hover:bg-amber-700': options.type === 'warning',
                 'bg-emerald-600 hover:bg-emerald-700': options.type === 'success',
                 'bg-[#0369A1] hover:bg-[#075985]': options.type === 'info'
               }"

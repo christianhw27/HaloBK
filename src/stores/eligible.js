@@ -759,14 +759,20 @@ export const useEligibleStore = defineStore('eligible', () => {
       const item = allEligibleStudents.value.find(s => s.id === eligibleId)
       if (item) item.choice_status = newStatus
 
-      return { success: true, message: `Status pilihan berhasil diperbarui ke: ${newStatus}!` }
+      const messages = {
+        approved: 'Pilihan jurusan siswa berhasil di-ACC.',
+        rejected: 'Pilihan jurusan siswa ditolak untuk diperbaiki.',
+        pending: 'Status ACC pilihan jurusan dibatalkan. Siswa dapat mengubah pilihan kembali.'
+      }
+
+      return { success: true, message: messages[newStatus] || 'Status pilihan berhasil diperbarui.' }
     } catch (e) {
       return { success: false, message: 'Gagal memperbarui status pilihan: ' + e.message }
     }
   }
 
   /**
-   * Validasi / ACC Nilai Rapor oleh Guru BK (Kunci Nilai)
+   * Validasi / ACC Nilai Rapor oleh Guru BK (Kunci atau Buka Kunci Nilai)
    */
   async function updateGradeStatus(eligibleId, newStatus) {
     if (!isSupabaseConfigured || !supabase) return { success: false }
@@ -781,7 +787,13 @@ export const useEligibleStore = defineStore('eligible', () => {
       const item = allEligibleStudents.value.find(s => s.id === eligibleId)
       if (item) item.grade_status = newStatus
 
-      return { success: true, message: `Status nilai berhasil diperbarui ke: ${newStatus}!` }
+      const messages = {
+        approved: 'Nilai rapor siswa berhasil di-ACC dan dikunci.',
+        rejected: 'Nilai rapor siswa ditolak untuk diperbaiki.',
+        pending: 'Kunci nilai rapor berhasil dibatalkan. Siswa kini dapat mengedit nilai kembali.'
+      }
+
+      return { success: true, message: messages[newStatus] || 'Status nilai berhasil diperbarui.' }
     } catch (e) {
       return { success: false, message: 'Gagal memperbarui status nilai: ' + e.message }
     }
