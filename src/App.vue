@@ -30,7 +30,7 @@ const isTracerLayout = computed(() => {
 watch(
   () => [authStore.isLoggedIn, authStore.userRole, authStore.currentUser?.id],
   async ([loggedIn, role, uid]) => {
-    if (loggedIn && role === 'siswa' && uid) {
+    if (loggedIn && role !== 'admin' && uid) {
       await eligibleStore.checkMyEligibleStatus()
     } else if (!loggedIn) {
       eligibleStore.resetMyEligibleState()

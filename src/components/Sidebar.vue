@@ -3,11 +3,13 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
+import { useEligibleStore } from '@/stores/eligible'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
+const eligibleStore = useEligibleStore()
 
 const isDark = ref(false)
 const isMobileOpen = ref(false)
@@ -222,12 +224,29 @@ function toggleDarkMode() {
         <!-- Tautan Kembali ke Portal Berita Publik -->
         <router-link
           to="/"
-          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all mb-2.5 border border-amber-200/90 dark:border-amber-800/60 bg-gradient-to-r from-[#FFFBEB] via-white to-[#E0F2FE]/60 dark:from-amber-950/35 dark:via-slate-900 dark:to-sky-950/35 text-slate-800 dark:text-slate-100 hover:border-amber-300 hover:shadow-xs"
+          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all mb-2 border border-amber-200/90 dark:border-amber-800/60 bg-gradient-to-r from-[#FFFBEB] via-white to-[#E0F2FE]/60 dark:from-amber-950/35 dark:via-slate-900 dark:to-sky-950/35 text-slate-800 dark:text-slate-100 hover:border-amber-300 hover:shadow-xs"
         >
           <span class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-2xs">
             <i class="fa-solid fa-newspaper text-sm" aria-hidden="true"></i>
           </span>
           <span>Portal Berita</span>
+        </router-link>
+
+        <!-- Tautan Pintas ke Modul Stand-Alone Eligible (Khusus Siswa Eligible) -->
+        <router-link
+          v-if="authStore.isLoggedIn && authStore.userRole !== 'admin' && eligibleStore.isEligible"
+          to="/eligible"
+          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2.5 border border-purple-200/90 dark:border-purple-800/70 bg-gradient-to-r from-purple-50 via-white to-amber-50/70 dark:from-purple-950/40 dark:via-slate-900 dark:to-amber-950/30 text-purple-900 dark:text-purple-200 hover:border-purple-400 hover:shadow-xs"
+        >
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <i class="fa-solid fa-award text-sm" aria-hidden="true"></i>
+            </span>
+            <span>Eligible</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 shrink-0">
+            SNBP
+          </span>
         </router-link>
 
         <div class="text-xs font-bold text-[#64748B] dark:text-slate-400 tracking-wide px-2 py-1">

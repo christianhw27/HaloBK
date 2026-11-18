@@ -48,6 +48,9 @@ function toggleDropdown(name) {
     activeDropdown.value = null
   } else {
     activeDropdown.value = name
+    if (name === 'akademik' && authStore.isLoggedIn && !isGuruOrAdmin.value && !eligibleStore.isEligible) {
+      eligibleStore.checkMyEligibleStatus()
+    }
   }
 }
 
@@ -353,7 +356,7 @@ function toggleMobileAccordion(section) {
 
               <!-- Pilihan 2: Khusus Siswa Terdaftar Eligible -->
               <router-link
-                v-else-if="authStore.userRole === 'siswa' && eligibleStore.isEligible"
+                v-else-if="authStore.isLoggedIn && !isGuruOrAdmin && eligibleStore.isEligible"
                 to="/eligible"
                 @click="closeDropdown"
                 class="w-full text-left p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/80 via-white to-emerald-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 hover:border-amber-400 hover:shadow-md transition-all group block"
@@ -385,6 +388,15 @@ function toggleMobileAccordion(section) {
                   <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                 </div>
               </router-link>
+
+              <!-- Loading State: Sedang Memeriksa Status Eligible -->
+              <div
+                v-else-if="authStore.isLoggedIn && !isGuruOrAdmin && eligibleStore.isCheckingEligible"
+                class="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-850 flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400"
+              >
+                <i class="fa-solid fa-spinner fa-spin text-amber-500 text-base"></i>
+                <span>Memeriksa status Siswa Eligible Anda...</span>
+              </div>
 
               <!-- Pilihan 3: Pengunjung / Siswa Non-Eligible (Locked Info Modal) -->
               <button
@@ -735,7 +747,7 @@ function toggleMobileAccordion(section) {
                 <div v-if="mobileOpenSection === 'akademik'" class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-2">
                   <!-- Siswa Eligible -->
                   <router-link
-                    v-if="authStore.userRole === 'siswa' && eligibleStore.isEligible"
+                    v-if="authStore.isLoggedIn && !isGuruOrAdmin && eligibleStore.isEligible"
                     to="/eligible"
                     @click="isMobileMenuOpen = false"
                     class="w-full p-2.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/40 text-left flex items-center gap-2.5 block"

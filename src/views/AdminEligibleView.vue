@@ -238,13 +238,10 @@ async function handleSyncSnpmb() {
   }
 }
 
-// Kalkulasi Dinamis Auto-Ranking dengan Filter Rumpun
+// Kalkulasi Auto-Ranking berdasarkan rata-rata nilai rapor siswa
 const filteredRankingList = computed(() => {
   const list = eligibleStore.allEligibleStudents.map(item => {
-    let grades = item.eligible_grades || []
-    if (rankingCategoryFilter.value !== 'ALL') {
-      grades = grades.filter(g => g.subjects?.category === rankingCategoryFilter.value)
-    }
+    const grades = item.eligible_grades || []
 
     let dynamicAverage = 0
     if (grades.length > 0) {
@@ -546,7 +543,7 @@ const filteredRankingList = computed(() => {
         </div>
       </section>
 
-      <!-- TAB 3: MATRIKS NILAI & AUTO-RANKING DENGAN FILTER RUMPUN -->
+      <!-- TAB 3: MATRIKS NILAI & AUTO-RANKING -->
       <section v-if="activeTab === 'ranking'" class="space-y-6">
         <div class="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -555,23 +552,8 @@ const filteredRankingList = computed(() => {
                 Matriks Nilai &amp; Auto-Ranking Siswa Eligible
               </h2>
               <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Peringkat otomatis terhitung dari rata-rata nilai rapor.
+                Peringkat otomatis terhitung dari rata-rata nilai rapor seluruh mata pelajaran.
               </p>
-            </div>
-
-            <!-- FILTER RUMPUN MAPEL -->
-            <div class="flex items-center gap-2">
-              <label class="text-xs font-bold text-slate-500">Filter Rumpun:</label>
-              <select
-                v-model="rankingCategoryFilter"
-                class="px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#0284C7] dark:text-sky-300 focus:outline-none"
-              >
-                <option value="ALL">Semua Mapel</option>
-                <option value="Wajib">Mapel Wajib Saja</option>
-                <option value="IPA">Rumpun IPA Saja</option>
-                <option value="IPS">Rumpun IPS Saja</option>
-                <option value="Bahasa">Rumpun Bahasa Saja</option>
-              </select>
             </div>
           </div>
 
@@ -625,7 +607,7 @@ const filteredRankingList = computed(() => {
                   </td>
 
                   <td class="p-3 text-center font-mono font-extrabold text-base text-[#0284C7] dark:text-sky-300 bg-sky-50/50 dark:bg-sky-950/30">
-                    {{ item.filteredAverage }}
+                    {{ Number(item.filteredAverage || 0).toFixed(2) }}
                   </td>
                 </tr>
               </tbody>
@@ -647,7 +629,7 @@ const filteredRankingList = computed(() => {
             {{ subjectFeedback.text }}
           </div>
 
-          <!-- FORM TAMBAH / EDIT MAPEL -->
+          <!-- FORM TAMBAH / EDIT MAPEL (TANPA RUMPUN) -->
           <div class="flex flex-col sm:flex-row items-end gap-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
             <div class="flex-1 w-full">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -656,24 +638,10 @@ const filteredRankingList = computed(() => {
               <input
                 type="text"
                 v-model="subjectForm.name"
+                @keyup.enter="handleSaveSubject"
                 placeholder="Contoh: Matematika Tingkat Lanjut"
                 class="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm"
               />
-            </div>
-
-            <div class="w-full sm:w-44">
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Kategori Rumpun
-              </label>
-              <select
-                v-model="subjectForm.category"
-                class="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-sm font-semibold"
-              >
-                <option value="Wajib">Wajib</option>
-                <option value="IPA">IPA</option>
-                <option value="IPS">IPS</option>
-                <option value="Bahasa">Bahasa</option>
-              </select>
             </div>
 
             <div class="flex items-center gap-2">
@@ -695,28 +663,23 @@ const filteredRankingList = computed(() => {
             </div>
           </div>
 
-          <!-- TABEL MASTER MAPEL -->
+          <!-- TABEL MASTER MAPEL (LANGSUNG NAMA MATA PELAJARAN) -->
           <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold uppercase border-b border-slate-200 dark:border-slate-700">
                 <tr>
+                  <th class="p-3 w-12 text-center">No</th>
                   <th class="p-3">Nama Mata Pelajaran</th>
-                  <th class="p-3 text-center">Rumpun Kategori</th>
                   <th class="p-3 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                <tr v-for="s in eligibleStore.masterSubjects" :key="s.id" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                <tr v-for="(s, idx) in eligibleStore.masterSubjects" :key="s.id" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                  <td class="p-3 text-center text-xs font-mono text-slate-400">
+                    {{ idx + 1 }}
+                  </td>
                   <td class="p-3 font-semibold text-slate-900 dark:text-white">
                     {{ s.name }}
-                  </td>
-                  <td class="p-3 text-center">
-                    <span
-                      class="px-2.5 py-0.5 rounded-full text-xs font-bold"
-                      :class="s.category === 'IPA' ? 'bg-sky-100 text-sky-800' : (s.category === 'IPS' ? 'bg-emerald-100 text-emerald-800' : (s.category === 'Bahasa' ? 'bg-purple-100 text-purple-800' : 'bg-slate-100 text-slate-800'))"
-                    >
-                      {{ s.category }}
-                    </span>
                   </td>
                   <td class="p-3 text-right space-x-2">
                     <button
@@ -820,12 +783,12 @@ const filteredRankingList = computed(() => {
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
               <tr v-for="g in (selectedEligibleDetail.eligible_grades || [])" :key="g.id">
                 <td class="p-2.5 font-medium">{{ g.subjects?.name }}</td>
-                <td class="p-2 text-center font-mono">{{ g.sem_1 }}</td>
-                <td class="p-2 text-center font-mono">{{ g.sem_2 }}</td>
-                <td class="p-2 text-center font-mono">{{ g.sem_3 }}</td>
-                <td class="p-2 text-center font-mono">{{ g.sem_4 }}</td>
-                <td class="p-2 text-center font-mono">{{ g.sem_5 }}</td>
-                <td class="p-2 text-center font-mono font-bold text-[#0284C7]">{{ g.subject_average }}</td>
+                <td class="p-2 text-center font-mono">{{ Math.trunc(Number(g.sem_1) || 0) }}</td>
+                <td class="p-2 text-center font-mono">{{ Math.trunc(Number(g.sem_2) || 0) }}</td>
+                <td class="p-2 text-center font-mono">{{ Math.trunc(Number(g.sem_3) || 0) }}</td>
+                <td class="p-2 text-center font-mono">{{ Math.trunc(Number(g.sem_4) || 0) }}</td>
+                <td class="p-2 text-center font-mono">{{ Math.trunc(Number(g.sem_5) || 0) }}</td>
+                <td class="p-2 text-center font-mono font-bold text-[#0284C7]">{{ Number(g.subject_average || 0).toFixed(2) }}</td>
               </tr>
             </tbody>
           </table>
@@ -833,7 +796,7 @@ const filteredRankingList = computed(() => {
 
         <div class="flex items-center justify-between pt-2">
           <span class="text-xs font-bold text-slate-500">
-            Rata-Rata Kumulatif: <strong class="text-base font-mono text-[#0284C7]">{{ selectedEligibleDetail.overall_average }}</strong>
+            Rata-Rata Kumulatif: <strong class="text-base font-mono text-[#0284C7]">{{ Number(selectedEligibleDetail.overall_average || 0).toFixed(2) }}</strong>
           </span>
 
           <div class="flex items-center gap-2">

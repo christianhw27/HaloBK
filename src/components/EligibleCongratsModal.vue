@@ -1,29 +1,40 @@
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useEligibleStore } from '@/stores/eligible'
 import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
 const router = useRouter()
 const eligibleStore = useEligibleStore()
 const authStore = useAuthStore()
 
+// State lokal per-page-load: selalu reset ke false setiap kali siswa me-refresh halaman berita
+const isDismissed = ref(false)
+
+// Reset status pop-up jika akun yang login berubah
+watch(() => authStore.currentUser?.id, () => {
+  isDismissed.value = false
+})
+
 const isOpen = computed(() => {
+  const isNewsPage = route.path === '/' || route.name === 'berita'
   return (
+    isNewsPage &&
     authStore.isLoggedIn &&
-    authStore.userRole === 'siswa' &&
+    authStore.userRole !== 'admin' &&
     eligibleStore.isEligible &&
-    !eligibleStore.myEligibleData?.has_seen_popup
+    !isDismissed.value
   )
 })
 
-async function handleGoToEligible() {
-  await eligibleStore.markPopupSeen()
+function handleGoToEligible() {
+  isDismissed.value = true
   router.push('/eligible')
 }
 
-async function handleClose() {
-  await eligibleStore.markPopupSeen()
+function handleClose() {
+  isDismissed.value = true
 }
 </script>
 

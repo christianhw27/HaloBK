@@ -321,7 +321,12 @@ export const useEligibleStore = defineStore('eligible', () => {
       isLoading.value = true
       const eligibleId = myEligibleData.value.id
 
-      // Upsert semua baris nilai
+      const toSafeInt = (v) => {
+        const n = Math.trunc(Number(v) || 0)
+        return Math.min(100, Math.max(0, n))
+      }
+
+      // Upsert semua baris nilai (bilangan bulat 0-100, tanpa minus & tanpa koma)
       for (const row of gradesPayload) {
         if (!row.subject_id) continue
         await supabase
@@ -330,11 +335,11 @@ export const useEligibleStore = defineStore('eligible', () => {
             {
               eligible_student_id: eligibleId,
               subject_id: row.subject_id,
-              sem_1: Number(row.sem_1) || 0,
-              sem_2: Number(row.sem_2) || 0,
-              sem_3: Number(row.sem_3) || 0,
-              sem_4: Number(row.sem_4) || 0,
-              sem_5: Number(row.sem_5) || 0
+              sem_1: toSafeInt(row.sem_1),
+              sem_2: toSafeInt(row.sem_2),
+              sem_3: toSafeInt(row.sem_3),
+              sem_4: toSafeInt(row.sem_4),
+              sem_5: toSafeInt(row.sem_5)
             },
             { onConflict: 'eligible_student_id, subject_id' }
           )
@@ -434,7 +439,6 @@ export const useEligibleStore = defineStore('eligible', () => {
       const { data } = await supabase
         .from('subjects')
         .select('*')
-        .order('category', { ascending: false })
         .order('name', { ascending: true })
 
       masterSubjects.value = data || []

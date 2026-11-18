@@ -44,8 +44,12 @@ const isUploadingCert = ref(false)
 const certFeedback = ref({ type: '', text: '' })
 
 onMounted(async () => {
-  if (!authStore.isLoggedIn || authStore.userRole !== 'siswa') {
-    router.replace('/')
+  if (!authStore.isLoggedIn) {
+    router.replace('/login')
+    return
+  }
+  if (authStore.userRole === 'admin') {
+    router.replace('/admin/eligible')
     return
   }
 
@@ -156,20 +160,48 @@ async function submitChoices() {
   }
 }
 
+// Helper sanitasi nilai rapor: bilangan bulat 0 - 100 (tanpa minus, tanpa koma, max 100)
+function clampGradeInt(val) {
+  const num = parseInt(String(val ?? '').replace(/[^0-9]/g, ''), 10)
+  if (isNaN(num) || num < 0) return 0
+  if (num > 100) return 100
+  return num
+}
+
+function preventInvalidGradeKey(e) {
+  if (['.', ',', '-', '+', 'e', 'E'].includes(e.key)) {
+    e.preventDefault()
+  }
+}
+
+function sanitizeGradeInput(row, field, e) {
+  const raw = e?.target?.value ?? row[field]
+  if (raw === '' || raw === null || raw === undefined) {
+    row[field] = 0
+    if (e?.target) e.target.value = '0'
+    return
+  }
+  const clean = clampGradeInt(raw)
+  row[field] = clean
+  if (e?.target && String(e.target.value) !== String(clean)) {
+    e.target.value = String(clean)
+  }
+}
+
 // Inisialisasi formulir nilai dari store
 function initGradesForm() {
   const existing = eligibleStore.myGrades
   if (existing && existing.length > 0) {
     gradesRows.value = existing.map(g => ({
       subject_id: g.subject_id,
-      sem_1: Number(g.sem_1) || 0,
-      sem_2: Number(g.sem_2) || 0,
-      sem_3: Number(g.sem_3) || 0,
-      sem_4: Number(g.sem_4) || 0,
-      sem_5: Number(g.sem_5) || 0
+      sem_1: clampGradeInt(Math.trunc(Number(g.sem_1) || 0)),
+      sem_2: clampGradeInt(Math.trunc(Number(g.sem_2) || 0)),
+      sem_3: clampGradeInt(Math.trunc(Number(g.sem_3) || 0)),
+      sem_4: clampGradeInt(Math.trunc(Number(g.sem_4) || 0)),
+      sem_5: clampGradeInt(Math.trunc(Number(g.sem_5) || 0))
     }))
   } else {
-    // Default tambahkan baris mapel umum wajib
+    // Default tambahkan baris mapel
     gradesRows.value = []
     const defaultSubjects = eligibleStore.masterSubjects.slice(0, 6)
     defaultSubjects.forEach(s => {
@@ -205,32 +237,37 @@ const selectedSubjectIds = computed(() => {
   return new Set(gradesRows.value.map(r => r.subject_id).filter(Boolean))
 })
 
-// Kalkulasi rata-rata per baris mapel (horizontal)
+// Kalkulasi rata-rata per baris mapel (horizontal) — boleh koma (2 angka di belakang koma)
 function calculateRowAverage(row) {
-  const sum = Number(row.sem_1 || 0) + Number(row.sem_2 || 0) + Number(row.sem_3 || 0) + Number(row.sem_4 || 0) + Number(row.sem_5 || 0)
+  const sum =
+    clampGradeInt(row.sem_1) +
+    clampGradeInt(row.sem_2) +
+    clampGradeInt(row.sem_3) +
+    clampGradeInt(row.sem_4) +
+    clampGradeInt(row.sem_5)
   return Number((sum / 5).toFixed(2))
 }
 
-// Kalkulasi rata-rata per semester (vertikal)
+// Kalkulasi rata-rata per semester (vertikal) — 2 angka di belakang koma
 const semesterAverages = computed(() => {
   const count = gradesRows.value.length || 1
   const totals = [0, 0, 0, 0, 0]
   gradesRows.value.forEach(r => {
-    totals[0] += Number(r.sem_1 || 0)
-    totals[1] += Number(r.sem_2 || 0)
-    totals[2] += Number(r.sem_3 || 0)
-    totals[3] += Number(r.sem_4 || 0)
-    totals[4] += Number(r.sem_5 || 0)
+    totals[0] += clampGradeInt(r.sem_1)
+    totals[1] += clampGradeInt(r.sem_2)
+    totals[2] += clampGradeInt(r.sem_3)
+    totals[3] += clampGradeInt(r.sem_4)
+    totals[4] += clampGradeInt(r.sem_5)
   })
-  return totals.map(t => Number((t / count).toFixed(2)))
+  return totals.map(t => (t / count).toFixed(2))
 })
 
-// Rata-rata kumulatif keseluruhan
+// Rata-rata kumulatif keseluruhan — 2 angka di belakang koma
 const calculatedOverallAverage = computed(() => {
-  if (gradesRows.value.length === 0) return 0
+  if (gradesRows.value.length === 0) return '0.00'
   const rowAverages = gradesRows.value.map(calculateRowAverage)
   const sum = rowAverages.reduce((acc, curr) => acc + curr, 0)
-  return Number((sum / rowAverages.length).toFixed(2))
+  return (sum / rowAverages.length).toFixed(2)
 })
 
 async function submitGrades() {
@@ -247,14 +284,30 @@ async function submitGrades() {
     return
   }
 
+  // Validasi ketat setiap nilai: bilangan bulat 0 - 100 (tanpa minus, tanpa koma)
+  for (const r of gradesRows.value) {
+    for (const sKey of ['sem_1', 'sem_2', 'sem_3', 'sem_4', 'sem_5']) {
+      const v = Number(r[sKey])
+      if (!Number.isInteger(v) || v < 0 || v > 100) {
+        gradeFeedback.value = {
+          type: 'error',
+          text: 'Nilai rapor harus berupa bilangan bulat antara 0 sampai 100 (tidak boleh minus atau koma).'
+        }
+        return
+      }
+    }
+  }
+
   isSavingGrades.value = true
   const res = await eligibleStore.saveGrades(gradesRows.value)
   isSavingGrades.value = false
 
   if (res.success) {
     gradeFeedback.value = { type: 'success', text: res.message }
+    if (toast.value) toast.value.show(res.message, 'success')
   } else {
     gradeFeedback.value = { type: 'error', text: res.message }
+    if (toast.value) toast.value.show(res.message, 'error')
   }
 }
 
@@ -378,7 +431,7 @@ async function handleDeleteCert(id) {
             <div class="text-xs space-y-1">
               <div class="text-slate-400 text-[11px] font-semibold uppercase">Rata-Rata:</div>
               <span class="font-mono font-extrabold text-base text-[#0284C7] dark:text-sky-400">
-                {{ eligibleStore.myEligibleData?.overall_average || calculatedOverallAverage }}
+                {{ Number(eligibleStore.myEligibleData?.overall_average || calculatedOverallAverage || 0).toFixed(2) }}
               </span>
             </div>
           </div>
@@ -538,7 +591,7 @@ async function handleDeleteCert(id) {
                 Tabel Nilai Rapor Semester 1 s.d. 5
               </h2>
               <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Isi nilai pengetahuan rapor skala 0–100. Nilai rata-rata mapel &amp; semester dihitung otomatis.
+                Isi nilai rapor bilangan bulat skala 0–100 (maksimal 100, tanpa minus &amp; tanpa koma). Rata-rata otomatis dihitung hingga 2 angka di belakang koma.
               </p>
             </div>
 
@@ -583,7 +636,7 @@ async function handleDeleteCert(id) {
                         :value="s.id"
                         :disabled="selectedSubjectIds.has(s.id) && row.subject_id !== s.id"
                       >
-                        [{{ s.category }}] {{ s.name }}
+                        {{ s.name }}
                       </option>
                     </select>
                   </td>
@@ -593,15 +646,19 @@ async function handleDeleteCert(id) {
                       type="number"
                       min="0"
                       max="100"
-                      step="0.1"
-                      v-model.number="row[`sem_${sNum}`]"
+                      step="1"
+                      inputmode="numeric"
+                      :value="row[`sem_${sNum}`]"
+                      @keydown="preventInvalidGradeKey"
+                      @input="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
+                      @blur="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
                       :disabled="!eligibleStore.canEditGrades"
                       class="w-16 px-1.5 py-1.5 rounded-lg text-center font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-1 focus:ring-[#0284C7] disabled:opacity-75"
                     />
                   </td>
 
                   <td class="p-2 text-center font-mono font-bold text-xs sm:text-sm bg-sky-50/50 dark:bg-sky-950/30 text-[#0284C7] dark:text-sky-300">
-                    {{ calculateRowAverage(row) }}
+                    {{ calculateRowAverage(row).toFixed(2) }}
                   </td>
 
                   <td v-if="eligibleStore.canEditGrades" class="p-2 text-center">

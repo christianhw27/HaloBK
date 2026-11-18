@@ -93,7 +93,9 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
 
-      let determinedRole = profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role || 'user'
+      let determinedRole = String(
+        profile?.role || authUser.app_metadata?.role || authUser.user_metadata?.role || 'user'
+      ).trim().toLowerCase()
 
       // VERIFIKASI KEAMANAN TINGKAT SERVER:
       // Jika mengaku 'admin', validasi langsung ke database PostgreSQL via fungsi RPC is_admin()!
@@ -133,11 +135,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // Flag untuk menghindari double-fetch / Web Locks deadlock saat signInWithPassword berjalan
+  let isManualLoginInProgress = false
+
   // Pasang listener perubahan status autentikasi Supabase
   if (isSupabaseConfigured && supabase) {
-    supabase.auth.onAuthStateChange(async (event, session) => {
+    supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        await initAuth()
+        // Gunakan setTimeout(0) sesuai pedoman resmi Supabase JS v2 agar tidak deadlock dengan Web Locks API browser
+        setTimeout(() => {
+          if (!isManualLoginInProgress) {
+            initAuth()
+          }
+        }, 0)
       } else if (event === 'SIGNED_OUT') {
         isLoggedIn.value = false
         userRole.value = 'user'
@@ -187,6 +197,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
 
+    isManualLoginInProgress = true
     try {
       // 1. Dapatkan email akun resmi via RPC secure resolver di sisi database
       let targetEmail = null
@@ -259,7 +270,9 @@ export const useAuthStore = defineStore('auth', () => {
         profile = fallbackProfile
       }
 
-      const role = profile?.role || authData.user.app_metadata?.role || authData.user.user_metadata?.role || 'user'
+      const role = String(
+        profile?.role || authData.user.app_metadata?.role || authData.user.user_metadata?.role || 'user'
+      ).trim().toLowerCase()
       const name = profile?.nama || authData.user.user_metadata?.nama || (role === 'admin' ? 'Guru BK SMADA' : 'Siswa SMADA')
 
       isLoggedIn.value = true
@@ -279,6 +292,8 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (err) {
       console.error('Pengecualian saat login:', err)
       return { success: false, message: 'Terjadi kesalahan sistem saat memproses login.' }
+    } finally {
+      isManualLoginInProgress = false
     }
   }
 

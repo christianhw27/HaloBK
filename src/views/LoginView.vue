@@ -2,9 +2,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useEligibleStore } from '@/stores/eligible'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const eligibleStore = useEligibleStore()
 
 const email = ref('')
 const password = ref('')
@@ -21,9 +23,14 @@ async function handleLogin() {
 
   isLoading.value = true
   const res = await authStore.loginWithCredentials(email.value, password.value)
-  isLoading.value = false
 
   if (res.success) {
+    // Segera cek status siswa eligible sebelum masuk halaman tujuan agar menu & pop-up langsung aktif
+    if (res.role !== 'admin') {
+      await eligibleStore.checkMyEligibleStatus()
+    }
+    isLoading.value = false
+
     const rawRedirect = router.currentRoute.value.query.redirect
     // Halaman pertama yang ditampilkan setelah login (siswa maupun guru) adalah berita ('/')
     let target = '/'
@@ -43,6 +50,7 @@ async function handleLogin() {
     }
     router.push(target)
   } else {
+    isLoading.value = false
     errorMessage.value = res.message || 'Gagal masuk. Periksa kembali email dan kata sandi Anda.'
   }
 }
