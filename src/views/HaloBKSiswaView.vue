@@ -453,56 +453,68 @@ function getCategoryData(catId) {
               ]"
             >
               <!-- Avatar Bulat Bersih -->
-              <div class="relative shrink-0">
-                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#0284C7] to-sky-600 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
+              <div class="relative shrink-0 mt-0.5">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#0284C7] to-sky-600 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
                   <i class="fa-solid fa-user-tie"></i>
                 </div>
-                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
+                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
               </div>
 
-              <!-- Konten Chat Row: Title, Snippet, Waktu -->
+              <!-- Konten Chat Row: Format 3 Baris Rapi (Pengirim -> Topik & Snippet -> Badges) -->
               <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between gap-1">
+                <!-- Baris 1: Nama Guru BK + Pin + Waktu + Titik Tiga -->
+                <div class="flex items-center justify-between gap-1.5">
                   <div class="flex items-center gap-1.5 min-w-0">
                     <span v-if="s.is_pinned_by_student" class="text-amber-500 text-xs shrink-0" title="Disematkan">
                       <i class="fa-solid fa-thumbtack rotate-45"></i>
                     </span>
-                    <h3 class="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                    <h3 class="text-[13px] font-bold text-slate-900 dark:text-slate-100 truncate">
                       {{ s.counselor_name }}
                     </h3>
                   </div>
-                  <span class="text-[11px] text-slate-400 shrink-0">
-                    {{ formatListTime(s.last_message_at || s.created_at) }}
-                  </span>
+
+                  <div class="flex items-center gap-1 shrink-0">
+                    <span class="text-[11px] text-slate-400 tabular-nums">
+                      {{ formatListTime(s.last_message_at || s.created_at) }}
+                    </span>
+                    <!-- Tombol Titik Tiga (Desktop Hover) -->
+                    <button
+                      type="button"
+                      @click.stop="openSessionMenu(s)"
+                      class="w-6 h-6 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100"
+                      title="Opsi Percakapan (Sematkan / Hapus)"
+                    >
+                      <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
+                    </button>
+                  </div>
                 </div>
 
-                <p class="text-xs font-semibold text-[#0284C7] dark:text-sky-400 truncate mt-0.5">
-                  {{ s.title }}
-                </p>
+                <!-- Baris 2: Judul Topik (Bold) — Snippet Pesan Terakhir -->
+                <div class="flex items-center gap-1.5 mt-0.5 min-w-0">
+                  <p class="truncate text-[12.5px] flex-1 min-w-0">
+                    <span class="font-semibold text-slate-800 dark:text-slate-100">{{ s.title }}</span>
+                    <span v-if="s.last_message_preview" class="text-slate-400 dark:text-slate-500 font-normal"> &mdash; {{ s.last_message_preview }}</span>
+                  </p>
+                </div>
 
-                <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                  {{ s.last_message_preview || 'Klik untuk membuka chat...' }}
-                </p>
-              </div>
-
-              <!-- Status Badge & Titik Tiga Desktop -->
-              <div class="flex flex-col items-end gap-1.5 shrink-0">
-                <span
-                  class="px-2 py-0.5 rounded-full text-[10px] font-bold border"
-                  :class="STATUS_CONFIG[s.status]?.badge"
-                >
-                  {{ STATUS_CONFIG[s.status]?.label }}
-                </span>
-
-                <!-- Tombol Titik Tiga (Desktop Hover) -->
-                <button
-                  type="button"
-                  @click.stop="openSessionMenu(s)"
-                  class="w-6 h-6 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100"
-                  title="Opsi Percakapan (Sematkan / Hapus)"
-                >
-                  <i class="fa-solid fa-ellipsis-vertical text-xs"></i>
-                </button>
+                <!-- Baris 3: Badges Kategori + Status + Ruang BK -->
+                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                  <span class="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border" :class="getCategoryData(s.category)?.badge">
+                    {{ s.category }}
+                  </span>
+                  <span
+                    class="px-1.5 py-0.5 rounded-md text-[9px] font-bold border"
+                    :class="STATUS_CONFIG[s.status]?.badge"
+                  >
+                    {{ STATUS_CONFIG[s.status]?.label }}
+                  </span>
+                  <span
+                    v-if="s.needs_offline_followup"
+                    class="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800 flex items-center gap-0.5"
+                  >
+                    <i class="fa-solid fa-school text-[8px]"></i> Ruang BK
+                  </span>
+                </div>
               </div>
             </button>
           </div>
@@ -633,13 +645,13 @@ function getCategoryData(catId) {
               >
                 <!-- Bubble Chat Shopee -->
                 <div
-                  class="max-w-[85%] sm:max-w-[75%] px-3.5 py-2.5 rounded-2xl shadow-2xs leading-relaxed text-xs sm:text-sm whitespace-pre-wrap break-words relative"
+                  class="max-w-[85%] sm:max-w-[70%] px-4 py-2.5 rounded-2xl leading-relaxed text-[13px] whitespace-pre-wrap break-words relative shadow-2xs"
                   :class="[
                     msg.is_deleted_for_everyone
                       ? 'bg-slate-100 text-slate-400 italic dark:bg-slate-800 dark:text-slate-500 rounded-lg border border-dashed border-slate-300 dark:border-slate-700'
                       : msg.sender_role === 'siswa'
-                        ? 'bg-[#E0F2FE] text-slate-900 dark:bg-sky-900/80 dark:text-sky-50 rounded-tr-xs'
-                        : 'bg-white text-slate-900 dark:bg-slate-800 dark:text-slate-100 rounded-tl-xs border border-slate-200/60 dark:border-slate-700/60'
+                        ? 'bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white rounded-tr-xs shadow-sm shadow-sky-200/50 dark:shadow-sky-950/60'
+                        : 'bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-tl-xs border border-slate-200/80 dark:border-slate-700 shadow-2xs'
                   ]"
                 >
                   <p>{{ msg.message }}</p>
@@ -650,7 +662,8 @@ function getCategoryData(catId) {
                       v-if="!msg.is_deleted_for_everyone"
                       type="button"
                       @click="openMessageMenu(msg)"
-                      class="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer hover:underline text-slate-400 hover:text-slate-700"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] cursor-pointer"
+                      :class="msg.sender_role === 'siswa' ? 'text-white/70 hover:text-white' : 'text-slate-400 hover:text-slate-700'"
                       title="Opsi Pesan"
                     >
                       <i class="fa-solid fa-ellipsis text-xs"></i>
@@ -659,13 +672,12 @@ function getCategoryData(catId) {
 
                     <div
                       class="flex items-center gap-1 font-medium ml-auto"
-                      :class="msg.sender_role === 'siswa' ? 'text-sky-700 dark:text-sky-300' : 'text-slate-400'"
+                      :class="msg.sender_role === 'siswa' ? 'text-white/80' : 'text-slate-400'"
                     >
                       <span>{{ formatBubbleTime(msg.created_at) }}</span>
                       <i
                         v-if="msg.sender_role === 'siswa' && !msg.is_deleted_for_everyone"
-                        class="fa-solid fa-check-double text-[9px]"
-                        :class="msg.is_read ? 'text-[#0284C7]' : 'text-sky-500'"
+                        class="fa-solid fa-check-double text-[9px] text-white/90"
                       ></i>
                     </div>
                   </div>

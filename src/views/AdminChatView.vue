@@ -562,6 +562,11 @@ function getCategoryData(catId) {
                   <i class="fa-solid fa-arrow-left text-sm"></i>
                 </button>
 
+                <!-- Avatar Siswa Header -->
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-[#0369A1] to-[#0284C7] text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                  {{ chatStore.activeSession.student_name ? chatStore.activeSession.student_name.slice(0, 2).toUpperCase() : 'SW' }}
+                </div>
+
                 <div class="flex-1 min-w-0 flex items-center gap-2">
                   <span
                     v-if="isSessionPinnedForCounselor(chatStore.activeSession, selectedCounselorFilter)"
