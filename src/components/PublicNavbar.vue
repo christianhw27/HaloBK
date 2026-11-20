@@ -3,27 +3,31 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
+import { useChatStore } from '@/stores/chat'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const eligibleStore = useEligibleStore()
+const chatStore = useChatStore()
 
 const isDark = ref(false)
+const isScrolled = ref(false)
 const isMobileMenuOpen = ref(false)
 const activeDropdown = ref(null) // 'berita' | 'akademik' | 'alumni' | null
 const isEligibleModalOpen = ref(false)
 
 const isGuruOrAdmin = computed(() => authStore.userRole === 'admin' || authStore.userRole === 'guru')
 
+function handleWindowScroll() {
+  isScrolled.value = window.scrollY > 8
+}
+
 // Mobile Accordion
 const mobileOpenSection = ref('alumni')
 
 function syncTheme() {
-  if (
-    localStorage.getItem('theme') === 'dark' ||
-    (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  ) {
+  if (localStorage.getItem('theme') === 'dark') {
     isDark.value = true
     document.documentElement.classList.add('dark')
   } else {
@@ -80,11 +84,14 @@ watch(() => route.fullPath, () => {
 
 onMounted(() => {
   syncTheme()
+  handleWindowScroll()
+  window.addEventListener('scroll', handleWindowScroll, { passive: true })
   document.addEventListener('click', handleClickOutside)
   window.addEventListener('keydown', handleKeydown)
 })
 
 onUnmounted(() => {
+  window.removeEventListener('scroll', handleWindowScroll)
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('keydown', handleKeydown)
 })
@@ -111,10 +118,22 @@ function openEligibleModal() {
 function toggleMobileAccordion(section) {
   mobileOpenSection.value = mobileOpenSection.value === section ? null : section
 }
+
+function handleMobileHaloBKClick() {
+  isMobileMenuOpen.value = false
+  if (isGuruOrAdmin.value) {
+    router.push('/admin/chat')
+  } else {
+    router.push('/halobk')
+  }
+}
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800">
+  <header
+    class="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b transition-all duration-200"
+    :class="isScrolled ? 'border-sky-300/80 dark:border-slate-700 shadow-md shadow-sky-900/5 dark:shadow-black/20' : 'border-sky-200/70 dark:border-slate-800'"
+  >
     <!-- Garis Aksen Empat Pilar BK -->
     <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
 
@@ -524,6 +543,39 @@ function toggleMobileAccordion(section) {
           </Transition>
         </div>
 
+        <!-- 4. TOMBOL HALOBK DESKTOP (KHUSUS ADMIN KE /admin/chat, SISWA BUKA WIDGET) -->
+        <router-link
+          v-if="isGuruOrAdmin"
+          to="/admin/chat"
+          class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border"
+          :class="route.path === '/admin/chat'
+            ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
+            : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+        >
+          <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
+          <span>HaloBK</span>
+          <span
+            v-if="chatStore.unreadCount > 0"
+            class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+          >
+            {{ chatStore.unreadCount }}
+          </span>
+        </router-link>
+
+        <router-link
+          v-else
+          to="/halobk"
+          class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-sky-200/90 dark:border-sky-800 bg-sky-50/70 hover:bg-sky-100 text-[#0284C7] dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/70 shadow-2xs"
+          :class="route.path === '/halobk' ? 'ring-2 ring-sky-500/40 bg-sky-100 dark:bg-sky-900/60' : ''"
+          title="Buka Surat Konsultasi HaloBK"
+        >
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <i class="fa-solid fa-envelope-open-text text-sm" aria-hidden="true"></i>
+          <span>HaloBK</span>
+        </router-link>
       </nav>
 
       <!-- AKSI KANAN NAVBAR -->
@@ -646,6 +698,35 @@ function toggleMobileAccordion(section) {
 
             <!-- Accordion Links: Berita, Akademik, Alumni -->
             <nav class="space-y-3" aria-label="Tautan Menu Seluler">
+              
+              <!-- MENU EKSKLUSIF MOBILE: HALOBK (KONSULTASI CHAT GURU BK) -->
+              <div class="rounded-2xl border border-sky-300 dark:border-sky-800 bg-gradient-to-r from-sky-50 via-white to-amber-50/70 dark:from-sky-950/60 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-xs">
+                <button
+                  type="button"
+                  @click="handleMobileHaloBKClick"
+                  class="w-full text-left p-3.5 flex items-center justify-between"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0369A1] to-sky-500 text-white flex items-center justify-center text-base shadow-xs">
+                      <i class="fa-solid fa-headset"></i>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-1.5">
+                        <span class="font-display font-bold text-sm text-slate-900 dark:text-white">
+                          {{ isGuruOrAdmin ? 'Studio HaloBK' : 'HaloBK (Chat BK)' }}
+                        </span>
+                        <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-emerald-500 text-white animate-pulse">
+                          LIVE
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        {{ isGuruOrAdmin ? 'Kelola chat & konsultasi siswa' : 'Konsultasi privat dengan Guru BK' }}
+                      </p>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-chevron-right text-xs text-sky-600 dark:text-sky-400"></i>
+                </button>
+              </div>
               
               <!-- 1. Menu Berita (Untuk Siswa / Umum: Langsung Navigasi ke Berita) -->
               <button

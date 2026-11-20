@@ -14,6 +14,8 @@ import ProfileView from '@/views/ProfileView.vue'
 import EditSiswaView from '@/views/EditSiswaView.vue'
 import EligibleSiswaView from '@/views/EligibleSiswaView.vue'
 import AdminEligibleView from '@/views/AdminEligibleView.vue'
+import AdminChatView from '@/views/AdminChatView.vue'
+import HaloBKSiswaView from '@/views/HaloBKSiswaView.vue'
 import { useEligibleStore } from '@/stores/eligible'
 
 const routes = [
@@ -110,6 +112,22 @@ const routes = [
     name: 'admin-eligible',
     component: AdminEligibleView,
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/chat',
+    name: 'admin-chat',
+    component: AdminChatView,
+    meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/halobk',
+    name: 'halobk-siswa',
+    component: HaloBKSiswaView,
+    meta: { layout: 'public', requiresAuth: true }
+  },
+  {
+    path: '/konsultasi',
+    redirect: '/halobk'
   },
   {
     path: '/:pathMatch(.*)*',

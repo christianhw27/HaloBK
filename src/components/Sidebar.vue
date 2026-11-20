@@ -4,12 +4,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useAlumniStore } from '@/stores/alumni'
 import { useEligibleStore } from '@/stores/eligible'
+import { useChatStore } from '@/stores/chat'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const alumniStore = useAlumniStore()
 const eligibleStore = useEligibleStore()
+const chatStore = useChatStore()
 
 const isDark = ref(false)
 const isMobileOpen = ref(false)
@@ -20,8 +22,7 @@ function handleLogout() {
 }
 
 onMounted(() => {
-  if (localStorage.getItem('theme') === 'dark' || 
-      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  if (localStorage.getItem('theme') === 'dark') {
     isDark.value = true
     document.documentElement.classList.add('dark')
   } else {
@@ -246,6 +247,40 @@ function toggleDarkMode() {
           </div>
           <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 shrink-0">
             SNBP
+          </span>
+        </router-link>
+
+        <!-- Tautan Khusus Guru BK / Admin: Portal Admin Siswa Eligible SNBP -->
+        <router-link
+          v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
+          to="/admin/eligible"
+          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2 border border-purple-200/90 dark:border-purple-800/70 bg-gradient-to-r from-purple-50 via-white to-amber-50/70 dark:from-purple-950/40 dark:via-slate-900 dark:to-amber-950/30 text-purple-900 dark:text-purple-200 hover:border-purple-400 hover:shadow-xs"
+        >
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <i class="fa-solid fa-graduation-cap text-sm" aria-hidden="true"></i>
+            </span>
+            <span>Admin Eligible</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-600 text-white shrink-0">
+            SNBP
+          </span>
+        </router-link>
+
+        <!-- Tautan Khusus Guru BK / Admin: Studio Chat Siswa (HaloBK) -->
+        <router-link
+          v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
+          to="/admin/chat"
+          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2.5 border border-sky-200/90 dark:border-sky-800/70 bg-gradient-to-r from-sky-50 via-white to-sky-100/40 dark:from-sky-950/40 dark:via-slate-900 dark:to-sky-900/30 text-sky-900 dark:text-sky-200 hover:border-sky-400 hover:shadow-xs"
+        >
+          <div class="flex items-center gap-3">
+            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0369A1] to-sky-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+              <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
+            </span>
+            <span>HaloBK Chat</span>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0284C7] text-white shrink-0">
+            LIVE
           </span>
         </router-link>
 

@@ -3,6 +3,7 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import EligibleCongratsModal from '@/components/EligibleCongratsModal.vue'
+import HaloBKChatWidget from '@/components/HaloBKChatWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
 
@@ -89,6 +90,9 @@ watch(
     <!-- Pop-up Ucapan Selamat Siswa Eligible Pertama Kali Login -->
     <EligibleCongratsModal />
   </div>
+
+  <!-- Widget Konsultasi Chat HaloBK (Shopee Seller Style untuk Siswa / Pengunjung) -->
+  <HaloBKChatWidget v-if="authStore.userRole !== 'admin'" />
 </template>
 
 <style>
