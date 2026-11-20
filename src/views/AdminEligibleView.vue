@@ -246,11 +246,40 @@ function formatAverage(val) {
   return isNaN(num) ? '0.00' : num.toFixed(2)
 }
 
+function computeSubjectAverage(g) {
+  if (!g) return null
+  const filled = [g.sem_1, g.sem_2, g.sem_3, g.sem_4, g.sem_5]
+    .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
+    .map(Number)
+  if (filled.length === 0) return null
+  return Number((filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2))
+}
+
+function formatSemScore(val) {
+  if (val === null || val === undefined || val === '' || isNaN(Number(val))) return '-'
+  return String(Math.trunc(Number(val)))
+}
+
+function getModalSemesterAverage(grades, sNum) {
+  if (!Array.isArray(grades) || grades.length === 0) return '-'
+  const filled = grades
+    .map(g => g[`sem_${sNum}`])
+    .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
+    .map(Number)
+  if (filled.length === 0) return '-'
+  return (filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2)
+}
+
 function getStudentAverage(item) {
   const grades = item?.eligible_grades || []
   if (grades.length > 0) {
-    const sum = grades.reduce((acc, g) => acc + (Number(g.subject_average) || 0), 0)
-    return Number((sum / grades.length).toFixed(2))
+    const subjectAverages = grades
+      .map(computeSubjectAverage)
+      .filter(avg => avg !== null)
+    if (subjectAverages.length > 0) {
+      const sum = subjectAverages.reduce((acc, avg) => acc + avg, 0)
+      return Number((sum / subjectAverages.length).toFixed(2))
+    }
   }
   return Number(item?.overall_average) || 0
 }
@@ -607,7 +636,7 @@ const filteredRankingList = computed(() => {
       : (grades.length > 0 || overallAvg > 0)
 
     const activeScore = isSubjectMode
-      ? (subjectGrade ? Number(subjectGrade.subject_average || 0) : 0)
+      ? (subjectGrade ? (computeSubjectAverage(subjectGrade) ?? 0) : 0)
       : overallAvg
 
     const p1 = (item.eligible_choices || []).find(c => c.priority === 1) || (item.eligible_choices || [])[0] || null
@@ -1688,11 +1717,11 @@ const filteredRankingList = computed(() => {
                             {{ formatAverage(item.activeScore) }}
                           </div>
                           <div class="text-xs font-mono text-slate-500 dark:text-slate-400 tabular-nums">
-                            S1:{{ Math.trunc(Number(item.subjectGrade.sem_1) || 0) }} &middot;
-                            S2:{{ Math.trunc(Number(item.subjectGrade.sem_2) || 0) }} &middot;
-                            S3:{{ Math.trunc(Number(item.subjectGrade.sem_3) || 0) }} &middot;
-                            S4:{{ Math.trunc(Number(item.subjectGrade.sem_4) || 0) }} &middot;
-                            S5:{{ Math.trunc(Number(item.subjectGrade.sem_5) || 0) }}
+                            S1:{{ formatSemScore(item.subjectGrade.sem_1) }} &middot;
+                            S2:{{ formatSemScore(item.subjectGrade.sem_2) }} &middot;
+                            S3:{{ formatSemScore(item.subjectGrade.sem_3) }} &middot;
+                            S4:{{ formatSemScore(item.subjectGrade.sem_4) }} &middot;
+                            S5:{{ formatSemScore(item.subjectGrade.sem_5) }}
                           </div>
                           <div class="text-[11px] text-slate-400">
                             Rata-rata total: <span class="font-mono font-semibold">{{ formatAverage(item.overallAverageCalc) }}</span>
@@ -1776,11 +1805,11 @@ const filteredRankingList = computed(() => {
                   class="px-3 py-2 rounded-xl bg-sky-50/70 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/50 text-xs font-mono text-slate-700 dark:text-slate-300 flex items-center justify-between flex-wrap gap-2"
                 >
                   <span>
-                    S1:{{ Math.trunc(Number(item.subjectGrade.sem_1) || 0) }} &middot;
-                    S2:{{ Math.trunc(Number(item.subjectGrade.sem_2) || 0) }} &middot;
-                    S3:{{ Math.trunc(Number(item.subjectGrade.sem_3) || 0) }} &middot;
-                    S4:{{ Math.trunc(Number(item.subjectGrade.sem_4) || 0) }} &middot;
-                    S5:{{ Math.trunc(Number(item.subjectGrade.sem_5) || 0) }}
+                    S1:{{ formatSemScore(item.subjectGrade.sem_1) }} &middot;
+                    S2:{{ formatSemScore(item.subjectGrade.sem_2) }} &middot;
+                    S3:{{ formatSemScore(item.subjectGrade.sem_3) }} &middot;
+                    S4:{{ formatSemScore(item.subjectGrade.sem_4) }} &middot;
+                    S5:{{ formatSemScore(item.subjectGrade.sem_5) }}
                   </span>
                   <span class="text-slate-500">Total: {{ formatAverage(item.overallAverageCalc) }}</span>
                 </div>
@@ -2065,16 +2094,29 @@ const filteredRankingList = computed(() => {
               <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                 <tr v-for="g in selectedEligibleDetail.eligible_grades" :key="g.id" class="hover:bg-sky-50/35 dark:hover:bg-slate-800/40">
                   <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{{ g.subjects?.name }}</td>
-                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ Math.trunc(Number(g.sem_1) || 0) }}</td>
-                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ Math.trunc(Number(g.sem_2) || 0) }}</td>
-                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ Math.trunc(Number(g.sem_3) || 0) }}</td>
-                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ Math.trunc(Number(g.sem_4) || 0) }}</td>
-                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ Math.trunc(Number(g.sem_5) || 0) }}</td>
+                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ formatSemScore(g.sem_1) }}</td>
+                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ formatSemScore(g.sem_2) }}</td>
+                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ formatSemScore(g.sem_3) }}</td>
+                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ formatSemScore(g.sem_4) }}</td>
+                  <td class="px-3 py-3 text-center font-mono tabular-nums">{{ formatSemScore(g.sem_5) }}</td>
                   <td class="px-4 py-3 text-right font-mono font-bold text-[#0369A1] dark:text-sky-300 tabular-nums">
-                    {{ Number(g.subject_average || 0).toFixed(2) }}
+                    {{ computeSubjectAverage(g) !== null ? computeSubjectAverage(g).toFixed(2) : '-' }}
                   </td>
                 </tr>
               </tbody>
+              <tfoot class="bg-amber-50/70 dark:bg-amber-950/40 font-bold text-xs border-t-2 border-amber-200 dark:border-amber-900/60">
+                <tr>
+                  <td class="px-4 py-3 text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+                    Rata-Rata per Semester:
+                  </td>
+                  <td class="px-3 py-3 text-center font-mono text-amber-950 dark:text-amber-200" v-for="sNum in [1, 2, 3, 4, 5]" :key="sNum">
+                    {{ getModalSemesterAverage(selectedEligibleDetail.eligible_grades, sNum) }}
+                  </td>
+                  <td class="px-4 py-3 text-right font-mono font-extrabold text-sm text-[#0369A1] dark:text-sky-300 bg-sky-100/70 dark:bg-sky-950/80">
+                    {{ formatAverage(getStudentAverage(selectedEligibleDetail)) }}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </div>

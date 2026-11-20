@@ -308,12 +308,16 @@ async function submitChoices() {
   }
 }
 
-// Helper sanitasi nilai rapor: bilangan bulat 0 - 100 (tanpa minus, tanpa koma, max 100)
-function clampGradeInt(val) {
-  const num = parseInt(String(val ?? '').replace(/[^0-9]/g, ''), 10)
-  if (isNaN(num) || num < 0) return 0
-  if (num > 100) return 100
-  return num
+// Helper parsing nilai rapor: bilangan bulat 0 - 100 atau null jika kosong/tidak diajarkan
+function parseGradeOrNull(val) {
+  if (val === null || val === undefined) return null
+  const str = String(val).trim()
+  if (str === '' || str === '-') return null
+  const cleanStr = str.replace(/[^0-9]/g, '')
+  if (cleanStr === '') return null
+  const num = parseInt(cleanStr, 10)
+  if (isNaN(num) || num < 0) return null
+  return Math.min(100, Math.max(0, num))
 }
 
 // Navigasi 4 arah (Panah Atas, Bawah, Kiri, Kanan + Enter) ala Excel pada tabel nilai rapor
@@ -370,16 +374,16 @@ function handleGradeKeydown(e, rowIdx, colIdx) {
 }
 
 function sanitizeGradeInput(row, field, e) {
-  const raw = e?.target?.value ?? row[field]
+  const raw = e?.target ? e.target.value : row[field]
   if (raw === '' || raw === null || raw === undefined) {
-    row[field] = 0
-    if (e?.target) e.target.value = '0'
+    row[field] = null
+    if (e?.target) e.target.value = ''
     return
   }
-  const clean = clampGradeInt(raw)
+  const clean = parseGradeOrNull(raw)
   row[field] = clean
-  if (e?.target && String(e.target.value) !== String(clean)) {
-    e.target.value = String(clean)
+  if (e?.target && String(e.target.value) !== (clean !== null ? String(clean) : '')) {
+    e.target.value = clean !== null ? String(clean) : ''
   }
 }
 
@@ -389,24 +393,24 @@ function initGradesForm() {
   if (existing && existing.length > 0) {
     gradesRows.value = existing.map(g => ({
       subject_id: g.subject_id,
-      sem_1: clampGradeInt(Math.trunc(Number(g.sem_1) || 0)),
-      sem_2: clampGradeInt(Math.trunc(Number(g.sem_2) || 0)),
-      sem_3: clampGradeInt(Math.trunc(Number(g.sem_3) || 0)),
-      sem_4: clampGradeInt(Math.trunc(Number(g.sem_4) || 0)),
-      sem_5: clampGradeInt(Math.trunc(Number(g.sem_5) || 0))
+      sem_1: parseGradeOrNull(g.sem_1),
+      sem_2: parseGradeOrNull(g.sem_2),
+      sem_3: parseGradeOrNull(g.sem_3),
+      sem_4: parseGradeOrNull(g.sem_4),
+      sem_5: parseGradeOrNull(g.sem_5)
     }))
   } else {
-    // Default tambahkan baris mapel
+    // Default tambahkan baris mapel (nilai null = belum terisi / tidak diambil)
     gradesRows.value = []
     const defaultSubjects = eligibleStore.masterSubjects.slice(0, 6)
     defaultSubjects.forEach(s => {
       gradesRows.value.push({
         subject_id: s.id,
-        sem_1: 0,
-        sem_2: 0,
-        sem_3: 0,
-        sem_4: 0,
-        sem_5: 0
+        sem_1: null,
+        sem_2: null,
+        sem_3: null,
+        sem_4: null,
+        sem_5: null
       })
     })
   }
@@ -415,11 +419,11 @@ function initGradesForm() {
 function addGradeRow() {
   gradesRows.value.push({
     subject_id: '',
-    sem_1: 0,
-    sem_2: 0,
-    sem_3: 0,
-    sem_4: 0,
-    sem_5: 0
+    sem_1: null,
+    sem_2: null,
+    sem_3: null,
+    sem_4: null,
+    sem_5: null
   })
 }
 
@@ -432,35 +436,38 @@ const selectedSubjectIds = computed(() => {
   return new Set(gradesRows.value.map(r => r.subject_id).filter(Boolean))
 })
 
-// Kalkulasi rata-rata per baris mapel (horizontal) — boleh koma (2 angka di belakang koma)
+// Kalkulasi rata-rata per baris mapel (horizontal) — HANYA dibagi dengan total berapa kali nilainya muncul (semester yang terisi)
 function calculateRowAverage(row) {
-  const sum =
-    clampGradeInt(row.sem_1) +
-    clampGradeInt(row.sem_2) +
-    clampGradeInt(row.sem_3) +
-    clampGradeInt(row.sem_4) +
-    clampGradeInt(row.sem_5)
-  return Number((sum / 5).toFixed(2))
+  const filled = [1, 2, 3, 4, 5]
+    .map(s => parseGradeOrNull(row[`sem_${s}`]))
+    .filter(v => v !== null)
+
+  if (filled.length === 0) return null
+  const sum = filled.reduce((acc, v) => acc + v, 0)
+  return Number((sum / filled.length).toFixed(2))
 }
 
-// Kalkulasi rata-rata per semester (vertikal) — 2 angka di belakang koma
+// Kalkulasi rata-rata per semester (vertikal) — HANYA dibagi dengan jumlah mapel yang terisi pada semester terkait
 const semesterAverages = computed(() => {
-  const count = gradesRows.value.length || 1
-  const totals = [0, 0, 0, 0, 0]
-  gradesRows.value.forEach(r => {
-    totals[0] += clampGradeInt(r.sem_1)
-    totals[1] += clampGradeInt(r.sem_2)
-    totals[2] += clampGradeInt(r.sem_3)
-    totals[3] += clampGradeInt(r.sem_4)
-    totals[4] += clampGradeInt(r.sem_5)
+  return [1, 2, 3, 4, 5].map(sNum => {
+    const filledValues = gradesRows.value
+      .map(r => parseGradeOrNull(r[`sem_${sNum}`]))
+      .filter(v => v !== null)
+
+    if (filledValues.length === 0) return '-'
+    const sum = filledValues.reduce((acc, v) => acc + v, 0)
+    return (sum / filledValues.length).toFixed(2)
   })
-  return totals.map(t => (t / count).toFixed(2))
 })
 
-// Rata-rata kumulatif keseluruhan — 2 angka di belakang koma
+// Rata-rata kumulatif keseluruhan — rata-rata dari seluruh mata pelajaran yang terisi
 const calculatedOverallAverage = computed(() => {
   if (gradesRows.value.length === 0) return '0.00'
-  const rowAverages = gradesRows.value.map(calculateRowAverage)
+  const rowAverages = gradesRows.value
+    .map(calculateRowAverage)
+    .filter(avg => avg !== null)
+
+  if (rowAverages.length === 0) return '0.00'
   const sum = rowAverages.reduce((acc, curr) => acc + curr, 0)
   return (sum / rowAverages.length).toFixed(2)
 })
@@ -479,14 +486,29 @@ async function submitGrades() {
     return
   }
 
-  // Validasi ketat setiap nilai: bilangan bulat 0 - 100 (tanpa minus, tanpa koma)
+  // Cek apakah ada baris yang sama sekali tidak memiliki nilai di semester mana pun
+  const completelyEmptyRow = gradesRows.value.find(r => {
+    return [1, 2, 3, 4, 5].every(s => parseGradeOrNull(r[`sem_${s}`]) === null)
+  })
+  if (completelyEmptyRow) {
+    const subj = eligibleStore.masterSubjects.find(s => s.id === completelyEmptyRow.subject_id)
+    gradeFeedback.value = {
+      type: 'error',
+      text: `Mata pelajaran "${subj?.name || 'terpilih'}" belum memiliki nilai pada semester mana pun. Silakan isi minimal 1 semester atau hapus baris jika tidak diajarkan.`
+    }
+    return
+  }
+
+  // Validasi nilai: jika terisi harus berupa bilangan bulat 0 - 100
   for (const r of gradesRows.value) {
     for (const sKey of ['sem_1', 'sem_2', 'sem_3', 'sem_4', 'sem_5']) {
-      const v = Number(r[sKey])
-      if (!Number.isInteger(v) || v < 0 || v > 100) {
+      const v = r[sKey]
+      if (v === null || v === undefined || v === '') continue
+      const num = Number(v)
+      if (!Number.isInteger(num) || num < 0 || num > 100) {
         gradeFeedback.value = {
           type: 'error',
-          text: 'Nilai rapor harus berupa bilangan bulat antara 0 sampai 100 (tidak boleh minus atau koma).'
+          text: 'Nilai rapor harus berupa bilangan bulat antara 0 sampai 100.'
         }
         return
       }
@@ -786,7 +808,7 @@ async function handleDeleteCert(id) {
                 Tabel Nilai Rapor Semester 1 s.d. 5
               </h2>
               <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                Isi nilai rapor bilangan bulat 0–100 (tanpa minus &amp; tanpa koma). Gunakan tombol panah (&uarr; &darr; &larr; &rarr;) atau Enter untuk berpindah sel. Rata-rata otomatis terhitung 2 angka di belakang koma.
+                Isi nilai rapor bilangan bulat 0–100. Kosongkan sel (-) apabila mata pelajaran tidak diajarkan pada semester terkait. Rata-rata otomatis dihitung sesuai jumlah kemunculan nilai yang terisi. Gunakan panah (&uarr; &darr; &larr; &rarr;) atau Enter untuk berpindah sel.
               </p>
             </div>
 
@@ -842,19 +864,20 @@ async function handleDeleteCert(id) {
                       inputmode="numeric"
                       autocomplete="off"
                       maxlength="3"
+                      placeholder="-"
                       :data-grade-cell="`${idx}-${sNum}`"
-                      :value="row[`sem_${sNum}`]"
+                      :value="row[`sem_${sNum}`] !== null && row[`sem_${sNum}`] !== undefined ? row[`sem_${sNum}`] : ''"
                       @focus="$event.target.select()"
                       @keydown="handleGradeKeydown($event, idx, sNum)"
                       @input="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
                       @blur="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
                       :disabled="!eligibleStore.canEditGrades"
-                      class="w-16 px-1.5 py-1.5 rounded-lg text-center font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-75 transition-colors"
+                      class="w-16 px-1.5 py-1.5 rounded-lg text-center font-mono text-xs sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-75 transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
                     />
                   </td>
 
                   <td class="p-2 text-center font-mono font-bold text-xs sm:text-sm bg-sky-50/50 dark:bg-sky-950/30 text-[#0284C7] dark:text-sky-300">
-                    {{ calculateRowAverage(row).toFixed(2) }}
+                    {{ calculateRowAverage(row) !== null ? calculateRowAverage(row).toFixed(2) : '-' }}
                   </td>
 
                   <td v-if="eligibleStore.canEditGrades" class="p-2 text-center">

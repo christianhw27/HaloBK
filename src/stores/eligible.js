@@ -266,7 +266,16 @@ export const useEligibleStore = defineStore('eligible', () => {
         `)
         .eq('eligible_student_id', eligibleStudentId)
 
-      myGrades.value = data || []
+      myGrades.value = (data || []).map(g => {
+        const filled = [g.sem_1, g.sem_2, g.sem_3, g.sem_4, g.sem_5]
+          .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
+          .map(Number)
+        const calcAvg = filled.length > 0 ? Number((filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2)) : 0
+        return {
+          ...g,
+          subject_average: calcAvg
+        }
+      })
       return myGrades.value
     } catch (e) {
       console.warn('Error fetching grades:', e)
@@ -412,12 +421,15 @@ export const useEligibleStore = defineStore('eligible', () => {
       isLoading.value = true
       const eligibleId = myEligibleData.value.id
 
-      const toSafeInt = (v) => {
-        const n = Math.trunc(Number(v) || 0)
+      const toSafeNullableInt = (v) => {
+        if (v === '' || v === null || v === undefined) return null
+        const num = Number(v)
+        if (isNaN(num)) return null
+        const n = Math.trunc(num)
         return Math.min(100, Math.max(0, n))
       }
 
-      // Upsert semua baris nilai (bilangan bulat 0-100, tanpa minus & tanpa koma)
+      // Upsert semua baris nilai (bilangan bulat 0-100 atau null jika tidak diambil pada semester tersebut)
       for (const row of gradesPayload) {
         if (!row.subject_id) continue
         await supabase
@@ -426,31 +438,41 @@ export const useEligibleStore = defineStore('eligible', () => {
             {
               eligible_student_id: eligibleId,
               subject_id: row.subject_id,
-              sem_1: toSafeInt(row.sem_1),
-              sem_2: toSafeInt(row.sem_2),
-              sem_3: toSafeInt(row.sem_3),
-              sem_4: toSafeInt(row.sem_4),
-              sem_5: toSafeInt(row.sem_5)
+              sem_1: toSafeNullableInt(row.sem_1),
+              sem_2: toSafeNullableInt(row.sem_2),
+              sem_3: toSafeNullableInt(row.sem_3),
+              sem_4: toSafeNullableInt(row.sem_4),
+              sem_5: toSafeNullableInt(row.sem_5)
             },
             { onConflict: 'eligible_student_id,subject_id' }
           )
       }
 
-      // Hitung rata-rata keseluruhan
+      // Hitung rata-rata keseluruhan (rata-rata dari seluruh mata pelajaran yang terisi)
       const refreshedGrades = await fetchMyGrades(eligibleId)
       if (refreshedGrades.length > 0) {
-        const totalAvg = refreshedGrades.reduce((sum, g) => sum + (Number(g.subject_average) || 0), 0)
-        const overallAvg = Number((totalAvg / refreshedGrades.length).toFixed(2))
+        const validSubjectAverages = refreshedGrades.map(g => {
+          const filled = [g.sem_1, g.sem_2, g.sem_3, g.sem_4, g.sem_5]
+            .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
+            .map(Number)
+          if (filled.length === 0) return null
+          return Number((filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2))
+        }).filter(avg => avg !== null)
 
-        await supabase
-          .from('eligible_students')
-          .update({
-            overall_average: overallAvg,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', eligibleId)
+        if (validSubjectAverages.length > 0) {
+          const totalAvg = validSubjectAverages.reduce((sum, avg) => sum + avg, 0)
+          const overallAvg = Number((totalAvg / validSubjectAverages.length).toFixed(2))
 
-        myEligibleData.value.overall_average = overallAvg
+          await supabase
+            .from('eligible_students')
+            .update({
+              overall_average: overallAvg,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', eligibleId)
+
+          myEligibleData.value.overall_average = overallAvg
+        }
       }
 
       return { success: true, message: 'Nilai rapor berhasil disimpan!' }
@@ -808,7 +830,17 @@ export const useEligibleStore = defineStore('eligible', () => {
               universities: c.universities || (localUni ? { id: localUni.id, name: localUni.name } : null),
               majors: c.majors || (localMaj ? { id: localMaj.id, name: localMaj.name, degree: localMaj.degree, quota: localMaj.quota } : null)
             }
-          })
+          }),
+        eligible_grades: (item.eligible_grades || []).map(g => {
+          const filled = [g.sem_1, g.sem_2, g.sem_3, g.sem_4, g.sem_5]
+            .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
+            .map(Number)
+          const calcAvg = filled.length > 0 ? Number((filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2)) : 0
+          return {
+            ...g,
+            subject_average: calcAvg
+          }
+        })
       }))
       return allEligibleStudents.value
     } catch (e) {
