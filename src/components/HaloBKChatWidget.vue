@@ -32,7 +32,7 @@ function handleClick() {
 <template>
   <!-- TOMBOL MELAYANG ELEGAN HALOBK (NAVIGASI KE CHAT KONSULTASI PORTAL) -->
   <aside
-    v-if="!isHiddenRoute"
+    v-if="authStore.isLoggedIn && !isHiddenRoute"
     class="fixed bottom-5 right-4 sm:right-6 z-40 font-sans print:hidden"
     aria-label="Pintasan Konsultasi HaloBK"
   >

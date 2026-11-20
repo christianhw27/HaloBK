@@ -91,8 +91,8 @@ watch(
     <EligibleCongratsModal />
   </div>
 
-  <!-- Widget Konsultasi Chat HaloBK (Shopee Seller Style untuk Siswa / Pengunjung) -->
-  <HaloBKChatWidget v-if="authStore.userRole !== 'admin'" />
+  <!-- Widget Konsultasi Chat HaloBK (Hanya Tampil Jika Sudah Login dan Bukan Admin) -->
+  <HaloBKChatWidget v-if="authStore.isLoggedIn && authStore.userRole !== 'admin'" />
 </template>
 
 <style>

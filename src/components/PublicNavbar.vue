@@ -543,39 +543,41 @@ function handleMobileHaloBKClick() {
           </Transition>
         </div>
 
-        <!-- 4. TOMBOL HALOBK DESKTOP (KHUSUS ADMIN KE /admin/chat, SISWA BUKA WIDGET) -->
-        <router-link
-          v-if="isGuruOrAdmin"
-          to="/admin/chat"
-          class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border"
-          :class="route.path === '/admin/chat'
-            ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
-            : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
-        >
-          <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
-          <span>HaloBK</span>
-          <span
-            v-if="chatStore.unreadCount > 0"
-            class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+        <!-- 4. TOMBOL HALOBK DESKTOP (HANYA MUNCUL JIKA SUDAH LOGIN) -->
+        <template v-if="authStore.isLoggedIn">
+          <router-link
+            v-if="isGuruOrAdmin"
+            to="/admin/chat"
+            class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border"
+            :class="route.path === '/admin/chat'
+              ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
+              : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
           >
-            {{ chatStore.unreadCount }}
-          </span>
-        </router-link>
+            <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
+            <span>HaloBK</span>
+            <span
+              v-if="chatStore.unreadCount > 0"
+              class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+            >
+              {{ chatStore.unreadCount }}
+            </span>
+          </router-link>
 
-        <router-link
-          v-else
-          to="/halobk"
-          class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-sky-200/90 dark:border-sky-800 bg-sky-50/70 hover:bg-sky-100 text-[#0284C7] dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/70 shadow-2xs"
-          :class="route.path === '/halobk' ? 'ring-2 ring-sky-500/40 bg-sky-100 dark:bg-sky-900/60' : ''"
-          title="Buka Surat Konsultasi HaloBK"
-        >
-          <span class="relative flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <i class="fa-solid fa-envelope-open-text text-sm" aria-hidden="true"></i>
-          <span>HaloBK</span>
-        </router-link>
+          <router-link
+            v-else
+            to="/halobk"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-sky-200/90 dark:border-sky-800 bg-sky-50/70 hover:bg-sky-100 text-[#0284C7] dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/70 shadow-2xs"
+            :class="route.path === '/halobk' ? 'ring-2 ring-sky-500/40 bg-sky-100 dark:bg-sky-900/60' : ''"
+            title="Buka Surat Konsultasi HaloBK"
+          >
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <i class="fa-solid fa-envelope-open-text text-sm" aria-hidden="true"></i>
+            <span>HaloBK</span>
+          </router-link>
+        </template>
       </nav>
 
       <!-- AKSI KANAN NAVBAR -->
@@ -699,8 +701,11 @@ function handleMobileHaloBKClick() {
             <!-- Accordion Links: Berita, Akademik, Alumni -->
             <nav class="space-y-3" aria-label="Tautan Menu Seluler">
               
-              <!-- MENU EKSKLUSIF MOBILE: HALOBK (KONSULTASI CHAT GURU BK) -->
-              <div class="rounded-2xl border border-sky-300 dark:border-sky-800 bg-gradient-to-r from-sky-50 via-white to-amber-50/70 dark:from-sky-950/60 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-xs">
+              <!-- MENU EKSKLUSIF MOBILE: HALOBK (KONSULTASI CHAT GURU BK - HANYA MUNCUL JIKA SUDAH LOGIN) -->
+              <div
+                v-if="authStore.isLoggedIn"
+                class="rounded-2xl border border-sky-300 dark:border-sky-800 bg-gradient-to-r from-sky-50 via-white to-amber-50/70 dark:from-sky-950/60 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-xs"
+              >
                 <button
                   type="button"
                   @click="handleMobileHaloBKClick"

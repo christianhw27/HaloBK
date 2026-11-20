@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import {
   useChatStore,
@@ -11,6 +12,7 @@ import {
 } from '@/stores/chat'
 import PublicNavbar from '@/components/PublicNavbar.vue'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
@@ -98,6 +100,15 @@ watch(() => chatStore.messages.length, () => scrollToBottom())
 watch(() => chatStore.activeSession?.id, () => scrollToBottom())
 
 onMounted(async () => {
+  if (!authStore.isLoggedIn) {
+    router.push({ path: '/login', query: { redirect: '/admin/chat' } })
+    return
+  }
+  if (authStore.userRole !== 'admin') {
+    router.push('/halobk')
+    return
+  }
+
   await chatStore.fetchAllSessionsAdmin()
   if (filteredSessions.value.length > 0 && window.innerWidth >= 1024 && !chatStore.activeSession) {
     await chatStore.selectSession(filteredSessions.value[0])
