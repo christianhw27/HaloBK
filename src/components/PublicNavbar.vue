@@ -77,6 +77,12 @@ function handleKeydown(e) {
   }
 }
 
+async function handleNavbarLogout() {
+  closeDropdown()
+  isMobileMenuOpen.value = false
+  await authStore.logout()
+}
+
 watch(() => route.fullPath, () => {
   closeDropdown()
   isMobileMenuOpen.value = false
@@ -744,7 +750,7 @@ function handleMobileHaloBKClick() {
 
           <!-- Tombol Keluar Akun -->
           <button
-            @click="authStore.logout()"
+            @click="handleNavbarLogout"
             type="button"
             class="hidden sm:flex w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 hover:bg-rose-50 dark:bg-slate-900 dark:hover:bg-rose-950/40 text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 border border-[#E2E8F0] dark:border-slate-700 items-center justify-center transition-colors shrink-0"
             title="Keluar dari akun"
@@ -1160,7 +1166,7 @@ function handleMobileHaloBKClick() {
               </router-link>
 
               <button
-                @click="authStore.logout(); isMobileMenuOpen = false"
+                @click="handleNavbarLogout"
                 type="button"
                 class="w-full py-2.5 px-4 rounded-xl text-rose-600 dark:text-rose-400 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
               >

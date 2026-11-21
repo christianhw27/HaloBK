@@ -1,13 +1,15 @@
 <script setup>
 import { computed, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import PublicNavbar from '@/components/PublicNavbar.vue'
 import Sidebar from '@/components/Sidebar.vue'
 import EligibleCongratsModal from '@/components/EligibleCongratsModal.vue'
+import LogoutModal from '@/components/LogoutModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const eligibleStore = useEligibleStore()
 
@@ -38,6 +40,20 @@ watch(
     }
   },
   { immediate: true }
+)
+
+// Pengaman Zero-Trust: Jika sesi login berakhir atau logout saat berada di rute terproteksi,
+// seketika lemparkan pengguna ke Portal Berita ('/') dan munculkan pop-up logout
+watch(
+  () => [authStore.isLoggedIn, route.meta?.requiresAuth],
+  ([loggedIn, requiresAuth]) => {
+    if (authStore.isAuthReady && !loggedIn && requiresAuth) {
+      authStore.triggerLogoutNotice()
+      if (route.path !== '/') {
+        router.replace('/')
+      }
+    }
+  }
 )
 </script>
 
@@ -93,6 +109,9 @@ watch(
     <!-- Pop-up Ucapan Selamat Siswa Eligible Pertama Kali Login -->
     <EligibleCongratsModal />
   </div>
+
+  <!-- Pop-up Notifikasi Logout Global (Dapat muncul di seluruh halaman & rute) -->
+  <LogoutModal />
 </template>
 
 <style>

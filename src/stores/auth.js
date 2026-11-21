@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import router from '@/router'
 
 export const useAuthStore = defineStore('auth', () => {
   function sanitizeUserDataForStorage(u) {
@@ -28,6 +29,19 @@ export const useAuthStore = defineStore('auth', () => {
   const userNisn = ref('')
   const currentUser = ref(null)
   const isAuthReady = ref(false)
+
+  // State pop up notifikasi logout
+  const showLogoutNotice = ref(false)
+  const logoutNoticeMessage = ref('')
+
+  function closeLogoutNotice() {
+    showLogoutNotice.value = false
+  }
+
+  function triggerLogoutNotice(msg = '') {
+    logoutNoticeMessage.value = msg || 'Anda telah berhasil keluar dari akun. Sesi kerja telah diakhiri dan Anda telah dialihkan kembali ke Portal Berita demi privasi dan keamanan data.'
+    showLogoutNotice.value = true
+  }
 
   /**
    * Inisialisasi & Verifikasi Sesi Kredensial Resmi via Supabase Auth (Kriptografis JWT)
@@ -471,6 +485,20 @@ export const useAuthStore = defineStore('auth', () => {
         console.warn('Error saat sign out Supabase:', err)
       }
     }
+
+    // Tampilkan notifikasi pop up bahwa sesi telah diakhiri
+    triggerLogoutNotice()
+
+    // Lemparkan / alihkan langsung ke portal berita (rute '/')
+    try {
+      if (router.currentRoute.value.path !== '/') {
+        await router.push('/')
+      }
+    } catch (e) {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+        window.location.href = '/'
+      }
+    }
   }
 
   // --- MANAJEMEN AKUN PENGGUNA (KHUSUS ADMIN GURU BK) ---
@@ -608,7 +636,11 @@ export const useAuthStore = defineStore('auth', () => {
     updateProfile,
     changePassword,
     logout,
-    initAuth
+    initAuth,
+    showLogoutNotice,
+    logoutNoticeMessage,
+    closeLogoutNotice,
+    triggerLogoutNotice
   }
 })
 
