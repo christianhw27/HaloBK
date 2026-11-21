@@ -1042,6 +1042,18 @@ export const useAlumniStore = defineStore('alumni', () => {
           }
         }
 
+        // Jika NISN siswa diubah oleh admin, sinkronkan juga ke Supabase Auth via server-side RPC
+        if (form.nisn && form.nisn !== '-' && form.nisn.trim().length >= 8) {
+          try {
+            await supabase.rpc('admin_update_student_nisn', {
+              p_user_id: id,
+              p_new_nisn: form.nisn.trim()
+            })
+          } catch (e) {
+            // Fallback graceful jika migrasi RPC belum dieksekusi di database
+          }
+        }
+
         // Coba perbarui di tabel users berdasarkan ID
         let resUser = await supabase.from('users').update(userPayload).eq('id', id)
         if (resUser.error && (resUser.error.code === '42703' || resUser.error.message?.includes('foto_url'))) {
