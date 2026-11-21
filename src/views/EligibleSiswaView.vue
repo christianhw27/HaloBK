@@ -324,10 +324,13 @@ function parseGradeOrNull(val) {
 // Navigasi 4 arah (Panah Atas, Bawah, Kiri, Kanan + Enter) ala Excel pada tabel nilai rapor
 function focusGradeCell(targetRow, targetCol) {
   const selector = `input[data-grade-cell="${targetRow}-${targetCol}"]`
-  const el = document.querySelector(selector)
-  if (el && !el.disabled) {
-    el.focus()
-    el.select()
+  const inputs = document.querySelectorAll(selector)
+  for (const el of inputs) {
+    if (el.offsetParent !== null && !el.disabled) {
+      el.focus()
+      el.select()
+      break
+    }
   }
 }
 
@@ -820,15 +823,117 @@ async function handleDeleteCert(id) {
               v-if="eligibleStore.canEditGrades"
               type="button"
               @click="addGradeRow"
-              class="px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 text-[#0284C7] dark:text-sky-300 text-xs font-bold transition-colors flex items-center gap-1.5 border border-sky-200 dark:border-sky-800"
+              class="w-full sm:w-auto justify-center px-3.5 py-2 rounded-xl bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 text-[#0284C7] dark:text-sky-300 text-xs font-bold transition-colors flex items-center gap-1.5 border border-sky-200 dark:border-sky-800 shrink-0"
             >
               <i class="fa-solid fa-plus"></i>
               <span>Tambah Mapel</span>
             </button>
           </div>
 
-          <!-- TABEL INPUT NILAI RESPONSIVE -->
-          <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700/80">
+          <!-- TAMPILAN MOBILE: KARTU COMPACT MAPEL (SEM 1 S.D. 5 & RATA-RATA TANPA GESER LAYAR) -->
+          <div class="sm:hidden space-y-3">
+            <div
+              v-for="(row, idx) in gradesRows"
+              :key="'mob-row-' + idx"
+              class="p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700/80 shadow-xs space-y-2.5 transition-all"
+            >
+              <!-- Baris 1: Nomor Urut + Dropdown Mapel Full-Width + Hapus -->
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950/80 text-[#0284C7] dark:text-sky-300 font-bold text-xs flex items-center justify-center shrink-0 border border-sky-200/60 dark:border-sky-800/60">
+                  {{ idx + 1 }}
+                </span>
+
+                <div class="relative flex-1 min-w-0">
+                  <select
+                    v-model="row.subject_id"
+                    :disabled="!eligibleStore.canEditGrades"
+                    class="w-full pl-2.5 pr-7 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-75 transition-colors truncate"
+                  >
+                    <option value="">-- Pilih Mata Pelajaran --</option>
+                    <option
+                      v-for="s in eligibleStore.masterSubjects"
+                      :key="s.id"
+                      :value="s.id"
+                      :disabled="selectedSubjectIds.has(s.id) && row.subject_id !== s.id"
+                    >
+                      {{ s.name }}
+                    </option>
+                  </select>
+                </div>
+
+                <button
+                  v-if="eligibleStore.canEditGrades"
+                  type="button"
+                  @click="removeGradeRow(idx)"
+                  class="w-8 h-8 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors flex items-center justify-center shrink-0 border border-transparent hover:border-rose-200"
+                  title="Hapus baris"
+                >
+                  <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+              </div>
+
+              <!-- Baris 2: Grid 6 Kolom Kompak (Sem 1 s.d. 5 + Rata-Rata) -->
+              <div class="grid grid-cols-6 gap-1.5 items-center pt-2 border-t border-slate-200/70 dark:border-slate-700/60">
+                <div v-for="sNum in [1, 2, 3, 4, 5]" :key="sNum" class="flex flex-col items-center">
+                  <span class="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tighter mb-1">
+                    S{{ sNum }}
+                  </span>
+                  <input
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    maxlength="3"
+                    placeholder="-"
+                    :data-grade-cell="`${idx}-${sNum}`"
+                    :value="row[`sem_${sNum}`] !== null && row[`sem_${sNum}`] !== undefined ? row[`sem_${sNum}`] : ''"
+                    @focus="$event.target.select()"
+                    @keydown="handleGradeKeydown($event, idx, sNum)"
+                    @input="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
+                    @blur="sanitizeGradeInput(row, `sem_${sNum}`, $event)"
+                    :disabled="!eligibleStore.canEditGrades"
+                    class="w-full h-9 text-center font-mono text-xs font-bold py-1 px-0.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0284C7] disabled:opacity-75 transition-colors placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                  />
+                </div>
+
+                <!-- Rata-rata per Mapel -->
+                <div class="flex flex-col items-center">
+                  <span class="text-[10px] font-extrabold text-[#0284C7] dark:text-sky-400 uppercase tracking-tighter mb-1">
+                    RATA
+                  </span>
+                  <div class="w-full h-9 flex items-center justify-center text-center font-mono text-xs font-black text-[#0284C7] dark:text-sky-300 bg-sky-50 dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800 rounded-lg">
+                    {{ calculateRowAverage(row) !== null ? calculateRowAverage(row).toFixed(1) : '-' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Rekap Rata-Rata per Semester (Mobile) -->
+            <div class="p-3.5 rounded-2xl bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900/60 space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-200">
+                  <i class="fa-solid fa-chart-line text-amber-600"></i>
+                  <span>Rata-Rata per Semester</span>
+                </div>
+                <div class="text-xs font-mono font-black text-[#0284C7] dark:text-sky-300 bg-sky-100 dark:bg-sky-950 px-2 py-0.5 rounded-lg border border-sky-200 dark:border-sky-800">
+                  Total: {{ calculatedOverallAverage }}
+                </div>
+              </div>
+
+              <div class="grid grid-cols-5 gap-1.5 pt-1 text-center font-mono">
+                <div
+                  v-for="(avg, i) in semesterAverages"
+                  :key="'mobile-avg-' + i"
+                  class="py-1.5 px-0.5 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-amber-200/70 dark:border-amber-900/40"
+                >
+                  <div class="text-[9px] font-bold text-amber-800 dark:text-amber-300">SEM {{ i + 1 }}</div>
+                  <div class="text-xs font-black text-amber-950 dark:text-amber-100 mt-0.5">{{ avg }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TABEL INPUT NILAI DESKTOP / TABLET (>= SM) -->
+          <div class="hidden sm:block overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700/80">
             <table class="w-full text-left text-sm">
               <thead class="bg-slate-100/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs uppercase font-extrabold border-b border-slate-200 dark:border-slate-700">
                 <tr>
@@ -843,7 +948,7 @@ async function handleDeleteCert(id) {
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                <tr v-for="(row, idx) in gradesRows" :key="idx" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                <tr v-for="(row, idx) in gradesRows" :key="'desk-row-' + idx" class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
                   <td class="p-2.5">
                     <select
                       v-model="row.subject_id"
@@ -913,24 +1018,26 @@ async function handleDeleteCert(id) {
             </table>
           </div>
 
-          <div class="flex items-center justify-between pt-3">
-            <span v-if="!eligibleStore.canEditGrades" class="text-xs text-emerald-600 font-bold flex items-center gap-1.5">
-              <i class="fa-solid fa-lock"></i>
+          <!-- FOOTER AKSI & TOMBOL SIMPAN -->
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3">
+            <div v-if="!eligibleStore.canEditGrades" class="text-xs text-emerald-600 font-bold flex items-center gap-1.5 order-2 sm:order-1 text-center sm:text-left justify-center sm:justify-start">
+              <i class="fa-solid fa-lock shrink-0"></i>
               <span>Nilai telah disetujui (ACC) oleh Guru BK dan terkunci dari perubahan.</span>
-            </span>
-            <span v-else class="text-xs text-slate-400">
-              *Setelah divalidasi oleh Guru BK, nilai tidak dapat diubah lagi.
-            </span>
+            </div>
+            <div v-else class="text-xs text-slate-500 dark:text-slate-400 order-2 sm:order-1 text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
+              <i class="fa-solid fa-circle-info text-sky-500 text-xs shrink-0"></i>
+              <span>*Setelah divalidasi oleh Guru BK, nilai tidak dapat diubah lagi.</span>
+            </div>
 
             <button
               type="button"
               @click="submitGrades"
               :disabled="!eligibleStore.canEditGrades || isSavingGrades"
-              class="px-6 py-3 rounded-2xl bg-[#0369A1] hover:bg-[#075985] text-white font-bold text-sm sm:text-base shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 ml-auto"
+              class="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#0369A1] hover:bg-[#075985] active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 order-1 sm:order-2 shrink-0 ml-auto whitespace-nowrap cursor-pointer disabled:cursor-not-allowed"
             >
               <i v-if="isSavingGrades" class="fa-solid fa-spinner fa-spin"></i>
-              <i v-else class="fa-solid fa-floppy-disk"></i>
-              <span>{{ isSavingGrades ? 'Menyimpan...' : 'Simpan Tabel Nilai' }}</span>
+              <i v-else class="fa-solid fa-floppy-disk text-base"></i>
+              <span class="whitespace-nowrap">{{ isSavingGrades ? 'Menyimpan...' : 'Simpan Tabel Nilai' }}</span>
             </button>
           </div>
         </div>
