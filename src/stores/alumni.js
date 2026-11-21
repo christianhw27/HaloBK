@@ -148,74 +148,62 @@ export const useAlumniStore = defineStore('alumni', () => {
         const authStore = useAuthStore()
         const isAdmin = authStore.userRole === 'admin'
 
-        // 1. Ambil data alumni terverifikasi
+        const queryColumns = 'id, nama_lengkap, nis, kelas_terakhir, tahun_lulus, kategori, jalur_masuk, instansi, jurusan_posisi, pesan, foto_url, created_at, is_verified'
+
+        // 1. Ambil data alumni terverifikasi (746 alumni terdahulu)
         let verifiedData = null
 
-        if (isAdmin) {
-          // Guru BK / Admin: Ambil seluruh data lengkap tanpa masking untuk operasional bimbingan konseling
-          const { data: directAlumni, error: errVerified } = await supabase
+        // Coba RPC get_public_alumni_directory terlebih dahulu (Bekerja untuk semua role & auto-evaluasi hak akses admin)
+        try {
+          const { data: rpcAlumni, error: errRpc } = await supabase.rpc('get_public_alumni_directory')
+          if (!errRpc && rpcAlumni && rpcAlumni.length > 0) {
+            verifiedData = rpcAlumni
+          }
+        } catch (e) {
+          console.warn('RPC get_public_alumni_directory fallback:', e)
+        }
+
+        // Fallback jika RPC tidak tersedia / mengembalikan kosong
+        if (!verifiedData || verifiedData.length === 0) {
+          const { data: fallbackAlumni, error: errFallback } = await supabase
             .from('alumni')
-            .select('*')
+            .select(queryColumns)
+            .eq('is_verified', true)
             .order('created_at', { ascending: false })
 
-          if (!errVerified && directAlumni) {
-            verifiedData = directAlumni
-          }
-        } else {
-          // Pengunjung Publik / Siswa: Gunakan RPC aman dengan masking kontak & alamat
-          try {
-            const { data: rpcAlumni } = await supabase.rpc('get_public_alumni_directory')
-            if (rpcAlumni && rpcAlumni.length > 0) {
-              verifiedData = rpcAlumni
-            }
-          } catch (e) {
-            console.warn('RPC get_public_alumni_directory fallback:', e)
-          }
-
-          if (!verifiedData) {
-            // Proteksi Privasi: Non-admin tidak boleh menerima nomor kontak WhatsApp & alamat via payload
-            const queryColumns = 'id, nama_lengkap, nis, kelas_terakhir, tahun_lulus, kategori, jalur_masuk, instansi, jurusan_posisi, pesan, foto_url, created_at, is_verified'
-            const { data: fallbackAlumni, error: errFallback } = await supabase
-              .from('alumni')
-              .select(queryColumns)
-              .eq('is_verified', true)
-              .order('created_at', { ascending: false })
-
-            if (errFallback) throw errFallback
+          if (!errFallback && fallbackAlumni) {
             verifiedData = fallbackAlumni
           }
         }
 
         const listAlumni = (verifiedData || []).map(mapDbToAlumni)
 
-        // 2. Ambil data siswa angkatan 61: HANYA kolom publik untuk non-admin!
+        // 2. Ambil data siswa angkatan 61 (397 siswa)
         let listSiswa = []
         try {
           let siswaData = null
-          if (isAdmin) {
-            const { data } = await supabase
+
+          // Coba RPC get_public_students_directory
+          try {
+            const { data: rpcStudents, error: errRpcStudents } = await supabase.rpc('get_public_students_directory')
+            if (!errRpcStudents && rpcStudents && rpcStudents.length > 0) {
+              siswaData = rpcStudents
+            }
+          } catch (e) {
+            console.warn('RPC get_public_students_directory fallback:', e)
+          }
+
+          // Fallback jika RPC siswa tidak tersedia
+          if (!siswaData || siswaData.length === 0) {
+            const studentCols = isAdmin
+              ? 'id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url'
+              : 'id, nama, role, nis, kelas, angkatan, tahun_lulus, created_at, foto_url'
+            const { data: fallbackData } = await supabase
               .from('users')
-              .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url')
+              .select(studentCols)
               .eq('role', 'siswa')
               .order('nama', { ascending: true })
-            siswaData = data
-          } else {
-            // Gunakan RPC direktori publik aman (tanpa nomor WA, tanpa alamat, tanpa data orang tua)
-            try {
-              const { data: rpcData } = await supabase.rpc('get_public_students_directory')
-              if (rpcData && rpcData.length > 0) {
-                siswaData = rpcData
-              }
-            } catch (e) {
-              console.warn('RPC get_public_students_directory fallback:', e)
-            }
-
-            if (!siswaData) {
-              const { data: fallbackData } = await supabase
-                .from('users')
-                .select('id, nama, role, nis, kelas, angkatan, tahun_lulus, created_at, foto_url')
-                .eq('role', 'siswa')
-                .order('nama', { ascending: true })
+            if (fallbackData && fallbackData.length > 0) {
               siswaData = fallbackData
             }
           }
@@ -238,7 +226,7 @@ export const useAlumniStore = defineStore('alumni', () => {
         if (isAdmin) {
           const { data: pendingData, error: errPending } = await supabase
             .from('alumni')
-            .select('*')
+            .select(queryColumns)
             .eq('is_verified', false)
             .order('created_at', { ascending: false })
 

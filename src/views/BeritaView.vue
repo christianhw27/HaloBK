@@ -180,7 +180,7 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-clip relative">
+  <div class="min-h-screen w-full max-w-full bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-clip relative">
     
     <!-- READING PROGRESS BAR (GLOWING GRADIENT DI ATAS LAYAR) -->
     <div
@@ -401,9 +401,23 @@ watch(
             </div>
           </article>
 
+          <!-- Skeleton Loading State Hero Article -->
+          <div
+            v-if="newsStore.isLoading"
+            class="rounded-3xl bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 overflow-hidden shadow-sm animate-pulse"
+          >
+            <div class="aspect-[16/9] w-full bg-slate-200 dark:bg-slate-800"></div>
+            <div class="p-6 sm:p-8 space-y-4">
+              <div class="h-6 w-28 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+              <div class="h-7 w-3/4 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              <div class="h-4 w-full bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+              <div class="h-4 w-2/3 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+            </div>
+          </div>
+
           <!-- Empty State Jika Belum Ada Berita Sama Sekali -->
           <div
-            v-else
+            v-else-if="!newsStore.isLoading && !newsStore.primaryHighlight"
             class="rounded-3xl bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 p-8 sm:p-12 text-center space-y-4 shadow-sm"
           >
             <div class="w-14 h-14 rounded-2xl bg-[#E0F2FE] dark:bg-slate-800 text-[#0369A1] dark:text-sky-400 flex items-center justify-center mx-auto text-2xl">
@@ -452,13 +466,15 @@ watch(
                 <div class="p-3.5 rounded-2xl bg-white/95 dark:bg-sky-950/30 border border-sky-200/80 dark:border-sky-800/60 shadow-xs hover:border-sky-400 transition-colors">
                   <div class="text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300">Alumni Terdata</div>
                   <div class="font-display font-bold text-2xl text-[#0F172A] dark:text-white mt-0.5 tabular-nums">
-                    {{ alumniStore.statistics.total }}
+                    <span v-if="alumniStore.isLoading" class="inline-block h-6 w-16 bg-sky-200/60 dark:bg-sky-800/50 rounded animate-pulse align-middle"></span>
+                    <template v-else>{{ alumniStore.statistics.total }}</template>
                   </div>
                 </div>
                 <div class="p-3.5 rounded-2xl bg-white/95 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs hover:border-emerald-400 transition-colors">
                   <div class="text-xs sm:text-sm font-semibold text-[#047857] dark:text-emerald-300">Kuliah PTN &amp; PTS</div>
                   <div class="font-display font-bold text-2xl text-[#0F172A] dark:text-white mt-0.5 tabular-nums">
-                    {{ alumniStore.statistics.ptnCount + alumniStore.statistics.ptsCount }}
+                    <span v-if="alumniStore.isLoading" class="inline-block h-6 w-16 bg-emerald-200/60 dark:bg-emerald-800/50 rounded animate-pulse align-middle"></span>
+                    <template v-else>{{ alumniStore.statistics.ptnCount + alumniStore.statistics.ptsCount }}</template>
                   </div>
                 </div>
               </div>
@@ -679,9 +695,34 @@ watch(
           </button>
         </div>
 
+        <!-- Skeleton Loading State Grid Berita -->
+        <div
+          v-if="newsStore.isLoading"
+          class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          <div
+            v-for="i in 6"
+            :key="i"
+            class="rounded-2xl bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 overflow-hidden shadow-sm animate-pulse flex flex-col justify-between"
+          >
+            <div>
+              <div class="aspect-[16/10] w-full bg-slate-200 dark:bg-slate-800"></div>
+              <div class="p-5 space-y-3">
+                <div class="h-5 w-24 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+                <div class="h-5 w-full bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div class="h-4 w-3/4 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+              </div>
+            </div>
+            <div class="px-5 py-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div class="h-4 w-28 bg-slate-100 dark:bg-slate-800 rounded"></div>
+              <div class="h-8 w-24 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- Grid Kartu Berita dengan Scroll Reveal & Stagger Animation -->
         <div
-          v-if="displayedNews.length > 0"
+          v-else-if="displayedNews.length > 0"
           class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
           <article

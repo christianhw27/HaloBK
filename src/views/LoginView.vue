@@ -57,7 +57,7 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF] via-[#F8FAFC] to-[#FEF3C7]/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-200">
+  <div class="min-h-screen w-full max-w-full overflow-x-clip bg-gradient-to-br from-[#EFF6FF] via-[#F8FAFC] to-[#FEF3C7]/40 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 font-sans transition-colors duration-200">
     
     <!-- Tautan Kembali ke Portal Berita Publik -->
     <div class="max-w-md w-full mx-auto mb-4">

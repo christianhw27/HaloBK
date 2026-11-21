@@ -110,14 +110,14 @@ function openWhatsApp(phone, name, inst) {
 </script>
 
 <template>
-  <div class="space-y-6 w-full">
+  <div class="space-y-6 w-full max-w-full min-w-0">
     
     <!-- Header Halaman & Filter Pengendali Direktori (Desain Ringkas & Terpadu) -->
-    <section class="rounded-3xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] overflow-hidden" aria-labelledby="directory-heading">
+    <section class="rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-sky-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] overflow-hidden min-w-0 max-w-full" aria-labelledby="directory-heading">
       <div class="h-1.5 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
 
       <!-- Baris 1: Header Judul & Tombol Aksi -->
-      <div class="p-5 sm:p-6 bg-gradient-to-r from-[#E0F2FE]/65 via-white to-[#D1FAE5]/45 dark:from-sky-950/35 dark:via-slate-900 dark:to-emerald-950/25 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-sky-100/80 dark:border-slate-800">
+      <div class="p-4 sm:p-6 bg-gradient-to-r from-[#E0F2FE]/65 via-white to-[#D1FAE5]/45 dark:from-sky-950/35 dark:via-slate-900 dark:to-emerald-950/25 flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-sky-100/80 dark:border-slate-800 min-w-0">
         <div>
           <h1 id="directory-heading" class="font-display font-bold text-xl sm:text-2xl text-slate-900 dark:text-white tracking-tight">
             Kenalan &amp; Jejak Alumni SMADA
@@ -211,9 +211,13 @@ function openWhatsApp(phone, name, inst) {
 
         <!-- Ringkasan Hasil & Reset -->
         <div class="flex items-center gap-2 self-start sm:self-auto text-sm text-slate-500 dark:text-slate-400 shrink-0">
-          <span>Menemukan <strong class="text-slate-800 dark:text-slate-200 font-semibold">{{ alumniStore.filteredAlumni.length }}</strong> alumni</span>
+          <span v-if="alumniStore.isLoading" class="inline-flex items-center gap-1.5 text-xs text-sky-600 dark:text-sky-400 font-semibold">
+            <i class="fa-solid fa-spinner fa-spin text-xs"></i>
+            <span>Memuat direktori alumni...</span>
+          </span>
+          <span v-else>Menemukan <strong class="text-slate-800 dark:text-slate-200 font-semibold">{{ alumniStore.filteredAlumni.length }}</strong> alumni</span>
           <button
-            v-if="hasActiveFilters"
+            v-if="!alumniStore.isLoading && hasActiveFilters"
             @click="clearFilters"
             type="button"
             class="px-2.5 py-1 rounded bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-medium transition-colors flex items-center gap-1"
@@ -225,7 +229,7 @@ function openWhatsApp(phone, name, inst) {
       </div>
 
       <!-- Baris 3: Segmented Tab Bar Kategori Jalur & Karir -->
-      <div class="px-3 sm:px-6 py-3 overflow-x-auto flex items-center gap-2 scrollbar-none">
+      <div class="px-3 sm:px-6 py-2.5 sm:py-3 w-full max-w-full min-w-0 overflow-x-auto flex items-center gap-2 no-scrollbar">
         <button
           v-for="cat in categories"
           :key="cat"
@@ -249,16 +253,90 @@ function openWhatsApp(phone, name, inst) {
               ? 'bg-[#075985] text-white'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'"
           >
-            {{ categoryCounts[cat] || 0 }}
+            <span v-if="alumniStore.isLoading" class="inline-block w-4 h-2 bg-slate-300/70 dark:bg-slate-700 rounded animate-pulse align-middle"></span>
+            <template v-else>{{ categoryCounts[cat] || 0 }}</template>
           </span>
         </button>
       </div>
 
     </section>
 
+    <!-- SKELETON LOADING STATE: GRID -->
+    <div
+      v-if="alumniStore.isLoading && viewMode === 'grid'"
+      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5"
+    >
+      <div
+        v-for="i in 8"
+        :key="i"
+        class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4 animate-pulse"
+      >
+        <div class="space-y-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+              <div class="space-y-1.5">
+                <div class="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div class="h-3 w-24 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+              </div>
+            </div>
+            <div class="h-5 w-16 bg-slate-200 dark:bg-slate-800 rounded-full"></div>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-2">
+            <div class="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded"></div>
+            <div class="h-3 w-48 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+          </div>
+
+          <div class="h-3 w-full bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+          <div class="h-9 flex-1 bg-slate-200 dark:bg-slate-800 rounded-xl"></div>
+          <div class="h-9 w-10 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKELETON LOADING STATE: TABLE -->
+    <div
+      v-else-if="alumniStore.isLoading && viewMode === 'table'"
+      class="overflow-x-auto rounded-2xl border border-sky-200/70 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs w-full"
+    >
+      <table class="w-full text-left text-sm">
+        <thead class="bg-sky-50/70 dark:bg-slate-800/80 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border-b border-sky-100 dark:border-slate-700">
+          <tr>
+            <th class="p-3.5 whitespace-nowrap">Nama Alumni</th>
+            <th class="p-3.5 whitespace-nowrap">Kelas / Angkatan</th>
+            <th class="p-3.5 whitespace-nowrap">Kategori</th>
+            <th class="p-3.5 whitespace-nowrap">Instansi / Kampus</th>
+            <th class="p-3.5 whitespace-nowrap">Jurusan / Posisi</th>
+            <th class="p-3.5 whitespace-nowrap">Jalur</th>
+            <th class="p-3.5 text-right whitespace-nowrap">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          <tr v-for="i in 8" :key="i" class="animate-pulse">
+            <td class="p-3.5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+                <div class="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
+              </div>
+            </td>
+            <td class="p-3.5"><div class="h-4 w-20 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+            <td class="p-3.5"><div class="h-5 w-14 bg-slate-200 dark:bg-slate-800 rounded-full"></div></td>
+            <td class="p-3.5"><div class="h-4 w-36 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+            <td class="p-3.5"><div class="h-4 w-28 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+            <td class="p-3.5"><div class="h-4 w-16 bg-slate-200 dark:bg-slate-800 rounded"></div></td>
+            <td class="p-3.5 text-right"><div class="h-7 w-16 bg-slate-200 dark:bg-slate-800 rounded-lg ml-auto"></div></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- KONTEN: Tampilan Grid Kartu (Lebar Optimal 3–4 Kolom di Layar Lebar) -->
     <div
-      v-if="paginatedList.length > 0 && viewMode === 'grid'"
+      v-else-if="paginatedList.length > 0 && viewMode === 'grid'"
       class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 sm:gap-5"
     >
       <div
@@ -490,7 +568,7 @@ function openWhatsApp(phone, name, inst) {
 
     <!-- Tampilan Kosong (Empty State) -->
     <div
-      v-else
+      v-else-if="!alumniStore.isLoading"
       class="p-12 text-center rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3"
     >
       <div class="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto text-lg">

@@ -70,63 +70,23 @@ function selectTab(tabKey) {
 </script>
 
 <template>
-  <!-- TOP BAR KHUSUS LAYAR MOBILE & TABLET (< lg) -->
-  <header class="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-white/95 via-purple-50/60 to-amber-50/50 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-900/95 backdrop-blur-md border-b border-purple-200/70 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <button
-        @click="isMobileOpen = true"
-        type="button"
-        class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-slate-800 text-purple-700 dark:text-purple-300 flex items-center justify-center text-base border border-purple-200/80 dark:border-slate-700 focus-visible:ring-2"
-        aria-label="Buka Menu Navigasi Eligible"
-      >
-        <i class="fa-solid fa-bars" aria-hidden="true"></i>
-      </button>
+  <!-- SUB-BAR NAVIGASI KHUSUS MOBILE (< lg) DI BAWAH NAVBAR UTAMA -->
+  <div class="lg:hidden sticky top-16 sm:top-[72px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-purple-200/70 dark:border-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 shadow-2xs w-full max-w-full min-w-0">
+    <button
+      @click="isMobileOpen = true"
+      type="button"
+      class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:hover:bg-purple-900/80 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800 text-xs font-bold transition-all shadow-2xs shrink-0"
+      aria-label="Buka Menu Eligible"
+    >
+      <i class="fa-solid fa-bars-staggered text-xs" aria-hidden="true"></i>
+      <span>Menu Eligible</span>
+    </button>
 
-      <div class="flex items-center gap-2">
-        <img
-          src="/logo.png"
-          alt="Logo BK SMADA"
-          class="w-8 h-8 rounded-xl object-contain bg-white dark:bg-slate-800 border border-purple-200/80 dark:border-slate-700 p-0.5 shrink-0"
-          onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
-        />
-        <div class="w-8 h-8 rounded-xl bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-400 flex items-center justify-center font-bold text-sm hidden">
-          <i class="fa-solid fa-award" aria-hidden="true"></i>
-        </div>
-        <div>
-          <span class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-tight block">
-            Ruang BK SMADA
-          </span>
-          <span class="text-[11px] text-purple-700 dark:text-purple-300 font-semibold block -mt-0.5">
-            Siswa Eligible (SNBP)
-          </span>
-        </div>
-      </div>
+    <div class="flex items-center gap-1.5 text-xs font-semibold text-purple-700 dark:text-purple-300 min-w-0 truncate">
+      <span class="w-2 h-2 rounded-full bg-purple-600 shrink-0" aria-hidden="true"></span>
+      <span class="truncate">{{ authStore.userRole === 'admin' ? 'Kelola SNBP' : 'Portal SNBP' }}</span>
     </div>
-
-    <!-- Status Peran di Bar Atas Mobile -->
-    <div class="flex items-center gap-2">
-      <div
-        class="px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 bg-white dark:bg-slate-800 border-purple-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs"
-      >
-        <span
-          class="w-2 h-2 rounded-full"
-          :class="authStore.userRole === 'admin' ? 'bg-purple-600' : 'bg-amber-500'"
-          aria-hidden="true"
-        ></span>
-        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : 'Siswa' }}</span>
-      </div>
-
-      <button
-        @click="toggleDarkMode"
-        type="button"
-        class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-slate-800 text-amber-700 dark:text-amber-300 flex items-center justify-center text-sm border border-amber-200/80 dark:border-slate-700"
-        :aria-label="isDark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
-      >
-        <i v-if="isDark" class="fa-solid fa-sun text-amber-400" aria-hidden="true"></i>
-        <i v-else class="fa-solid fa-moon text-purple-700" aria-hidden="true"></i>
-      </button>
-    </div>
-  </header>
+  </div>
 
   <!-- BACKDROP OVERLAY UNTUK MOBILE DRAWER -->
   <Transition
@@ -145,9 +105,9 @@ function selectTab(tabKey) {
     ></div>
   </Transition>
 
-  <!-- SIDEBAR CONTAINER MODUL ELIGIBLE (DESKTOP: FIXED ASIDE, MOBILE: OFF-CANVAS DRAWER) -->
+  <!-- SIDEBAR CONTAINER MODUL ELIGIBLE (DESKTOP: FIXED ASIDE DOCKING DI BAWAH NAVBAR, MOBILE: OFF-CANVAS DRAWER) -->
   <aside
-    class="fixed top-0 left-0 z-[60] lg:z-40 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-purple-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
+    class="fixed top-0 lg:top-16 sm:lg:top-[72px] left-0 z-[60] lg:z-30 h-screen lg:h-[calc(100vh-4rem)] sm:lg:h-[calc(100vh-4.5rem)] w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-purple-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
     :class="isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
     aria-label="Navigasi Samping Modul Eligible"
   >
@@ -158,25 +118,17 @@ function selectTab(tabKey) {
     <div class="flex-1 flex flex-col overflow-y-auto">
       
       <!-- Brand & Identitas Modul -->
-      <div class="p-5 border-b border-purple-100 dark:border-slate-800 bg-gradient-to-br from-purple-50/90 via-white to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 flex items-center justify-between">
-        <router-link :to="authStore.userRole === 'admin' ? '/admin/eligible' : '/eligible'" class="flex items-center gap-3 group focus-visible:rounded-xl">
-          <img
-            src="/logo.png"
-            alt="Logo BK SMADA"
-            class="w-10 h-10 rounded-2xl object-contain bg-white dark:bg-slate-800 border border-purple-200/80 dark:border-slate-700 p-0.5 shrink-0 shadow-sm"
-            onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
-          />
-          <div class="w-10 h-10 rounded-2xl bg-purple-100 dark:bg-slate-800 border border-purple-200 dark:border-slate-700 flex items-center justify-center text-purple-700 dark:text-purple-400 shrink-0 hidden">
-            <i class="fa-solid fa-award text-lg" aria-hidden="true"></i>
+      <div class="p-4 border-b border-purple-100 dark:border-slate-800 bg-gradient-to-br from-purple-50/90 via-white to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 flex items-center justify-between">
+        <router-link :to="authStore.userRole === 'admin' ? '/admin/eligible' : '/eligible'" class="flex items-center gap-2.5 group focus-visible:rounded-xl">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-xs group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-award" aria-hidden="true"></i>
           </div>
           <div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-display font-bold text-lg text-slate-900 dark:text-white leading-tight">
-                Ruang BK SMADA
-              </span>
-            </div>
-            <p class="text-xs text-purple-700 dark:text-purple-300 font-semibold mt-0.5">
-              Siswa Eligible SNBP
+            <span class="font-display font-bold text-sm text-slate-900 dark:text-white leading-tight block">
+              Siswa Eligible
+            </span>
+            <p class="text-[11px] text-purple-700 dark:text-purple-300 font-semibold mt-0.5">
+              Seleksi SNBP
             </p>
           </div>
         </router-link>
@@ -225,25 +177,6 @@ function selectTab(tabKey) {
 
       <!-- Menu Navigasi Utama Modul Eligible -->
       <nav class="p-3.5 space-y-1.5 flex-1" aria-label="Menu Modul Eligible">
-        <!-- Tautan Balik ke Berita & Tracer Study -->
-        <div class="space-y-1.5 mb-3">
-          <router-link
-            to="/"
-            class="w-full px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 transition-all border border-slate-200/80 dark:border-slate-800 bg-slate-50/70 hover:bg-white dark:bg-slate-850 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-          >
-            <i class="fa-solid fa-newspaper text-slate-400"></i>
-            <span>Portal Berita SMADA</span>
-          </router-link>
-
-          <router-link
-            to="/tracer-study"
-            class="w-full px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold flex items-center gap-2.5 transition-all border border-sky-200/80 dark:border-sky-900/50 bg-sky-50/60 hover:bg-sky-100/60 dark:bg-sky-950/30 text-sky-800 dark:text-sky-300"
-          >
-            <i class="fa-solid fa-chart-pie text-sky-500"></i>
-            <span>Dashboard Tracer Study</span>
-          </router-link>
-        </div>
-
         <div class="text-xs font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase px-2 py-1">
           Menu Seleksi SNBP
         </div>

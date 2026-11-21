@@ -203,7 +203,7 @@ watch(() => [route.params.slug, route.params.id], async () => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-hidden relative">
+  <div class="min-h-screen w-full max-w-full bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/85 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200 overflow-x-clip relative">
     
     <!-- READING PROGRESS BAR DI ATAS LAYAR -->
     <div

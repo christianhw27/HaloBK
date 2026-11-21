@@ -95,7 +95,8 @@ async function handleReject(id, name) {
 
         <div class="px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-amber-950/60 border border-amber-300/80 dark:border-amber-800/80 text-[#92400E] dark:text-amber-300 text-sm font-bold flex items-center gap-2.5 self-start sm:self-auto shadow-xs shrink-0">
           <span class="w-2.5 h-2.5 rounded-full bg-[#F59E0B] animate-pulse" aria-hidden="true"></span>
-          <span>{{ alumniStore.totalPendingCount }} Menunggu ACC</span>
+          <span v-if="alumniStore.isLoading" class="inline-block w-24 h-4 bg-amber-200/60 dark:bg-amber-800/50 rounded animate-pulse"></span>
+          <span v-else>{{ alumniStore.totalPendingCount }} Menunggu ACC</span>
         </div>
       </section>
 
@@ -127,7 +128,7 @@ async function handleReject(id, name) {
       </Transition>
 
       <!-- TAB NAVIGASI VERIFIKASI (SISWA VS ALUMNI) -->
-      <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div class="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 w-full max-w-full min-w-0 overflow-x-auto no-scrollbar">
         <button
           type="button"
           @click="activeTab = 'siswa'"
@@ -144,7 +145,8 @@ async function handleReject(id, name) {
               ? 'bg-white/20 text-white'
               : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'"
           >
-            {{ alumniStore.pendingStudentUpdates.length }}
+            <span v-if="alumniStore.isLoading" class="inline-block w-3 h-2 bg-slate-300 dark:bg-slate-600 rounded animate-pulse"></span>
+            <template v-else>{{ alumniStore.pendingStudentUpdates.length }}</template>
           </span>
         </button>
 
@@ -164,14 +166,31 @@ async function handleReject(id, name) {
               ? 'bg-white/20 text-white'
               : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'"
           >
-            {{ alumniStore.pendingList.length }}
+            <span v-if="alumniStore.isLoading" class="inline-block w-3 h-2 bg-slate-300 dark:bg-slate-600 rounded animate-pulse"></span>
+            <template v-else>{{ alumniStore.pendingList.length }}</template>
           </span>
         </button>
       </div>
 
       <!-- KONTEN TAB 1: ANTREAN PERUBAHAN BIODATA SISWA AKTIF -->
       <section v-if="activeTab === 'siswa'" class="space-y-4" aria-label="Antrean Perubahan Biodata Siswa">
-        <div v-if="alumniStore.pendingStudentUpdates.length > 0" class="space-y-4">
+        <!-- Skeleton Loading State Tab Siswa -->
+        <div v-if="alumniStore.isLoading" class="space-y-4">
+          <div v-for="i in 2" :key="i" class="p-5 sm:p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 animate-pulse">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+              <div class="space-y-1.5 flex-1">
+                <div class="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div class="h-3 w-56 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div v-for="j in 3" :key="j" class="h-14 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800"></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="alumniStore.pendingStudentUpdates.length > 0" class="space-y-4">
           <div
             v-for="item in alumniStore.pendingStudentUpdates"
             :key="item.id"
@@ -290,7 +309,7 @@ async function handleReject(id, name) {
 
         <!-- Tampilan Kosong Tab Siswa -->
         <div
-          v-else
+          v-else-if="!alumniStore.isLoading"
           class="p-10 text-center rounded-3xl bg-gradient-to-br from-[#D1FAE5]/45 via-white to-[#E0F2FE]/45 dark:from-emerald-950/20 dark:via-slate-900 dark:to-sky-950/20 border border-emerald-200/70 dark:border-slate-800 space-y-3 shadow-[var(--shadow-sm)]"
         >
           <div class="w-14 h-14 rounded-2xl bg-[#D1FAE5] dark:bg-emerald-950/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto text-2xl shadow-xs">
@@ -307,7 +326,23 @@ async function handleReject(id, name) {
 
       <!-- KONTEN TAB 2: ANTREAN LAPOR DIRI ALUMNI -->
       <section v-else-if="activeTab === 'alumni'" class="space-y-4" aria-label="Antrean Lapor Diri Alumni">
-        <div v-if="alumniStore.pendingList.length > 0" class="space-y-4">
+        <!-- Skeleton Loading State Tab Alumni -->
+        <div v-if="alumniStore.isLoading" class="space-y-4">
+          <div v-for="i in 2" :key="i" class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 animate-pulse">
+            <div class="flex items-center gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div class="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+              <div class="space-y-1.5 flex-1">
+                <div class="h-4 w-40 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div class="h-3 w-56 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div v-for="j in 2" :key="j" class="h-16 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800"></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="alumniStore.pendingList.length > 0" class="space-y-4">
           <div
             v-for="item in alumniStore.pendingList"
             :key="item.id"
@@ -421,7 +456,7 @@ async function handleReject(id, name) {
 
         <!-- Tampilan Kosong Tab Alumni -->
         <div
-          v-else
+          v-else-if="!alumniStore.isLoading"
           class="p-10 text-center rounded-3xl bg-gradient-to-br from-[#D1FAE5]/45 via-white to-[#E0F2FE]/45 dark:from-emerald-950/20 dark:via-slate-900 dark:to-sky-950/20 border border-emerald-200/70 dark:border-slate-800 space-y-3 shadow-[var(--shadow-sm)]"
         >
           <div class="w-14 h-14 rounded-2xl bg-[#D1FAE5] dark:bg-emerald-950/60 text-[#047857] dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mx-auto text-2xl shadow-xs">

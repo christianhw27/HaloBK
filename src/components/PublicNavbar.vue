@@ -24,7 +24,7 @@ function handleWindowScroll() {
 }
 
 // Mobile Accordion
-const mobileOpenSection = ref('alumni')
+const mobileOpenSection = ref(null)
 
 function syncTheme() {
   if (localStorage.getItem('theme') === 'dark') {
@@ -131,7 +131,7 @@ function handleMobileHaloBKClick() {
 
 <template>
   <header
-    class="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b transition-all duration-200"
+    class="sticky top-0 z-40 w-full max-w-full shrink-0 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b transition-all duration-200"
     :class="isScrolled ? 'border-sky-300/80 dark:border-slate-700 shadow-md shadow-sky-900/5 dark:shadow-black/20' : 'border-sky-200/70 dark:border-slate-800'"
   >
     <!-- Garis Aksen Empat Pilar BK -->
@@ -146,15 +146,15 @@ function handleMobileHaloBKClick() {
           alt="Logo SMA Negeri 2 Ngawi"
           width="40"
           height="40"
-          class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-0.5 shadow-xs shrink-0 group-hover:scale-105 transition-transform"
+          class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl object-contain bg-white dark:bg-slate-800 border border-[#E2E8F0] dark:border-slate-700 p-0.5 shadow-xs shrink-0 group-hover:scale-105 transition-transform"
         />
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span class="font-display font-bold text-base sm:text-xl text-[#0F172A] dark:text-white tracking-tight truncate">
+            <span class="font-display font-bold text-sm sm:text-xl text-[#0F172A] dark:text-white tracking-tight truncate">
               Ruang BK SMADA
             </span>
           </div>
-          <p class="text-[11px] sm:text-xs text-[#64748B] dark:text-slate-400 truncate -mt-0.5">
+          <p class="text-[10px] sm:text-xs text-[#64748B] dark:text-slate-400 truncate -mt-0.5">
             SMA Negeri 2 Ngawi
           </p>
         </div>
@@ -545,24 +545,134 @@ function handleMobileHaloBKClick() {
 
         <!-- 4. TOMBOL HALOBK DESKTOP (HANYA MUNCUL JIKA SUDAH LOGIN) -->
         <template v-if="authStore.isLoggedIn">
-          <router-link
-            v-if="isGuruOrAdmin"
-            to="/admin/chat"
-            class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border"
-            :class="route.path === '/admin/chat'
-              ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
-              : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
-          >
-            <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
-            <span>HaloBK</span>
-            <span
-              v-if="chatStore.unreadCount > 0"
-              class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+          <!-- DROPDOWN KHUSUS GURU BK / ADMIN: STUDIO CHAT & BUKU CATATAN SISWA -->
+          <div v-if="isGuruOrAdmin" class="relative">
+            <button
+              type="button"
+              @click.stop="toggleDropdown('halobk')"
+              class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border cursor-pointer"
+              :class="activeDropdown === 'halobk' || route.path.startsWith('/admin/chat') || route.path.startsWith('/admin/catatan-siswa')
+                ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
+                : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+              aria-haspopup="true"
+              :aria-expanded="activeDropdown === 'halobk'"
             >
-              {{ chatStore.unreadCount }}
-            </span>
-          </router-link>
+              <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
+              <span>HaloBK</span>
+              <span
+                v-if="chatStore.unreadCount > 0"
+                class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+              >
+                {{ chatStore.unreadCount }}
+              </span>
+              <i
+                class="fa-solid fa-chevron-down text-xs transition-transform duration-200"
+                :class="{ 'rotate-180': activeDropdown === 'halobk' }"
+                aria-hidden="true"
+              ></i>
+            </button>
 
+            <!-- DROPDOWN PANEL HALOBK GURU BK -->
+            <Transition
+              enter-active-class="transition duration-150 ease-out"
+              enter-from-class="opacity-0 translate-y-2 scale-95"
+              enter-to-class="opacity-100 translate-y-0 scale-100"
+              leave-active-class="transition duration-100 ease-in"
+              leave-from-class="opacity-100 translate-y-0 scale-100"
+              leave-to-class="opacity-0 translate-y-2 scale-95"
+            >
+              <div
+                v-if="activeDropdown === 'halobk'"
+                class="absolute right-0 sm:right-auto sm:left-0 mt-2 w-[380px] sm:w-[420px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3.5 z-50 focus:outline-none space-y-2"
+                role="menu"
+              >
+                <div class="px-2 pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Studio Bimbingan Konseling
+                  </span>
+                  <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-100 text-sky-800 dark:bg-sky-950/70 dark:text-sky-300">
+                    Guru BK
+                  </span>
+                </div>
+
+                <!-- Item 1: Studio Chat Konseling -->
+                <router-link
+                  to="/admin/chat"
+                  @click="closeDropdown"
+                  class="p-3.5 rounded-xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 hover:border-sky-400 dark:hover:border-sky-700 hover:shadow-md transition-all group block"
+                  role="menuitem"
+                >
+                  <div class="flex items-start gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#075985] text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                      <i class="fa-solid fa-headset text-xl" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-display font-bold text-sm sm:text-base text-[#0284C7] dark:text-sky-300 group-hover:underline">
+                          Studio Chat Konseling
+                        </span>
+                        <div class="flex items-center gap-1.5 shrink-0">
+                          <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Live
+                          </span>
+                          <span
+                            v-if="chatStore.unreadCount > 0"
+                            class="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-500 text-slate-950"
+                          >
+                            {{ chatStore.unreadCount }}
+                          </span>
+                        </div>
+                      </div>
+                      <p class="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                        Kotak masuk obrolan bimbingan dan konsultasi siswa aktif.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="mt-2.5 pt-2 border-t border-sky-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-[#0284C7] dark:text-sky-300">
+                    <span>Buka Ruang Obrolan Siswa</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                  </div>
+                </router-link>
+
+                <!-- Item 2: Buku Catatan Siswa -->
+                <router-link
+                  to="/admin/catatan-siswa"
+                  @click="closeDropdown"
+                  class="p-3.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 hover:border-purple-400 dark:hover:border-purple-700 hover:shadow-md transition-all group block"
+                  role="menuitem"
+                >
+                  <div class="flex items-start gap-3.5">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                      <i class="fa-solid fa-book-bookmark text-xl" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center justify-between gap-2">
+                        <span class="font-display font-bold text-sm sm:text-base text-purple-900 dark:text-purple-200 group-hover:text-purple-700">
+                          Buku Catatan Siswa
+                        </span>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                          <i class="fa-solid fa-folder-open text-[9px]"></i>
+                          Dossier BK
+                        </span>
+                      </div>
+                      <p class="text-xs sm:text-[13px] text-slate-600 dark:text-slate-400 mt-1 leading-relaxed">
+                        Rekam asesmen kumulatif, dinamika perilaku &amp; tindak lanjut per siswa.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="mt-2.5 pt-2 border-t border-purple-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-purple-700 dark:text-purple-300">
+                    <span>Buka Rekam Kasus Siswa</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
+                  </div>
+                </router-link>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- UNTUK SISWA: TOMBOL LANGSUNG KE HALOBK -->
           <router-link
             v-else
             to="/halobk"
@@ -581,43 +691,17 @@ function handleMobileHaloBKClick() {
       </nav>
 
       <!-- AKSI KANAN NAVBAR -->
-      <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <!-- Toggle Tema Gelap / Terang -->
         <button
           type="button"
           @click="toggleDarkMode"
-          class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
+          class="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
           :aria-label="isDark ? 'Ubah ke tampilan terang' : 'Ubah ke tampilan gelap'"
         >
-          <i v-if="isDark" class="fa-solid fa-sun text-amber-400 text-sm" aria-hidden="true"></i>
-          <i v-else class="fa-solid fa-moon text-[#334155] text-sm" aria-hidden="true"></i>
+          <i v-if="isDark" class="fa-solid fa-sun text-amber-400 text-xs sm:text-sm" aria-hidden="true"></i>
+          <i v-else class="fa-solid fa-moon text-[#334155] text-xs sm:text-sm" aria-hidden="true"></i>
         </button>
-
-        <!-- Tombol Pintasan Cepat HaloBK Mobile (Khusus Tampil di HP jika sudah login) -->
-        <router-link
-          v-if="authStore.isLoggedIn"
-          :to="isGuruOrAdmin ? '/admin/chat' : '/halobk'"
-          class="md:hidden relative w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284C7] dark:text-sky-300 border border-sky-200/90 dark:border-sky-800/80 flex items-center justify-center transition-all shrink-0 hover:scale-105 active:scale-95 shadow-2xs"
-          :class="(route.path === '/halobk' || route.path === '/admin/chat') ? 'ring-2 ring-[#0284C7] bg-sky-100 dark:bg-sky-900/60' : ''"
-          :title="isGuruOrAdmin ? 'Studio HaloBK (Guru BK)' : 'HaloBK (Konsultasi Chat BK)'"
-          aria-label="Buka Chat HaloBK"
-        >
-          <!-- Indikator Live Dot Hijau Berdenyut -->
-          <span class="absolute top-1.5 right-1.5 flex h-2 w-2">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-
-          <i class="fa-solid fa-headset text-base" aria-hidden="true"></i>
-
-          <!-- Badge Counter jika ada pesan unread -->
-          <span
-            v-if="chatStore.unreadCount > 0"
-            class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-amber-500 text-slate-950 shadow-xs border border-white dark:border-slate-900"
-          >
-            {{ chatStore.unreadCount }}
-          </span>
-        </router-link>
 
         <!-- Tombol Masuk / Login (Jika Belum Login) -->
         <router-link
@@ -631,11 +715,11 @@ function handleMobileHaloBKClick() {
         </router-link>
 
         <!-- Jika Sudah Login: Profil Avatar Lingkaran & Tombol Keluar -->
-        <div v-else class="flex items-center gap-2">
+        <div v-else class="flex items-center gap-1 sm:gap-2">
           <!-- Avatar Lingkaran Profil -->
           <router-link
             to="/profil"
-            class="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 transition-all duration-200 shadow-xs shrink-0 flex items-center justify-center group focus:outline-none"
+            class="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 transition-all duration-200 shadow-xs shrink-0 flex items-center justify-center group focus:outline-none"
             :class="route.path === '/profil'
               ? 'border-[#0284C7] ring-2 ring-[#0284C7]/40 ring-offset-2 dark:ring-offset-slate-900 scale-105'
               : 'border-slate-300 dark:border-slate-700 hover:border-[#0284C7] hover:scale-105'"
@@ -652,7 +736,7 @@ function handleMobileHaloBKClick() {
             <!-- Fallback Inisial jika belum upload foto -->
             <div
               v-else
-              class="w-full h-full bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white font-display font-bold text-sm sm:text-base flex items-center justify-center"
+              class="w-full h-full bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white font-display font-bold text-xs sm:text-base flex items-center justify-center"
             >
               {{ authStore.userName ? authStore.userName.charAt(0).toUpperCase() : 'U' }}
             </div>
@@ -674,10 +758,10 @@ function handleMobileHaloBKClick() {
         <button
           type="button"
           @click="isMobileMenuOpen = true"
-          class="md:hidden w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
+          class="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-100 dark:bg-slate-900 hover:bg-slate-200/80 dark:hover:bg-slate-800 text-[#334155] dark:text-slate-200 border border-[#E2E8F0] dark:border-slate-700 flex items-center justify-center transition-colors shrink-0"
           aria-label="Buka Menu Navigasi"
         >
-          <i class="fa-solid fa-bars text-base" aria-hidden="true"></i>
+          <i class="fa-solid fa-bars text-sm sm:text-base" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -724,56 +808,135 @@ function handleMobileHaloBKClick() {
               </button>
             </div>
 
-            <!-- Accordion Links: Berita, Akademik, Alumni -->
+            <!-- Accordion Links: HaloBK, Berita, Akademik, Alumni -->
             <nav class="space-y-3" aria-label="Tautan Menu Seluler">
               
-              <!-- MENU EKSKLUSIF MOBILE: HALOBK (KONSULTASI CHAT GURU BK - HANYA MUNCUL JIKA SUDAH LOGIN) -->
-              <div
-                v-if="authStore.isLoggedIn"
-                class="rounded-2xl border border-sky-300 dark:border-sky-800 bg-gradient-to-r from-sky-50 via-white to-amber-50/70 dark:from-sky-950/60 dark:via-slate-900 dark:to-slate-900 overflow-hidden shadow-xs"
-              >
-                <button
-                  type="button"
-                  @click="handleMobileHaloBKClick"
-                  class="w-full text-left p-3.5 flex items-center justify-between"
-                >
-                  <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0369A1] to-sky-500 text-white flex items-center justify-center text-base shadow-xs">
-                      <i class="fa-solid fa-headset"></i>
-                    </div>
-                    <div>
+              <!-- 0. MENU HALOBK (HANYA MUNCUL JIKA SUDAH LOGIN) -->
+              <template v-if="authStore.isLoggedIn">
+                <!-- Jika Guru BK / Admin: Accordion HaloBK (Chat Konseling & Catatan Siswa) -->
+                <div v-if="isGuruOrAdmin" class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <button
+                    type="button"
+                    @click="toggleMobileAccordion('halobk')"
+                    class="w-full text-left px-3.5 py-3 bg-slate-50/70 dark:bg-slate-850 text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                      </div>
                       <div class="flex items-center gap-1.5">
-                        <span class="font-display font-bold text-sm text-slate-900 dark:text-white">
-                          {{ isGuruOrAdmin ? 'Studio HaloBK' : 'HaloBK (Chat BK)' }}
+                        <span>HaloBK</span>
+                        <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-emerald-500 text-white animate-pulse">
+                          LIVE
                         </span>
+                        <span
+                          v-if="chatStore.unreadCount > 0"
+                          class="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-amber-500 text-slate-950 shadow-xs"
+                        >
+                          {{ chatStore.unreadCount }}
+                        </span>
+                      </div>
+                    </div>
+                    <i
+                      class="fa-solid fa-chevron-down text-xs transition-transform duration-200 text-slate-500"
+                      :class="{ 'rotate-180': mobileOpenSection === 'halobk' }"
+                    ></i>
+                  </button>
+
+                  <div v-if="mobileOpenSection === 'halobk'" class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <!-- Item 1: Chat Konseling -->
+                    <router-link
+                      to="/admin/chat"
+                      @click="isMobileMenuOpen = false"
+                      class="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-left flex items-center gap-2.5 block border border-sky-200 dark:border-sky-900/60"
+                    >
+                      <div class="w-8 h-8 rounded-lg bg-[#0284C7] text-white flex items-center justify-center shrink-0 text-xs">
+                        <i class="fa-solid fa-headset"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="font-bold text-xs text-[#0284C7] dark:text-sky-300">Chat Konseling</span>
+                          <div class="flex items-center gap-1">
+                            <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                              LIVE
+                            </span>
+                            <span
+                              v-if="chatStore.unreadCount > 0"
+                              class="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-amber-500 text-slate-950 shadow-xs"
+                            >
+                              {{ chatStore.unreadCount }}
+                            </span>
+                          </div>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Kotak masuk obrolan bimbingan siswa aktif
+                        </p>
+                      </div>
+                    </router-link>
+
+                    <!-- Item 2: Buku Catatan Siswa -->
+                    <router-link
+                      to="/admin/catatan-siswa"
+                      @click="isMobileMenuOpen = false"
+                      class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-left flex items-center gap-2.5 block border border-purple-200 dark:border-purple-900/60"
+                    >
+                      <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 text-xs">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between">
+                          <span class="font-bold text-xs text-purple-900 dark:text-purple-200">Buku Catatan Siswa</span>
+                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                            Dossier
+                          </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Rekam asesmen &amp; tindak lanjut per siswa
+                        </p>
+                      </div>
+                    </router-link>
+                  </div>
+                </div>
+
+                <!-- Jika Siswa Biasa: Tombol HaloBK Langsung (Ukuran Seragam) -->
+                <div v-else class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                  <router-link
+                    to="/halobk"
+                    @click="isMobileMenuOpen = false"
+                    class="w-full text-left px-3.5 py-3 bg-slate-50/70 dark:bg-slate-850 hover:bg-sky-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors block"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-headset" aria-hidden="true"></i>
+                      </div>
+                      <div class="flex items-center gap-1.5">
+                        <span>HaloBK</span>
                         <span class="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-emerald-500 text-white animate-pulse">
                           LIVE
                         </span>
                       </div>
-                      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                        {{ isGuruOrAdmin ? 'Kelola chat & konsultasi siswa' : 'Konsultasi privat dengan Guru BK' }}
-                      </p>
                     </div>
+                    <i class="fa-solid fa-arrow-right text-xs text-slate-400" aria-hidden="true"></i>
+                  </router-link>
+                </div>
+              </template>
+              
+              <!-- 1. Menu Berita (Untuk Siswa / Umum: Langsung Navigasi ke Berita, Ukuran Seragam) -->
+              <div v-if="!isGuruOrAdmin" class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <button
+                  type="button"
+                  @click="navigateToNews('#arsip-berita')"
+                  class="w-full text-left px-3.5 py-3 bg-slate-50/70 dark:bg-slate-850 hover:bg-sky-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                      <i class="fa-regular fa-newspaper" aria-hidden="true"></i>
+                    </div>
+                    <span>Berita &amp; Informasi</span>
                   </div>
-                  <i class="fa-solid fa-chevron-right text-xs text-sky-600 dark:text-sky-400"></i>
+                  <i class="fa-solid fa-arrow-right text-xs text-slate-400" aria-hidden="true"></i>
                 </button>
               </div>
-              
-              <!-- 1. Menu Berita (Untuk Siswa / Umum: Langsung Navigasi ke Berita) -->
-              <button
-                v-if="!isGuruOrAdmin"
-                type="button"
-                @click="navigateToNews('#arsip-berita')"
-                class="w-full text-left px-3.5 py-3 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 hover:bg-sky-50 dark:hover:bg-slate-800 flex items-center justify-between border border-transparent hover:border-sky-200 transition-colors"
-              >
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
-                    <i class="fa-regular fa-newspaper" aria-hidden="true"></i>
-                  </div>
-                  <span>Berita &amp; Informasi</span>
-                </div>
-                <i class="fa-solid fa-arrow-right text-xs text-slate-400" aria-hidden="true"></i>
-              </button>
 
               <!-- 1. Menu Berita (Khusus Guru BK / Admin: Accordion Portal & Kelola Berita) -->
               <div v-else class="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">

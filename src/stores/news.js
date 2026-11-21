@@ -439,7 +439,7 @@ export const useNewsStore = defineStore('news', () => {
   async function fetchTickerText() {
     if (isSupabaseConfigured && supabase) {
       try {
-        // 1. Coba baca dari record konfigurasi sistem di tabel berita Supabase (Global Cloud)
+        // Coba baca dari record konfigurasi sistem di tabel berita Supabase (Global Cloud)
         const { data: sysData, error: sysErr } = await supabase
           .from('berita')
           .select('isi')
@@ -452,19 +452,6 @@ export const useNewsStore = defineStore('news', () => {
         if (!sysErr && sysData && sysData.isi) {
           tickerText.value = sysData.isi
           localStorage.setItem(TICKER_STORAGE_KEY, sysData.isi)
-          return
-        }
-
-        // 2. Fallback cek tabel pengaturan jika ada
-        const { data: configData } = await supabase
-          .from('pengaturan')
-          .select('value')
-          .eq('key', 'ticker_text')
-          .maybeSingle()
-
-        if (configData && configData.value) {
-          tickerText.value = configData.value
-          localStorage.setItem(TICKER_STORAGE_KEY, configData.value)
         }
       } catch (err) {
         console.warn('Error saat fetch ticker text global dari Supabase:', err)

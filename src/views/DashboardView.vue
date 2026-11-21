@@ -438,6 +438,13 @@ watch(() => alumniStore.alumniList.length, async () => {
   initCharts()
 })
 
+watch(() => alumniStore.isLoading, async (loading) => {
+  if (!loading) {
+    await nextTick()
+    initCharts()
+  }
+})
+
 watch(selectedChartCohort, async () => {
   await nextTick()
   initCharts()
@@ -445,13 +452,13 @@ watch(selectedChartCohort, async () => {
 </script>
 
 <template>
-  <div class="space-y-4 sm:space-y-5 w-full">
+  <div class="space-y-4 sm:space-y-5 w-full max-w-full min-w-0">
     
     <!-- Hero Banner Utama Cerah & Ramah (Ringkas & Proporsional) -->
-    <section class="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#E0F2FE]/85 via-[#FFFBEB]/70 to-[#FFE4E6]/50 dark:from-slate-900 dark:via-sky-950/35 dark:to-amber-950/20 border border-sky-200/80 dark:border-slate-800 shadow-sm overflow-hidden" aria-labelledby="banner-heading">
+    <section class="rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#E0F2FE]/85 via-[#FFFBEB]/70 to-[#FFE4E6]/50 dark:from-slate-900 dark:via-sky-950/35 dark:to-amber-950/20 border border-sky-200/80 dark:border-slate-800 shadow-sm overflow-hidden min-w-0 max-w-full" aria-labelledby="banner-heading">
       <div class="h-1 w-full bg-gradient-to-r from-[#0284C7] via-[#E11D48] via-[#F59E0B] to-[#10B981]" aria-hidden="true"></div>
 
-      <div class="p-4 sm:p-5 lg:py-3.5 lg:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <div class="p-4 sm:p-5 lg:py-3.5 lg:px-6 flex flex-col lg:flex-row lg:items-center justify-between gap-3 min-w-0">
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 text-xs font-semibold text-[#0369A1] dark:text-sky-300 mb-1">
             <span class="px-2.5 py-0.5 rounded-full bg-[#E0F2FE] dark:bg-sky-950/80 border border-sky-200 dark:border-sky-800 text-[#0284C7] dark:text-sky-300 font-bold">
@@ -469,11 +476,11 @@ watch(selectedChartCohort, async () => {
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           <router-link
             v-if="authStore.userRole !== 'siswa'"
             to="/lapor"
-            class="px-4 py-2 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-xs sm:text-sm transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm min-h-[38px]"
+            class="px-3.5 sm:px-4 py-2 rounded-xl bg-[#0369A1] hover:bg-[#075985] text-white font-semibold text-xs sm:text-sm transition-colors duration-150 flex items-center justify-center gap-2 shadow-sm min-h-[38px]"
           >
             <i class="fa-solid fa-user-plus text-xs" aria-hidden="true"></i>
             <span>Formulir Lapor Diri</span>
@@ -481,7 +488,7 @@ watch(selectedChartCohort, async () => {
 
           <router-link
             to="/data"
-            class="px-4 py-2 rounded-xl bg-white hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border border-sky-200 dark:border-slate-700 transition-colors duration-150 flex items-center justify-center gap-2 min-h-[38px] shadow-2xs"
+            class="px-3.5 sm:px-4 py-2 rounded-xl bg-white hover:bg-sky-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-[#0369A1] dark:text-sky-200 font-semibold text-xs sm:text-sm border border-sky-200 dark:border-slate-700 transition-colors duration-150 flex items-center justify-center gap-2 min-h-[38px] shadow-2xs"
           >
             <i class="fa-solid fa-magnifying-glass text-xs" aria-hidden="true"></i>
             <span>Direktori Alumni</span>
@@ -490,7 +497,7 @@ watch(selectedChartCohort, async () => {
           <router-link
             v-if="authStore.userRole === 'admin' && alumniStore.totalPendingCount > 0"
             to="/verifikasi"
-            class="px-3.5 py-2 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
+            class="px-3 sm:px-3.5 py-2 rounded-xl bg-[#FEF3C7] text-[#92400E] hover:bg-amber-200/80 dark:bg-amber-500/20 dark:text-amber-300 border border-amber-300/80 dark:border-amber-500/40 font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 min-h-[38px]"
           >
             <i class="fa-solid fa-bell text-xs" aria-hidden="true"></i>
             <span>{{ alumniStore.totalPendingCount }} Perlu Verifikasi</span>
@@ -500,71 +507,79 @@ watch(selectedChartCohort, async () => {
     </section>
 
     <!-- Ringkasan Statistik Utama (4 Pilar Warna BK - Proporsional & Elegan) -->
-    <section aria-labelledby="metrics-title">
+    <section aria-labelledby="metrics-title" class="min-w-0 max-w-full">
       <h2 id="metrics-title" class="sr-only">Statistik Utama Alumni</h2>
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 min-w-0">
         
         <!-- Total Data Terverifikasi (Trust Blue) -->
-        <div class="p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-sky-50/90 to-white dark:from-sky-950/40 dark:to-slate-900 border border-sky-200/80 dark:border-sky-800/60 shadow-xs">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs sm:text-sm font-semibold text-[#0369A1] dark:text-sky-300">Total Terdata</span>
-            <span class="w-8 h-8 rounded-xl bg-[#0369A1] text-white flex items-center justify-center text-xs shadow-xs">
+        <div class="p-3 sm:p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-sky-50/90 to-white dark:from-sky-950/40 dark:to-slate-900 border border-sky-200/80 dark:border-sky-800/60 shadow-xs min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-1.5 sm:mb-2">
+            <span class="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#0369A1] dark:text-sky-300 truncate">Total Terdata</span>
+            <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#0369A1] text-white flex items-center justify-center text-xs shadow-xs shrink-0">
               <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
             </span>
           </div>
-          <div class="font-display font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
-            {{ filteredChartStats.total }}
+          <div class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-slate-900 dark:text-white leading-tight">
+            <span v-if="alumniStore.isLoading" class="inline-block h-7 sm:h-8 w-20 sm:w-24 bg-sky-200/70 dark:bg-sky-800/60 rounded-lg animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.total }}</template>
           </div>
-          <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
-            {{ selectedChartCohort === 'ALL' ? 'Alumni sudah berbagi kabar' : `Alumni Lulusan ${selectedChartCohort}` }}
+          <div class="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
+            <span v-if="alumniStore.isLoading" class="inline-block h-3.5 w-32 sm:w-40 bg-sky-200/60 dark:bg-sky-800/50 rounded animate-pulse align-middle"></span>
+            <template v-else>{{ selectedChartCohort === 'ALL' ? 'Alumni sudah berbagi kabar' : `Alumni Lulusan ${selectedChartCohort}` }}</template>
           </div>
         </div>
 
         <!-- Kuliah PTN & PTS (Growth Emerald) -->
-        <div class="p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs sm:text-sm font-semibold text-[#047857] dark:text-emerald-300">Perguruan Tinggi</span>
-            <span class="w-8 h-8 rounded-xl bg-[#047857] text-white flex items-center justify-center text-xs shadow-xs">
+        <div class="p-3 sm:p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-emerald-50/90 to-white dark:from-emerald-950/40 dark:to-slate-900 border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-1.5 sm:mb-2">
+            <span class="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#047857] dark:text-emerald-300 truncate">Perguruan Tinggi</span>
+            <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#047857] text-white flex items-center justify-center text-xs shadow-xs shrink-0">
               <i class="fa-solid fa-building-columns" aria-hidden="true"></i>
             </span>
           </div>
-          <div class="font-display font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
-            {{ filteredChartStats.ptnCount + filteredChartStats.ptsCount }}
+          <div class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-slate-900 dark:text-white leading-tight">
+            <span v-if="alumniStore.isLoading" class="inline-block h-7 sm:h-8 w-16 sm:w-20 bg-emerald-200/70 dark:bg-emerald-800/60 rounded-lg animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.ptnCount + filteredChartStats.ptsCount }}</template>
           </div>
-          <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
-            {{ filteredChartStats.ptnCount }} PTN &bull; {{ filteredChartStats.ptsCount }} PTS
+          <div class="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
+            <span v-if="alumniStore.isLoading" class="inline-block h-3.5 w-28 sm:w-36 bg-emerald-200/60 dark:bg-emerald-800/50 rounded animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.ptnCount }} PTN &bull; {{ filteredChartStats.ptsCount }} PTS</template>
           </div>
         </div>
 
         <!-- Kedinasan & Militer (Warm Magenta) -->
-        <div class="p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-slate-900 border border-rose-200/80 dark:border-rose-800/60 shadow-xs">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs sm:text-sm font-semibold text-[#BE123C] dark:text-rose-300">Kedinasan &amp; Militer</span>
-            <span class="w-8 h-8 rounded-xl bg-[#BE123C] text-white flex items-center justify-center text-xs shadow-xs">
+        <div class="p-3 sm:p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-rose-50/90 to-white dark:from-rose-950/40 dark:to-slate-900 border border-rose-200/80 dark:border-rose-800/60 shadow-xs min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-1.5 sm:mb-2">
+            <span class="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#BE123C] dark:text-rose-300 truncate">Kedinasan &amp; Militer</span>
+            <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#BE123C] text-white flex items-center justify-center text-xs shadow-xs shrink-0">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
             </span>
           </div>
-          <div class="font-display font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
-            {{ filteredChartStats.kedinasanCount + filteredChartStats.tniPolriCount }}
+          <div class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-slate-900 dark:text-white leading-tight">
+            <span v-if="alumniStore.isLoading" class="inline-block h-7 sm:h-8 w-14 sm:w-16 bg-rose-200/70 dark:bg-rose-800/60 rounded-lg animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.kedinasanCount + filteredChartStats.tniPolriCount }}</template>
           </div>
-          <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
-            {{ filteredChartStats.kedinasanCount }} Dinas &bull; {{ filteredChartStats.tniPolriCount }} TNI/Polri
+          <div class="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
+            <span v-if="alumniStore.isLoading" class="inline-block h-3.5 w-32 sm:w-40 bg-rose-200/60 dark:bg-rose-800/50 rounded animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.kedinasanCount }} Dinas &bull; {{ filteredChartStats.tniPolriCount }} TNI/Polri</template>
           </div>
         </div>
 
         <!-- Karir & Wirausaha (Hope Amber) -->
-        <div class="p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-slate-900 border border-amber-200/80 dark:border-amber-800/60 shadow-xs">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs sm:text-sm font-semibold text-[#92400E] dark:text-amber-300">Karir &amp; Wirausaha</span>
-            <span class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-xs shadow-xs">
+        <div class="p-3 sm:p-4 lg:p-4.5 rounded-2xl bg-gradient-to-br from-amber-50/90 to-white dark:from-amber-950/40 dark:to-slate-900 border border-amber-200/80 dark:border-amber-800/60 shadow-xs min-w-0">
+          <div class="flex items-center justify-between gap-1 mb-1.5 sm:mb-2">
+            <span class="text-[11px] sm:text-xs lg:text-sm font-semibold text-[#92400E] dark:text-amber-300 truncate">Karir &amp; Wirausaha</span>
+            <span class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center text-xs shadow-xs shrink-0">
               <i class="fa-solid fa-briefcase" aria-hidden="true"></i>
             </span>
           </div>
-          <div class="font-display font-bold text-2xl sm:text-3xl text-slate-900 dark:text-white leading-tight">
-            {{ filteredChartStats.kerjaCount + filteredChartStats.wirausahaCount }}
+          <div class="font-display font-bold text-xl sm:text-2xl lg:text-3xl text-slate-900 dark:text-white leading-tight">
+            <span v-if="alumniStore.isLoading" class="inline-block h-7 sm:h-8 w-14 sm:w-16 bg-amber-200/70 dark:bg-amber-800/60 rounded-lg animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.kerjaCount + filteredChartStats.wirausahaCount }}</template>
           </div>
-          <div class="text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
-            {{ filteredChartStats.kerjaCount }} Kerja &bull; {{ filteredChartStats.wirausahaCount }} Bisnis
+          <div class="text-[10px] sm:text-xs text-slate-600 dark:text-slate-400 mt-1 truncate">
+            <span v-if="alumniStore.isLoading" class="inline-block h-3.5 w-28 sm:w-36 bg-amber-200/60 dark:bg-amber-800/50 rounded animate-pulse align-middle"></span>
+            <template v-else>{{ filteredChartStats.kerjaCount }} Kerja &bull; {{ filteredChartStats.wirausahaCount }} Bisnis</template>
           </div>
         </div>
 
@@ -572,10 +587,10 @@ watch(selectedChartCohort, async () => {
     </section>
 
     <!-- Visualisasi Grafik & Filter Angkatan Tracer Study (Seimbang & Proporsional) -->
-    <section class="space-y-3 sm:space-y-4" aria-labelledby="charts-heading">
+    <section class="space-y-3 sm:space-y-4 min-w-0 max-w-full" aria-labelledby="charts-heading">
       
       <!-- Toolbar Header Diagram & Filter Angkatan Terpadu -->
-      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-2xs p-3 sm:px-5 sm:py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-2xs p-3 sm:px-5 sm:py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 min-w-0 max-w-full">
         <div class="flex items-center gap-3 min-w-0">
           <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-[#0284C7] to-[#38BDF8] text-white shadow-xs flex items-center justify-center shrink-0 text-sm">
             <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
@@ -585,96 +600,106 @@ watch(selectedChartCohort, async () => {
               <h2 id="charts-heading" class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate">
                 Diagram Tracer Study Lulusan
               </h2>
-              <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-100 text-[#0369A1] dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
+              <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-sky-100 text-[#0369A1] dark:bg-sky-950 dark:text-sky-300 border border-sky-200 dark:border-sky-800 shrink-0">
                 Statistik Resmi
               </span>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
-              {{ selectedChartCohort === 'ALL' 
-                ? `Akumulasi seluruh ${totalAlumniLulusanCount} data alumni lintas angkatan yang terdata` 
-                : `Menampilkan ${filteredChartStats.total} data alumni khusus Lulusan Angkatan ${selectedChartCohort}` }}
+              <span v-if="alumniStore.isLoading" class="inline-block h-3.5 w-56 sm:w-72 bg-slate-200 dark:bg-slate-700/60 rounded animate-pulse align-middle"></span>
+              <template v-else>
+                {{ selectedChartCohort === 'ALL' 
+                  ? `Akumulasi seluruh ${totalAlumniLulusanCount} data alumni lintas angkatan yang terdata` 
+                  : `Menampilkan ${filteredChartStats.total} data alumni khusus Lulusan Angkatan ${selectedChartCohort}` }}
+              </template>
             </p>
           </div>
         </div>
 
-        <!-- Segmented Filter Pills Angkatan -->
-        <div class="flex items-center gap-2 overflow-x-auto scrollbar-none shrink-0 self-start md:self-auto">
-          <!-- Reset button jika filter aktif -->
-          <button
-            v-if="selectedChartCohort !== 'ALL'"
-            @click="selectedChartCohort = 'ALL'"
-            type="button"
-            class="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
-            title="Kembali ke Semua Angkatan"
-          >
-            <i class="fa-solid fa-rotate-left text-xs" aria-hidden="true"></i>
-            <span>Semua</span>
-          </button>
+        <!-- Segmented Filter Pills Angkatan (Scrollable Horizontal Bersih di Mobile Tanpa Mendorong Layar) -->
+        <div class="w-full min-w-0 max-w-full overflow-x-auto no-scrollbar py-1 flex items-center gap-2 md:w-auto md:shrink-0">
+          <!-- Skeletons ketika loading -->
+          <div v-if="alumniStore.isLoading" class="flex items-center gap-2 shrink-0">
+            <div v-for="i in 5" :key="i" class="h-8 w-24 sm:w-28 rounded-xl bg-slate-200/80 dark:bg-slate-800 animate-pulse shrink-0"></div>
+          </div>
 
-          <!-- Pill Button Semua Angkatan -->
-          <button
-            @click="selectedChartCohort = 'ALL'"
-            type="button"
-            class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 shrink-0 border"
-            :class="selectedChartCohort === 'ALL'
-              ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm shadow-sky-600/30'
-              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-slate-750 hover:text-[#0284C7]'"
-          >
-            <span>Semua Angkatan</span>
-            <span
-              class="px-2 py-0.5 rounded-full text-[11px] font-bold"
-              :class="selectedChartCohort === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
+          <template v-else>
+            <!-- Reset button jika filter aktif -->
+            <button
+              v-if="selectedChartCohort !== 'ALL'"
+              @click="selectedChartCohort = 'ALL'"
+              type="button"
+              class="px-2.5 py-1.5 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 text-xs font-semibold flex items-center gap-1.5 transition-colors shrink-0"
+              title="Kembali ke Semua Angkatan"
             >
-              {{ totalAlumniLulusanCount }}
-            </span>
-          </button>
+              <i class="fa-solid fa-rotate-left text-xs" aria-hidden="true"></i>
+              <span>Semua</span>
+            </button>
 
-          <!-- Pill Buttons Tiap Angkatan -->
-          <button
-            v-for="c in availableCohorts"
-            :key="c"
-            @click="selectedChartCohort = c"
-            type="button"
-            class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 shrink-0 border"
-            :class="selectedChartCohort === c
-              ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm shadow-sky-600/30'
-              : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-slate-750 hover:text-[#0284C7]'"
-          >
-            <i class="fa-solid fa-graduation-cap text-xs" :class="selectedChartCohort === c ? 'text-white/90' : 'text-slate-400'" aria-hidden="true"></i>
-            <span>Angkatan {{ c }}</span>
-            <span
-              class="px-2 py-0.5 rounded-full text-[11px] font-bold"
-              :class="selectedChartCohort === c ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
+            <!-- Pill Button Semua Angkatan -->
+            <button
+              @click="selectedChartCohort = 'ALL'"
+              type="button"
+              class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 shrink-0 border"
+              :class="selectedChartCohort === 'ALL'
+                ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm shadow-sky-600/30'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-slate-750 hover:text-[#0284C7]'"
             >
-              {{ cohortCounts[c] || 0 }}
-            </span>
-          </button>
+              <span>Semua Angkatan</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                :class="selectedChartCohort === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
+              >
+                {{ totalAlumniLulusanCount }}
+              </span>
+            </button>
+
+            <!-- Pill Buttons Tiap Angkatan -->
+            <button
+              v-for="c in availableCohorts"
+              :key="c"
+              @click="selectedChartCohort = c"
+              type="button"
+              class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 flex items-center gap-2 shrink-0 border"
+              :class="selectedChartCohort === c
+                ? 'bg-[#0284C7] text-white border-[#0284C7] shadow-sm shadow-sky-600/30'
+                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200/90 dark:border-slate-700 hover:bg-sky-50 dark:hover:bg-slate-750 hover:text-[#0284C7]'"
+            >
+              <i class="fa-solid fa-graduation-cap text-xs" :class="selectedChartCohort === c ? 'text-white/90' : 'text-slate-400'" aria-hidden="true"></i>
+              <span>Angkatan {{ c }}</span>
+              <span
+                class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                :class="selectedChartCohort === c ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'"
+              >
+                {{ cohortCounts[c] || 0 }}
+              </span>
+            </button>
+          </template>
         </div>
       </div>
 
       <!-- Grid 2 Diagram Utama (Rapi, Seimbang & Padat Tanpa Ruang Kosong Aneh) -->
-      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-5">
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-5 min-w-0 max-w-full">
         
         <!-- Donut Chart: Komposisi Kategori -->
-        <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm flex flex-col">
+        <div class="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-sky-100 dark:border-slate-800 shadow-sm flex flex-col min-w-0 max-w-full overflow-hidden">
           <div class="border-b border-sky-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span class="w-9 h-9 rounded-xl bg-[#E0F2FE] text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0 text-sm">
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#E0F2FE] text-[#0369A1] dark:bg-sky-950/60 dark:text-sky-300 flex items-center justify-center shrink-0 text-sm">
                 <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
               </span>
-              <div>
-                <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+              <div class="min-w-0">
+                <h3 class="font-display font-bold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-white truncate">
                   Sebaran Pilihan Lulusan
                 </h3>
-                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  Jalur kuliah, kedinasan, dan karir pilihan alumni SMADA Ngawi
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  Jalur kuliah, kedinasan, dan karir pilihan alumni SMADA
                   <span v-if="selectedChartCohort !== 'ALL'" class="font-semibold text-[#0284C7] dark:text-sky-400"> (Angkatan {{ selectedChartCohort }})</span>
                 </p>
               </div>
             </div>
 
             <span
-              v-if="filteredChartStats.belumLaporCount > 0"
+              v-if="!alumniStore.isLoading && filteredChartStats.belumLaporCount > 0"
               class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-[#BE123C] border border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-900 shrink-0"
               title="Siswa yang belum lapor diri / mengisi jalur pilihan"
             >
@@ -683,46 +708,89 @@ watch(selectedChartCohort, async () => {
             </span>
           </div>
           
-          <div class="relative h-72 sm:h-80 lg:h-[320px] xl:h-[340px] w-full">
-            <canvas ref="donutCanvas" aria-label="Grafik donat sebaran kategori"></canvas>
+          <div class="relative h-64 sm:h-80 lg:h-[320px] xl:h-[340px] w-full min-w-0 max-w-full overflow-hidden">
+            <!-- Loading Skeleton State untuk Donut Chart -->
             <div
-              v-if="filteredChartStats.sudahLaporCount <= 0"
+              v-if="alumniStore.isLoading"
+              class="absolute inset-0 flex flex-col items-center justify-center p-4 bg-white/95 dark:bg-slate-900/95 z-10"
+            >
+              <div class="relative w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center">
+                <div class="w-full h-full rounded-full border-8 border-sky-100 dark:border-slate-800 border-t-sky-500 border-r-emerald-500 animate-spin"></div>
+                <div class="absolute w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-slate-50 dark:bg-slate-800/80 flex flex-col items-center justify-center p-2 text-center shadow-inner animate-pulse">
+                  <i class="fa-solid fa-chart-pie text-sky-500 text-lg sm:text-xl mb-1"></i>
+                  <span class="text-[10px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400">Memuat Data...</span>
+                </div>
+              </div>
+              <div class="flex flex-wrap items-center justify-center gap-2 mt-4 max-w-sm">
+                <div v-for="i in 5" :key="i" class="h-4 w-14 sm:w-16 bg-slate-100 dark:bg-slate-800 rounded-full animate-pulse"></div>
+              </div>
+            </div>
+
+            <!-- Empty State (Hanya jika TIDAK loading dan sudahLaporCount <= 0) -->
+            <div
+              v-else-if="filteredChartStats.sudahLaporCount <= 0"
               class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-400 bg-white/95 dark:bg-slate-900/95 z-10"
             >
               <i class="fa-solid fa-chart-pie text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
               <p class="text-sm">Belum ada data grafik pilihan alumni{{ selectedChartCohort !== 'ALL' ? ` untuk Angkatan ${selectedChartCohort}` : '' }}. Silakan isi formulir lapor diri.</p>
             </div>
+
+            <canvas ref="donutCanvas" aria-label="Grafik donat sebaran kategori"></canvas>
           </div>
         </div>
 
         <!-- Bar Chart: Top 5 Kampus Pilihan Alumni -->
-        <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 shadow-sm flex flex-col">
+        <div class="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-100 dark:border-slate-800 shadow-sm flex flex-col min-w-0 max-w-full overflow-hidden">
           <div class="border-b border-emerald-100/80 dark:border-slate-800 pb-3 mb-4 flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-              <span class="w-9 h-9 rounded-xl bg-[#D1FAE5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center justify-center shrink-0 text-sm">
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <span class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-[#D1FAE5] text-[#047857] dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center justify-center shrink-0 text-sm">
                 <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
               </span>
-              <div>
-                <h3 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+              <div class="min-w-0">
+                <h3 class="font-display font-bold text-sm sm:text-base lg:text-lg text-slate-900 dark:text-white truncate">
                   Top 5 Kampus Pilihan Alumni
                 </h3>
-                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  Perguruan tinggi yang paling banyak dipilih alumni SMADA Ngawi
+                <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  Perguruan tinggi yang paling banyak dipilih alumni SMADA
                   <span v-if="selectedChartCohort !== 'ALL'" class="font-semibold text-[#047857] dark:text-emerald-400"> (Angkatan {{ selectedChartCohort }})</span>
                 </p>
               </div>
             </div>
           </div>
           
-          <div class="relative h-72 sm:h-80 lg:h-[320px] xl:h-[340px] w-full">
-            <canvas ref="barCanvas" aria-label="Grafik batang kampus favorit"></canvas>
+          <div class="relative h-64 sm:h-80 lg:h-[320px] xl:h-[340px] w-full min-w-0 max-w-full overflow-hidden">
+            <!-- Loading Skeleton State untuk Bar Chart -->
             <div
-              v-if="topCampusData.count <= 0"
+              v-if="alumniStore.isLoading"
+              class="absolute inset-0 flex flex-col justify-end p-5 sm:p-6 bg-white/95 dark:bg-slate-900/95 z-10"
+            >
+              <div class="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/60 text-[#047857] dark:text-emerald-300 text-xs font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-spinner fa-spin text-emerald-600 text-[11px]"></i>
+                <span>Mengkalkulasi Top 5 Kampus...</span>
+              </div>
+              <div class="flex items-end justify-around gap-2 sm:gap-6 h-44 sm:h-52 px-2 sm:px-4">
+                <div class="w-10 sm:w-14 h-[85%] bg-gradient-to-t from-sky-500/25 to-sky-400/10 dark:from-sky-500/35 dark:to-sky-400/10 rounded-t-xl animate-pulse"></div>
+                <div class="w-10 sm:w-14 h-[55%] bg-gradient-to-t from-emerald-500/25 to-emerald-400/10 dark:from-emerald-500/35 dark:to-emerald-400/10 rounded-t-xl animate-pulse delay-75"></div>
+                <div class="w-10 sm:w-14 h-[45%] bg-gradient-to-t from-amber-500/25 to-amber-400/10 dark:from-amber-500/35 dark:to-amber-400/10 rounded-t-xl animate-pulse delay-150"></div>
+                <div class="w-10 sm:w-14 h-[35%] bg-gradient-to-t from-rose-500/25 to-rose-400/10 dark:from-rose-500/35 dark:to-rose-400/10 rounded-t-xl animate-pulse delay-200"></div>
+                <div class="w-10 sm:w-14 h-[25%] bg-gradient-to-t from-sky-400/25 to-sky-300/10 dark:from-sky-400/35 dark:to-sky-300/10 rounded-t-xl animate-pulse delay-300"></div>
+              </div>
+              <div class="h-0.5 w-full bg-slate-200 dark:bg-slate-800 mt-1"></div>
+              <div class="flex items-center justify-around gap-2 sm:gap-6 pt-2 sm:pt-3 px-2 sm:px-4">
+                <div v-for="i in 5" :key="i" class="h-3 w-10 sm:w-14 bg-slate-100 dark:bg-slate-800 rounded animate-pulse"></div>
+              </div>
+            </div>
+
+            <!-- Empty State (Hanya jika TIDAK loading dan count <= 0) -->
+            <div
+              v-else-if="topCampusData.count <= 0"
               class="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-slate-400 bg-white/95 dark:bg-slate-900/95 z-10"
             >
               <i class="fa-solid fa-graduation-cap text-3xl text-slate-300 dark:text-slate-700 mb-2" aria-hidden="true"></i>
               <p class="text-sm">Data kampus belum tersedia{{ selectedChartCohort !== 'ALL' ? ` untuk Angkatan ${selectedChartCohort}` : '' }}.</p>
             </div>
+
+            <canvas ref="barCanvas" aria-label="Grafik batang kampus favorit"></canvas>
           </div>
         </div>
 
@@ -736,8 +804,8 @@ watch(selectedChartCohort, async () => {
     </section>
 
     <!-- Bagian Kabar Alumni Terbaru (Berada di Bawah Layar Utama) -->
-    <section class="mt-8 lg:mt-12 pt-6 border-t border-sky-100/80 dark:border-slate-800" aria-labelledby="recent-heading">
-      <div class="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-amber-100 dark:border-slate-800 shadow-sm space-y-4">
+    <section class="mt-8 lg:mt-12 pt-6 border-t border-sky-100/80 dark:border-slate-800 min-w-0 max-w-full" aria-labelledby="recent-heading">
+      <div class="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-amber-100 dark:border-slate-800 shadow-sm space-y-4 min-w-0 max-w-full">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-amber-100/80 dark:border-slate-800">
           <div class="flex items-center gap-3">
             <span class="w-9 h-9 rounded-xl bg-[#FEF3C7] text-[#92400E] dark:bg-amber-950/60 dark:text-amber-300 flex items-center justify-center shrink-0">
@@ -756,11 +824,28 @@ watch(selectedChartCohort, async () => {
             to="/data"
             class="px-3.5 py-1.5 rounded-full bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/60 border border-sky-200/80 dark:border-sky-800 text-sm font-semibold text-[#0369A1] dark:text-sky-300 self-start sm:self-auto transition-colors"
           >
-            Lihat Semua ({{ alumniStore.alumniList.length }})
+            Lihat Semua ({{ alumniStore.isLoading ? '...' : alumniStore.alumniList.length }})
           </router-link>
         </div>
 
-        <div v-if="recentAlumni.length > 0" class="divide-y divide-slate-100 dark:divide-slate-800">
+        <!-- Skeleton Loading State untuk Kabar Alumni Terbaru -->
+        <div v-if="alumniStore.isLoading" class="divide-y divide-slate-100 dark:divide-slate-800">
+          <div v-for="i in 4" :key="i" class="py-3.5 px-3 flex items-center justify-between gap-4 animate-pulse">
+            <div class="flex items-center gap-3.5 min-w-0">
+              <div class="w-11 h-11 rounded-xl bg-slate-200 dark:bg-slate-800 shrink-0"></div>
+              <div class="space-y-1.5 min-w-0">
+                <div class="h-4 w-36 sm:w-48 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                <div class="h-3 w-48 sm:w-64 bg-slate-100 dark:bg-slate-800/60 rounded"></div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2.5 shrink-0">
+              <div class="h-6 w-20 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+              <div class="h-3.5 w-16 rounded bg-slate-100 dark:bg-slate-800 hidden sm:block"></div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else-if="recentAlumni.length > 0" class="divide-y divide-slate-100 dark:divide-slate-800">
           <div
             v-for="alumni in recentAlumni"
             :key="alumni.id"

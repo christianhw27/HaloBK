@@ -60,63 +60,23 @@ function toggleDarkMode() {
 </script>
 
 <template>
-  <!-- TOP BAR KHUSUS LAYAR MOBILE & TABLET (< lg) -->
-  <header class="lg:hidden sticky top-0 z-40 bg-gradient-to-r from-white/95 via-sky-50/60 to-amber-50/50 dark:from-slate-900/95 dark:via-slate-900/95 dark:to-slate-900/95 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <button
-        @click="isMobileOpen = true"
-        type="button"
-        class="w-10 h-10 rounded-xl bg-sky-50 dark:bg-slate-800 text-[#0369A1] dark:text-sky-300 flex items-center justify-center text-base border border-sky-200/80 dark:border-slate-700 focus-visible:ring-2"
-        aria-label="Buka Menu Navigasi"
-      >
-        <i class="fa-solid fa-bars" aria-hidden="true"></i>
-      </button>
+  <!-- SUB-BAR NAVIGASI KHUSUS MOBILE (< lg) DI BAWAH NAVBAR UTAMA -->
+  <div class="lg:hidden sticky top-16 sm:top-[72px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 shadow-2xs w-full max-w-full min-w-0">
+    <button
+      @click="isMobileOpen = true"
+      type="button"
+      class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/80 text-[#0284C7] dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 text-xs font-bold transition-all shadow-2xs shrink-0"
+      aria-label="Buka Menu Tracer Study"
+    >
+      <i class="fa-solid fa-bars-staggered text-xs" aria-hidden="true"></i>
+      <span>Menu Tracer Study</span>
+    </button>
 
-      <div class="flex items-center gap-2">
-        <img
-          src="/logo.png"
-          alt="Logo BK SMADA"
-          class="w-8 h-8 rounded-xl object-contain bg-white dark:bg-slate-800 border border-sky-200/80 dark:border-slate-700 p-0.5 shrink-0"
-          onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
-        />
-        <div class="w-8 h-8 rounded-xl bg-[#E0F2FE] dark:bg-slate-800 text-[#0369A1] dark:text-sky-400 flex items-center justify-center font-bold text-sm hidden">
-          <i class="fa-solid fa-graduation-cap" aria-hidden="true"></i>
-        </div>
-        <div>
-          <span class="font-display font-bold text-sm sm:text-base text-slate-900 dark:text-white leading-tight block">
-            Ruang BK SMADA
-          </span>
-          <span class="text-[11px] text-[#0369A1] dark:text-sky-300 font-medium block -mt-0.5">
-            Tracer Study &amp; Karir
-          </span>
-        </div>
-      </div>
+    <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 min-w-0 truncate">
+      <span class="w-2 h-2 rounded-full bg-[#0284C7] shrink-0" aria-hidden="true"></span>
+      <span class="truncate">Tracer Study &amp; Karir</span>
     </div>
-
-    <!-- Status Peran di Bar Atas Mobile (Static, Tanpa Pindah Cepat) -->
-    <div class="flex items-center gap-2">
-      <div
-        class="px-3 py-1.5 rounded-xl text-xs font-semibold border flex items-center gap-1.5 bg-white dark:bg-slate-800 border-sky-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 shadow-2xs"
-      >
-        <span
-          class="w-2 h-2 rounded-full"
-          :class="authStore.userRole === 'admin' ? 'bg-emerald-500' : 'bg-[#0284C7]'"
-          aria-hidden="true"
-        ></span>
-        <span class="max-w-[90px] truncate">{{ authStore.userRole === 'admin' ? 'Guru BK' : (authStore.userRole === 'siswa' ? 'Siswa' : 'Pengunjung') }}</span>
-      </div>
-
-      <button
-        @click="toggleDarkMode"
-        type="button"
-        class="w-9 h-9 rounded-xl bg-amber-50 dark:bg-slate-800 text-amber-700 dark:text-amber-300 flex items-center justify-center text-sm border border-amber-200/80 dark:border-slate-700"
-        :aria-label="isDark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'"
-      >
-        <i v-if="isDark" class="fa-solid fa-sun text-amber-400" aria-hidden="true"></i>
-        <i v-else class="fa-solid fa-moon text-[#0369A1]" aria-hidden="true"></i>
-      </button>
-    </div>
-  </header>
+  </div>
 
   <!-- BACKDROP OVERLAY UNTUK MOBILE DRAWER -->
   <Transition
@@ -135,9 +95,9 @@ function toggleDarkMode() {
     ></div>
   </Transition>
 
-  <!-- SIDEBAR CONTAINER (DESKTOP: FIXED ASIDE, MOBILE: OFF-CANVAS DRAWER) -->
+  <!-- SIDEBAR CONTAINER (DESKTOP: FIXED ASIDE DOCKING DI BAWAH NAVBAR, MOBILE: OFF-CANVAS DRAWER) -->
   <aside
-    class="fixed top-0 left-0 z-[60] lg:z-40 h-screen w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
+    class="fixed top-0 lg:top-16 sm:lg:top-[72px] left-0 z-[60] lg:z-30 h-screen lg:h-[calc(100vh-4rem)] sm:lg:h-[calc(100vh-4.5rem)] w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
     :class="isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
     aria-label="Navigasi Samping"
   >
@@ -147,26 +107,18 @@ function toggleDarkMode() {
     <!-- SISI ATAS: LOGO & MENU UTAMA -->
     <div class="flex-1 flex flex-col overflow-y-auto">
       
-      <!-- Brand & Identitas Sekolah -->
-      <div class="p-5 border-b border-sky-100 dark:border-slate-800 bg-gradient-to-br from-sky-50/90 via-white to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 flex items-center justify-between">
-        <router-link to="/tracer-study" class="flex items-center gap-3 group focus-visible:rounded-xl">
-          <img
-            src="/logo.png"
-            alt="Logo BK SMADA"
-            class="w-10 h-10 rounded-2xl object-contain bg-white dark:bg-slate-800 border border-sky-200/80 dark:border-slate-700 p-0.5 shrink-0 shadow-sm"
-            onerror="this.onerror=null; this.classList.add('hidden'); if(this.nextElementSibling) this.nextElementSibling.classList.remove('hidden');"
-          />
-          <div class="w-10 h-10 rounded-2xl bg-[#E0F2FE] dark:bg-slate-800 border border-sky-200 dark:border-slate-700 flex items-center justify-center text-[#0369A1] dark:text-sky-400 shrink-0 hidden">
-            <i class="fa-solid fa-graduation-cap text-lg" aria-hidden="true"></i>
+      <!-- Brand & Identitas Modul Tracer Study -->
+      <div class="p-4 border-b border-sky-100 dark:border-slate-800 bg-gradient-to-br from-sky-50/90 via-white to-amber-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 flex items-center justify-between">
+        <router-link to="/tracer-study" class="flex items-center gap-2.5 group focus-visible:rounded-xl">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#075985] text-white flex items-center justify-center text-sm font-bold shadow-xs group-hover:scale-105 transition-transform">
+            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
           </div>
           <div>
-            <div class="flex items-center gap-1.5">
-              <span class="font-display font-bold text-lg text-slate-900 dark:text-white leading-tight">
-                Ruang BK SMADA
-              </span>
-            </div>
-            <p class="text-xs text-[#0369A1] dark:text-sky-300 font-medium mt-0.5">
-              SMA Negeri 2 Ngawi
+            <span class="font-display font-bold text-sm text-slate-900 dark:text-white leading-tight block">
+              Tracer Study
+            </span>
+            <p class="text-[11px] text-[#0284C7] dark:text-sky-300 font-medium mt-0.5">
+              Alumni &amp; Jejak Karir
             </p>
           </div>
         </router-link>
@@ -220,70 +172,8 @@ function toggleDarkMode() {
         </div>
       </div>
 
-      <!-- Menu Navigasi Utama -->
-      <nav class="p-3.5 space-y-1.5 flex-1" aria-label="Menu Utama">
-        <!-- Tautan Kembali ke Portal Berita Publik -->
-        <router-link
-          to="/"
-          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all mb-2 border border-amber-200/90 dark:border-amber-800/60 bg-gradient-to-r from-[#FFFBEB] via-white to-[#E0F2FE]/60 dark:from-amber-950/35 dark:via-slate-900 dark:to-sky-950/35 text-slate-800 dark:text-slate-100 hover:border-amber-300 hover:shadow-xs"
-        >
-          <span class="w-8 h-8 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-2xs">
-            <i class="fa-solid fa-newspaper text-sm" aria-hidden="true"></i>
-          </span>
-          <span>Portal Berita</span>
-        </router-link>
-
-        <!-- Tautan Pintas ke Modul Stand-Alone Eligible (Khusus Siswa Eligible) -->
-        <router-link
-          v-if="authStore.isLoggedIn && authStore.userRole !== 'admin' && eligibleStore.isEligible"
-          to="/eligible"
-          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2.5 border border-purple-200/90 dark:border-purple-800/70 bg-gradient-to-r from-purple-50 via-white to-amber-50/70 dark:from-purple-950/40 dark:via-slate-900 dark:to-amber-950/30 text-purple-900 dark:text-purple-200 hover:border-purple-400 hover:shadow-xs"
-        >
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <i class="fa-solid fa-award text-sm" aria-hidden="true"></i>
-            </span>
-            <span>Eligible</span>
-          </div>
-          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-400 text-slate-950 shrink-0">
-            SNBP
-          </span>
-        </router-link>
-
-        <!-- Tautan Khusus Guru BK / Admin: Portal Admin Siswa Eligible SNBP -->
-        <router-link
-          v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
-          to="/admin/eligible"
-          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2 border border-purple-200/90 dark:border-purple-800/70 bg-gradient-to-r from-purple-50 via-white to-amber-50/70 dark:from-purple-950/40 dark:via-slate-900 dark:to-amber-950/30 text-purple-900 dark:text-purple-200 hover:border-purple-400 hover:shadow-xs"
-        >
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <i class="fa-solid fa-graduation-cap text-sm" aria-hidden="true"></i>
-            </span>
-            <span>Admin Eligible</span>
-          </div>
-          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-purple-600 text-white shrink-0">
-            SNBP
-          </span>
-        </router-link>
-
-        <!-- Tautan Khusus Guru BK / Admin: Studio Chat Siswa (HaloBK) -->
-        <router-link
-          v-if="authStore.isLoggedIn && authStore.userRole === 'admin'"
-          to="/admin/chat"
-          class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all mb-2.5 border border-sky-200/90 dark:border-sky-800/70 bg-gradient-to-r from-sky-50 via-white to-sky-100/40 dark:from-sky-950/40 dark:via-slate-900 dark:to-sky-900/30 text-sky-900 dark:text-sky-200 hover:border-sky-400 hover:shadow-xs"
-        >
-          <div class="flex items-center gap-3">
-            <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0369A1] to-sky-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
-              <i class="fa-solid fa-headset text-sm" aria-hidden="true"></i>
-            </span>
-            <span>HaloBK Chat</span>
-          </div>
-          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#0284C7] text-white shrink-0">
-            LIVE
-          </span>
-        </router-link>
-
+      <!-- Menu Navigasi Utama Tracer Study -->
+      <nav class="p-3.5 space-y-1.5 flex-1" aria-label="Menu Tracer Study">
         <div class="text-xs font-bold text-[#64748B] dark:text-slate-400 tracking-wide px-2 py-1">
           Menu Tracer Study
         </div>

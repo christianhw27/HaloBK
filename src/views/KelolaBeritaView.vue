@@ -226,7 +226,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/60 via-[#F8FAFC] to-[#FFFBEB]/50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200">
+  <div class="min-h-screen w-full max-w-full overflow-x-clip bg-gradient-to-br from-[#EFF6FF]/60 via-[#F8FAFC] to-[#FFFBEB]/50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-700 dark:text-slate-200 flex flex-col font-sans transition-colors duration-200">
     <!-- Navbar Publik -->
     <PublicNavbar />
 

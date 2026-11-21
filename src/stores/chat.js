@@ -64,14 +64,18 @@ export const STATUS_CONFIG = {
     icon: 'fa-solid fa-circle-check',
     badge: 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-300 dark:border-emerald-800',
     dot: 'bg-emerald-500'
-  },
-  ditolak: {
-    label: 'Ditolak',
-    icon: 'fa-solid fa-circle-xmark',
-    badge: 'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/70 dark:text-rose-300 dark:border-rose-800',
-    dot: 'bg-rose-500'
   }
 }
+
+export const NOTE_CATEGORIES = [
+  { id: 'umum', label: 'Umum', icon: 'fa-solid fa-clipboard-list', badge: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700' },
+  { id: 'pribadi', label: 'Pribadi', icon: 'fa-solid fa-heart', badge: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800' },
+  { id: 'sosial', label: 'Sosial', icon: 'fa-solid fa-users', badge: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800' },
+  { id: 'belajar', label: 'Belajar', icon: 'fa-solid fa-book-open-reader', badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800' },
+  { id: 'karir', label: 'Karir', icon: 'fa-solid fa-compass', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800' },
+  { id: 'tatap_muka', label: 'Tatap Muka BK', icon: 'fa-solid fa-school', badge: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800' },
+  { id: 'home_visit', label: 'Home Visit', icon: 'fa-solid fa-house-user', badge: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800' }
+]
 
 // Helper: Cek kelayakan Hapus Dua Pihak (< 15 menit)
 export function check15MinEligibility(createdAt) {
@@ -259,6 +263,24 @@ export const useChatStore = defineStore('chat', () => {
       throw new Error('Anda harus login terlebih dahulu untuk memulai konsultasi.')
     }
 
+    // Validasi Anti-Spam: Batas maksimal 2 sesi aktif untuk siswa
+    const activeSessions = sessions.value.filter(
+      s => (s.status === 'menunggu' || s.status === 'ditindaklanjuti') && !s.deleted_by_student && !s.is_deleted_for_everyone
+    )
+    if (activeSessions.length >= 2) {
+      throw new Error('Batas maksimal 2 sesi aktif tercapai. Harap tunggu hingga salah satu sesi diselesaikan oleh Guru BK.')
+    }
+
+    // Validasi Anti-Spam: Kunci guru yang sedang memiliki sesi aktif
+    if (activeSessions.some(s => s.counselor_name === counselor_name)) {
+      throw new Error(`Masih ada sesi aktif dengan ${counselor_name}. Silakan pilih Guru BK lainnya atau selesaikan sesi tersebut terlebih dahulu.`)
+    }
+
+    // Validasi Anti-Spam: Kunci kategori yang sedang aktif di sesi lain
+    if (activeSessions.some(s => s.category === category)) {
+      throw new Error(`Anda masih memiliki sesi aktif untuk kategori ${category}. Silakan pilih kategori lain.`)
+    }
+
     isSending.value = true
     try {
       const studentId = authStore.currentUser.id
@@ -366,16 +388,13 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // Update status sesi (Admin / Guru BK)
-  async function updateSessionStatus(sessionId, newStatus, rejectionReason = '') {
+  async function updateSessionStatus(sessionId, newStatus) {
     if (!isSupabaseConfigured || !supabase) return
 
     try {
       const updatePayload = {
         status: newStatus,
         updated_at: new Date().toISOString()
-      }
-      if (newStatus === 'ditolak' && rejectionReason) {
-        updatePayload.rejection_reason = rejectionReason
       }
 
       const { data, error } = await supabase
@@ -399,6 +418,53 @@ export const useChatStore = defineStore('chat', () => {
     } catch (e) {
       console.error('Error updateSessionStatus:', e)
       throw e
+    }
+  }
+
+  // Update Catatan Rahasia Konselor (Khusus Guru BK)
+  async function updateCounselorNotes(sessionId, notes) {
+    if (!isSupabaseConfigured || !supabase || !sessionId) return
+
+    try {
+      const updatePayload = {
+        counselor_notes: notes,
+        updated_at: new Date().toISOString()
+      }
+
+      const { data, error } = await supabase
+        .from('counseling_sessions')
+        .update(updatePayload)
+        .eq('id', sessionId)
+        .select()
+        .single()
+
+      if (error) {
+        console.warn('Update counselor_notes via Supabase warning/fallback:', error.message)
+        const s = sessions.value.find(item => item.id === sessionId)
+        if (s) s.counselor_notes = notes
+        if (activeSession.value && activeSession.value.id === sessionId) {
+          activeSession.value.counselor_notes = notes
+        }
+        return { counselor_notes: notes }
+      }
+
+      const idx = sessions.value.findIndex(s => s.id === sessionId)
+      if (idx !== -1) {
+        sessions.value[idx] = { ...sessions.value[idx], ...data }
+      }
+      if (activeSession.value && activeSession.value.id === sessionId) {
+        activeSession.value = { ...activeSession.value, ...data }
+      }
+
+      return data
+    } catch (e) {
+      console.error('Error updateCounselorNotes:', e)
+      const s = sessions.value.find(item => item.id === sessionId)
+      if (s) s.counselor_notes = notes
+      if (activeSession.value && activeSession.value.id === sessionId) {
+        activeSession.value.counselor_notes = notes
+      }
+      return { counselor_notes: notes }
     }
   }
 
@@ -494,14 +560,20 @@ export const useChatStore = defineStore('chat', () => {
     const isAdmin = authStore.userRole === 'admin'
 
     if (deleteType === 'for_everyone') {
-      // Validasi batas 15 menit
+      // Validasi batas 15 menit (Kecuali jika status masih 'menunggu', pembatalan pengajuan oleh siswa selalu diperbolehkan)
       const eligibility = check15MinEligibility(s.created_at)
-      if (!eligibility.allowed) {
+      if (!eligibility.allowed && s.status !== 'menunggu') {
         throw new Error('Penghapusan dua pihak (semua orang) hanya dapat dilakukan dalam waktu 15 menit setelah konsultasi dibuat.')
       }
 
       try {
-        // Coba hard delete dulu via Supabase
+        // Hapus juga pesan-pesan terkait di counseling_messages
+        await supabase
+          .from('counseling_messages')
+          .delete()
+          .eq('session_id', sessionId)
+
+        // Coba hard delete sesi via Supabase
         const { error: delErr } = await supabase
           .from('counseling_sessions')
           .delete()
@@ -690,6 +762,167 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  // ============================================================================
+  // FITUR BARU: BUKU CATATAN SISWA & DOSSIER KONSELING TERPADU (STUDENT-CENTRIC)
+  // ============================================================================
+  const allStudentNotes = ref([])
+  const isLoadingNotes = ref(false)
+
+  async function fetchAllStudentNotes() {
+    if (!isSupabaseConfigured || !supabase) return allStudentNotes.value
+    isLoadingNotes.value = true
+    try {
+      const { data, error } = await supabase
+        .from('student_counseling_notes')
+        .select('*')
+        .order('created_at', { ascending: false })
+      if (!error && data) {
+        allStudentNotes.value = data
+      }
+      return allStudentNotes.value
+    } catch (err) {
+      console.warn('fetchAllStudentNotes warning:', err.message)
+      return allStudentNotes.value
+    } finally {
+      isLoadingNotes.value = false
+    }
+  }
+
+  async function fetchStudentNotes(studentId) {
+    if (!studentId) return []
+    if (!isSupabaseConfigured || !supabase) {
+      return allStudentNotes.value.filter(n => n.student_id === studentId)
+    }
+    isLoadingNotes.value = true
+    try {
+      const { data, error } = await supabase
+        .from('student_counseling_notes')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('created_at', { ascending: false })
+      if (!error && data) {
+        // Sinkronisasi ke allStudentNotes
+        data.forEach(item => {
+          const idx = allStudentNotes.value.findIndex(n => n.id === item.id)
+          if (idx !== -1) allStudentNotes.value[idx] = item
+          else allStudentNotes.value.unshift(item)
+        })
+        return data
+      }
+      return allStudentNotes.value.filter(n => n.student_id === studentId)
+    } catch (err) {
+      console.warn('fetchStudentNotes warning:', err.message)
+      return allStudentNotes.value.filter(n => n.student_id === studentId)
+    } finally {
+      isLoadingNotes.value = false
+    }
+  }
+
+  async function createStudentNote(payload) {
+    const newNote = {
+      id: crypto.randomUUID(),
+      student_id: payload.student_id,
+      student_name: payload.student_name,
+      student_class: payload.student_class || '',
+      counselor_name: payload.counselor_name || authStore.userName || 'Guru BK SMADA',
+      category: payload.category || 'umum',
+      title: payload.title || 'Catatan Bimbingan Siswa',
+      content: payload.content || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      allStudentNotes.value.unshift(newNote)
+      return newNote
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('student_counseling_notes')
+        .insert({
+          student_id: newNote.student_id,
+          student_name: newNote.student_name,
+          student_class: newNote.student_class,
+          counselor_name: newNote.counselor_name,
+          category: newNote.category,
+          title: newNote.title,
+          content: newNote.content
+        })
+        .select()
+        .single()
+
+      if (!error && data) {
+        allStudentNotes.value.unshift(data)
+        return data
+      }
+      allStudentNotes.value.unshift(newNote)
+      return newNote
+    } catch (err) {
+      console.warn('createStudentNote warning, using optimistic fallback:', err.message)
+      allStudentNotes.value.unshift(newNote)
+      return newNote
+    }
+  }
+
+  async function updateStudentNote(noteId, payload) {
+    const updateData = {
+      category: payload.category,
+      title: payload.title,
+      content: payload.content,
+      updated_at: new Date().toISOString()
+    }
+    if (payload.counselor_name) {
+      updateData.counselor_name = payload.counselor_name
+    }
+
+    const idx = allStudentNotes.value.findIndex(n => n.id === noteId)
+    if (idx !== -1) {
+      allStudentNotes.value[idx] = { ...allStudentNotes.value[idx], ...updateData }
+    }
+
+    if (!isSupabaseConfigured || !supabase) return allStudentNotes.value[idx]
+
+    try {
+      const { data, error } = await supabase
+        .from('student_counseling_notes')
+        .update(updateData)
+        .eq('id', noteId)
+        .select()
+        .single()
+
+      if (!error && data && idx !== -1) {
+        allStudentNotes.value[idx] = data
+        return data
+      }
+      return allStudentNotes.value[idx]
+    } catch (err) {
+      console.warn('updateStudentNote warning:', err.message)
+      return allStudentNotes.value[idx]
+    }
+  }
+
+  async function deleteStudentNote(noteId) {
+    const idx = allStudentNotes.value.findIndex(n => n.id === noteId)
+    if (idx !== -1) {
+      allStudentNotes.value.splice(idx, 1)
+    }
+
+    if (!isSupabaseConfigured || !supabase) return true
+
+    try {
+      const { error } = await supabase
+        .from('student_counseling_notes')
+        .delete()
+        .eq('id', noteId)
+
+      return !error
+    } catch (err) {
+      console.warn('deleteStudentNote warning:', err.message)
+      return true
+    }
+  }
+
   return {
     sessions,
     activeSession,
@@ -704,6 +937,8 @@ export const useChatStore = defineStore('chat', () => {
     unreadCount,
     sortedSessions,
     sortedSessionsForStudent,
+    allStudentNotes,
+    isLoadingNotes,
     openWidget,
     closeWidget,
     checkDailyToken,
@@ -714,10 +949,16 @@ export const useChatStore = defineStore('chat', () => {
     createSession,
     sendMessage,
     updateSessionStatus,
+    updateCounselorNotes,
     togglePinSession,
     deleteSession,
     deleteMessage,
     setupRealtimeSubscription,
-    cleanupRealtime
+    cleanupRealtime,
+    fetchAllStudentNotes,
+    fetchStudentNotes,
+    createStudentNote,
+    updateStudentNote,
+    deleteStudentNote
   }
 })

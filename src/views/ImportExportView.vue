@@ -577,7 +577,7 @@ async function handleQuickResetPassword(user) {
 </script>
 
 <template>
-  <div class="space-y-6 w-full">
+  <div class="space-y-6 w-full max-w-full min-w-0">
     <AdminOnlyGuard
       v-if="authStore.userRole !== 'admin'"
       title="Kelola Data & Excel Khusus Guru BK"
@@ -586,7 +586,7 @@ async function handleQuickResetPassword(user) {
 
     <template v-else>
     <!-- Header Halaman Pusat Kelola Data -->
-    <section class="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#D1FAE5]/60 via-white to-[#E0F2FE]/70 dark:from-emerald-950/25 dark:via-slate-900 dark:to-sky-950/25 border border-emerald-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="manage-heading">
+    <section class="p-5 sm:p-6 rounded-3xl bg-gradient-to-br from-[#D1FAE5]/60 via-white to-[#E0F2FE]/70 dark:from-emerald-950/25 dark:via-slate-900 dark:to-sky-950/25 border border-emerald-200/70 dark:border-slate-800 shadow-[var(--shadow-card)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 min-w-0 max-w-full" aria-labelledby="manage-heading">
       <div>
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D1FAE5] text-[#047857] border border-emerald-200 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800 text-xs font-bold mb-2">
           <i class="fa-solid fa-file-excel text-[11px]" aria-hidden="true"></i>
@@ -611,7 +611,7 @@ async function handleQuickResetPassword(user) {
     </section>
 
     <!-- Navigasi Tab Pengelolaan -->
-    <div class="flex overflow-x-auto no-scrollbar items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-sky-50/70 dark:bg-slate-800/80 rounded-2xl border border-sky-200/70 dark:border-slate-700/80 text-xs sm:text-sm font-semibold" role="tablist">
+    <div class="flex overflow-x-auto no-scrollbar items-center gap-1.5 sm:gap-2 p-1.5 sm:p-2 bg-sky-50/70 dark:bg-slate-800/80 rounded-2xl border border-sky-200/70 dark:border-slate-700/80 text-xs sm:text-sm font-semibold w-full max-w-full min-w-0" role="tablist">
       
       <!-- 1. Kelola Data (Edit & Hapus Alumni) -->
       <button

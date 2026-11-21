@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
+import PublicNavbar from '@/components/PublicNavbar.vue'
 import EligibleSidebar from '@/components/EligibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import Toast from '@/components/Toast.vue'
@@ -581,16 +582,19 @@ async function handleDeleteCert(id) {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/70 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+  <div class="min-h-screen w-full max-w-full overflow-x-clip bg-gradient-to-br from-[#EFF6FF]/90 via-[#F8FAFC] to-[#FFFBEB]/70 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+    <!-- Navbar Global di Paling Atas Modul Siswa Eligible -->
+    <PublicNavbar />
+
     <!-- SIDEBAR KHUSUS SISWA ELIGIBLE (STYLE PERSIS TRACER STUDY) -->
     <EligibleSidebar v-model:activeTab="activeTab" />
 
     <!-- KONTEN UTAMA DENGAN OFFSET SIDEBAR lg:pl-64 xl:pl-72 -->
-    <div class="flex-1 flex flex-col min-w-0 lg:pl-64 xl:pl-72 pb-16">
-      <main class="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-5 sm:py-6 space-y-6">
+    <div class="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-clip lg:pl-64 xl:pl-72 pb-16">
+      <main class="w-full max-w-full min-w-0 px-3.5 sm:px-6 lg:px-8 xl:px-10 py-5 sm:py-6 space-y-6">
       
       <!-- HEADER STATUS ELIGIBLE -->
-      <section class="p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden">
+      <section class="p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-slate-800 shadow-sm relative overflow-hidden min-w-0 max-w-full">
         <div class="absolute -right-8 -top-8 w-40 h-40 bg-amber-400/10 rounded-full blur-2xl pointer-events-none"></div>
 
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">

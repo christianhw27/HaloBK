@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { getInstitutionLogo } from '@/lib/campusList'
+import PublicNavbar from '@/components/PublicNavbar.vue'
 import EligibleSidebar from '@/components/EligibleSidebar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import Toast from '@/components/Toast.vue'
@@ -716,15 +717,18 @@ const filteredRankingList = computed(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+  <div class="min-h-screen w-full max-w-full overflow-x-clip bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans flex flex-col">
+    <!-- Navbar Global di Paling Atas Modul Eligible -->
+    <PublicNavbar />
+
     <!-- SIDEBAR KHUSUS MODUL ELIGIBLE -->
     <EligibleSidebar v-model:activeTab="activeTab" />
 
     <!-- KONTEN UTAMA DENGAN OFFSET SIDEBAR -->
-    <div class="flex-1 flex flex-col min-w-0 lg:pl-64 xl:pl-72 pb-16">
+    <div class="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-x-clip lg:pl-64 xl:pl-72 pb-16">
       
-      <!-- TOP BAR RINGKAS -->
-      <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-20 px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between gap-4">
+      <!-- TOP BAR RINGKAS MODUL -->
+      <div class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full max-w-full">
         <div>
           <h1 class="font-display font-bold text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
             Kelola Siswa Eligible SNBP
@@ -746,7 +750,7 @@ const filteredRankingList = computed(() => {
             {{ eligibleStore.allEligibleStudents.length }} Siswa Eligible
           </span>
         </div>
-      </header>
+      </div>
 
       <main class="w-full px-4 sm:px-6 lg:px-8 xl:px-10 py-6 space-y-6">
       

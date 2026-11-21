@@ -1,28 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-
-import BeritaView from '@/views/BeritaView.vue'
-import DetailBeritaView from '@/views/DetailBeritaView.vue'
-import DashboardView from '@/views/DashboardView.vue'
-import DataAlumniView from '@/views/DataAlumniView.vue'
-import FormLaporView from '@/views/FormLaporView.vue'
-import VerifikasiView from '@/views/VerifikasiView.vue'
-import ImportExportView from '@/views/ImportExportView.vue'
-import KelolaBeritaView from '@/views/KelolaBeritaView.vue'
-import LoginView from '@/views/LoginView.vue'
-import ProfileView from '@/views/ProfileView.vue'
-import EditSiswaView from '@/views/EditSiswaView.vue'
-import EligibleSiswaView from '@/views/EligibleSiswaView.vue'
-import AdminEligibleView from '@/views/AdminEligibleView.vue'
-import AdminChatView from '@/views/AdminChatView.vue'
-import HaloBKSiswaView from '@/views/HaloBKSiswaView.vue'
 import { useEligibleStore } from '@/stores/eligible'
 
 const routes = [
   {
     path: '/',
     name: 'berita',
-    component: BeritaView,
+    component: () => import('@/views/BeritaView.vue'),
     meta: { layout: 'public', requiresAuth: false }
   },
   {
@@ -32,19 +16,19 @@ const routes = [
   {
     path: '/berita/:slug',
     name: 'detail-berita',
-    component: DetailBeritaView,
+    component: () => import('@/views/DetailBeritaView.vue'),
     meta: { layout: 'public', requiresAuth: false }
   },
   {
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('@/views/LoginView.vue'),
     meta: { layout: 'public', requiresAuth: false }
   },
   {
     path: '/tracer-study',
     name: 'tracer-study',
-    component: DashboardView,
+    component: () => import('@/views/DashboardView.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -54,25 +38,25 @@ const routes = [
   {
     path: '/data',
     name: 'data-alumni',
-    component: DataAlumniView,
+    component: () => import('@/views/DataAlumniView.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/lapor',
     name: 'form-lapor',
-    component: FormLaporView,
+    component: () => import('@/views/FormLaporView.vue'),
     meta: { requiresAuth: true }
   },
   {
     path: '/verifikasi',
     name: 'verifikasi',
-    component: VerifikasiView,
+    component: () => import('@/views/VerifikasiView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/profil',
     name: 'profile',
-    component: ProfileView,
+    component: () => import('@/views/ProfileView.vue'),
     meta: { layout: 'public', requiresAuth: true }
   },
   {
@@ -82,7 +66,7 @@ const routes = [
   {
     path: '/import-export',
     name: 'import-export',
-    component: ImportExportView,
+    component: () => import('@/views/ImportExportView.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
@@ -92,41 +76,51 @@ const routes = [
   {
     path: '/kelola-berita',
     name: 'kelola-berita',
-    component: KelolaBeritaView,
+    component: () => import('@/views/KelolaBeritaView.vue'),
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/edit-siswa/:id',
     name: 'edit-siswa',
-    component: EditSiswaView,
+    component: () => import('@/views/EditSiswaView.vue'),
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/eligible',
     name: 'eligible-siswa',
-    component: EligibleSiswaView,
+    component: () => import('@/views/EligibleSiswaView.vue'),
     meta: { layout: 'public', requiresAuth: true, requiresEligible: true }
   },
   {
     path: '/admin/eligible',
     name: 'admin-eligible',
-    component: AdminEligibleView,
+    component: () => import('@/views/AdminEligibleView.vue'),
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/admin/chat',
     name: 'admin-chat',
-    component: AdminChatView,
+    component: () => import('@/views/AdminChatView.vue'),
+    meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/admin/catatan-siswa',
+    name: 'admin-catatan-siswa',
+    component: () => import('@/views/AdminStudentNotesView.vue'),
     meta: { layout: 'public', requiresAuth: true, requiresAdmin: true }
   },
   {
     path: '/halobk',
     name: 'halobk-siswa',
-    component: HaloBKSiswaView,
+    component: () => import('@/views/HaloBKSiswaView.vue'),
     meta: { layout: 'public', requiresAuth: true }
   },
   {
     path: '/konsultasi',
+    redirect: '/halobk'
+  },
+  {
+    path: '/chat-bk',
     redirect: '/halobk'
   },
   {
