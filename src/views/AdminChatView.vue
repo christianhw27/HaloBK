@@ -36,6 +36,10 @@ function handleCounselorDropdownClickOutside(e) {
   if (counselorDropdownRef.value && !counselorDropdownRef.value.contains(e.target)) {
     isCounselorDropdownOpen.value = false
   }
+  const categoryContainer = document.getElementById('drawer-category-container')
+  if (categoryContainer && !categoryContainer.contains(e.target)) {
+    isDrawerCategoryOpen.value = false
+  }
 }
 
 // State Balasan Guru
@@ -55,6 +59,29 @@ const drawerNoteForm = ref({
   content: ''
 })
 
+const isDrawerCategoryOpen = ref(false)
+
+function getDrawerCategoryInfo(catId) {
+  return NOTE_CATEGORIES.find(c => c.id === catId) || NOTE_CATEGORIES[0]
+}
+
+function getDrawerCategoryDescription(catId) {
+  switch (catId) {
+    case 'pribadi': return 'Karakter & Masalah Pribadi'
+    case 'sosial': return 'Hubungan Teman & Lingkungan'
+    case 'belajar': return 'Motivasi & Nilai Akademik'
+    case 'karir': return 'Peminatan & Kuliah / Kerja'
+    case 'tatap_muka': return 'Konseling Tatap Muka Ruang BK'
+    case 'home_visit': return 'Kunjungan Rumah'
+    default: return 'Catatan Bimbingan Umum'
+  }
+}
+
+function selectDrawerCategory(catId) {
+  drawerNoteForm.value.category = catId
+  isDrawerCategoryOpen.value = false
+}
+
 const activeStudentNotes = computed(() => {
   if (!chatStore.activeSession?.student_id) return []
   return chatStore.allStudentNotes.filter(n => n.student_id === chatStore.activeSession.student_id)
@@ -65,6 +92,7 @@ async function openNotesDrawer() {
     await chatStore.fetchStudentNotes(chatStore.activeSession.student_id)
   }
   isAddingNoteInDrawer.value = false
+  isDrawerCategoryOpen.value = false
   drawerNoteForm.value = {
     category: chatStore.activeSession?.category || 'umum',
     title: '',
@@ -77,6 +105,7 @@ async function openNotesDrawer() {
 function closeNotesDrawer() {
   isNotesDrawerOpen.value = false
   isAddingNoteInDrawer.value = false
+  isDrawerCategoryOpen.value = false
 }
 
 function startAddNoteInDrawer() {
@@ -86,6 +115,7 @@ function startAddNoteInDrawer() {
     content: ''
   }
   isAddingNoteInDrawer.value = true
+  isDrawerCategoryOpen.value = false
 }
 
 function insertDrawerAssessmentTemplate() {
@@ -1362,9 +1392,9 @@ function getCategoryData(catId) {
         @click="closeNotesDrawer"
       ></div>
 
-      <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+      <div class="fixed inset-y-0 right-0 max-w-full flex pl-4 sm:pl-10">
         <aside
-          class="w-screen max-w-md bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col z-10 transition-transform"
+          class="w-screen max-w-full sm:max-w-xl lg:max-w-2xl bg-white dark:bg-slate-900 shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col z-10 transition-transform"
         >
           <!-- 1. Header Drawer -->
           <div class="p-4 sm:p-5 bg-gradient-to-r from-purple-700 to-indigo-600 text-white flex items-center justify-between shrink-0 shadow-sm">
@@ -1373,10 +1403,10 @@ function getCategoryData(catId) {
                 <i class="fa-solid fa-book-bookmark"></i>
               </div>
               <div>
-                <h3 class="font-display font-bold text-base leading-tight">
+                <h3 class="font-display font-bold text-base sm:text-lg leading-tight">
                   Buku Catatan Siswa
                 </h3>
-                <p class="text-[11px] text-purple-100 flex items-center gap-1 mt-0.5 font-medium">
+                <p class="text-[11px] sm:text-xs text-purple-100 flex items-center gap-1 mt-0.5 font-medium">
                   <i class="fa-solid fa-lock text-[10px]"></i>
                   <span>Dossier BK • Privat Guru BK</span>
                 </p>
@@ -1394,34 +1424,34 @@ function getCategoryData(catId) {
           </div>
 
           <!-- 2. Snapshot Identitas Siswa -->
-          <div v-if="chatStore.activeSession" class="px-4 py-3 bg-purple-50/60 dark:bg-slate-800/60 border-b border-purple-100 dark:border-slate-800 shrink-0 text-xs space-y-1.5">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+          <div v-if="chatStore.activeSession" class="px-5 py-3.5 bg-purple-50/70 dark:bg-slate-800/70 border-b border-purple-100 dark:border-slate-800 shrink-0 text-xs sm:text-sm space-y-2">
+            <div class="flex items-center justify-between gap-3">
+              <span class="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 text-sm sm:text-base">
                 <i class="fa-solid fa-user-graduate text-purple-600"></i>
                 {{ chatStore.activeSession.student_name }}
               </span>
-              <span class="text-[11px] text-purple-700 dark:text-purple-300 font-semibold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80">
+              <span class="text-xs text-purple-700 dark:text-purple-300 font-bold px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-950/80 border border-purple-200/80 dark:border-purple-800/80 shrink-0">
                 {{ chatStore.activeSession.student_class || 'Siswa SMADA' }}
               </span>
             </div>
-            <div class="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-              <span>{{ activeStudentNotes.length }} Catatan Tersimpan</span>
+            <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+              <span class="font-medium">{{ activeStudentNotes.length }} Catatan Tersimpan</span>
               <button
                 type="button"
                 @click="navigateToFullStudentDossier"
-                class="text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+                class="text-purple-600 dark:text-purple-400 font-bold hover:underline flex items-center gap-1.5 cursor-pointer"
                 title="Buka halaman dossier lengkap siswa ini"
               >
                 <span>Halaman Dossier Penuh</span>
-                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
               </button>
             </div>
           </div>
 
           <!-- 3. Form Input Mode (Jika sedang Tambah Catatan Baru) -->
-          <div v-if="isAddingNoteInDrawer" class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-              <span class="font-bold text-slate-800 dark:text-slate-200">Tambah Catatan Baru</span>
+          <div v-if="isAddingNoteInDrawer" class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs sm:text-sm">
+            <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+              <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">Tambah Catatan Baru</span>
               <button
                 type="button"
                 @click="isAddingNoteInDrawer = false"
@@ -1431,68 +1461,105 @@ function getCategoryData(catId) {
               </button>
             </div>
 
-            <!-- Kategori -->
-            <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[11px]">
+            <!-- DROPDOWN KATEGORI ASESMEN -->
+            <div id="drawer-category-container" class="relative">
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 text-xs sm:text-sm">
                 Kategori Asesmen:
               </label>
-              <div class="grid grid-cols-2 gap-1.5">
-                <button
-                  v-for="cat in NOTE_CATEGORIES"
-                  :key="cat.id"
-                  type="button"
-                  @click="drawerNoteForm.category = cat.id"
-                  class="px-2 py-1.5 rounded-lg border text-[11px] font-semibold flex items-center gap-1.5 text-left transition-all cursor-pointer"
-                  :class="drawerNoteForm.category === cat.id
-                    ? 'border-purple-600 bg-purple-50 text-purple-800 dark:bg-purple-950 dark:text-purple-300'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400'"
+              <button
+                type="button"
+                @click="isDrawerCategoryOpen = !isDrawerCategoryOpen"
+                class="w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-800 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
+                :class="isDrawerCategoryOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-700'"
+              >
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0" :class="getDrawerCategoryInfo(drawerNoteForm.category)?.badge">
+                    {{ getDrawerCategoryInfo(drawerNoteForm.category)?.label }}
+                  </span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400 truncate">
+                    {{ getDrawerCategoryDescription(drawerNoteForm.category) }}
+                  </span>
+                </div>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isDrawerCategoryOpen }"></i>
+              </button>
+
+              <!-- Floating Popover Dropdown Kategori -->
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="transform scale-95 opacity-0"
+                enter-to-class="transform scale-100 opacity-100"
+                leave-active-class="transition duration-100 ease-in"
+                leave-from-class="transform scale-100 opacity-100"
+                leave-to-class="transform scale-95 opacity-0"
+              >
+                <div
+                  v-if="isDrawerCategoryOpen"
+                  class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden py-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60"
                 >
-                  <i :class="cat.icon" class="text-[10px]"></i>
-                  <span class="truncate">{{ cat.label }}</span>
-                </button>
-              </div>
+                  <button
+                    v-for="cat in NOTE_CATEGORIES"
+                    :key="cat.id"
+                    type="button"
+                    @click="selectDrawerCategory(cat.id)"
+                    class="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer"
+                    :class="drawerNoteForm.category === cat.id
+                      ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
+                  >
+                    <div class="flex items-center gap-2.5 min-w-0">
+                      <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0" :class="cat.badge">
+                        {{ cat.label }}
+                      </span>
+                      <span class="text-xs text-slate-600 dark:text-slate-300 truncate">
+                        {{ getDrawerCategoryDescription(cat.id) }}
+                      </span>
+                    </div>
+                    <i v-if="drawerNoteForm.category === cat.id" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-2"></i>
+                  </button>
+                </div>
+              </Transition>
             </div>
 
             <!-- Judul Ringkas -->
             <div>
-              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-[11px]">
+              <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 text-xs sm:text-sm">
                 Judul Catatan:
               </label>
               <input
                 v-model="drawerNoteForm.title"
                 type="text"
                 placeholder="Misal: Hasil Bimbingan Chat Topik Karir..."
-                class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
               />
             </div>
 
             <!-- Isi Catatan -->
             <div>
-              <div class="flex items-center justify-between mb-1">
-                <label class="block font-bold text-slate-700 dark:text-slate-300 text-[11px]">
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="block font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
                   Isi Asesmen &amp; Tindak Lanjut:
                 </label>
                 <button
                   type="button"
                   @click="insertDrawerAssessmentTemplate"
-                  class="px-2 py-0.5 rounded text-[10px] font-semibold text-purple-700 bg-purple-50 dark:bg-purple-950/60 border border-purple-200 dark:border-purple-800 cursor-pointer"
+                  class="px-2.5 py-1 rounded-lg text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 cursor-pointer transition-colors"
                 >
                   + Format BK
                 </button>
               </div>
               <textarea
                 v-model="drawerNoteForm.content"
-                rows="8"
+                rows="10"
                 placeholder="Tuliskan dinamika kasus atau rencana tindak lanjut..."
-                class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none leading-relaxed"
+                class="w-full p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none leading-relaxed transition-all"
               ></textarea>
             </div>
           </div>
 
           <!-- 3. List Mode (Timeline Catatan Siswa) -->
-          <div v-else class="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5 text-xs">
+          <div v-else class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs sm:text-sm">
             <!-- Feedback Toast -->
-            <div v-if="notesSaveFeedback" class="p-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-[11px] font-bold flex items-center gap-1.5 animate-fade-in">
+            <div v-if="notesSaveFeedback" class="p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800 text-xs font-bold flex items-center gap-2 animate-fade-in">
               <i class="fa-solid fa-circle-check text-emerald-500"></i>
               <span>{{ notesSaveFeedback }}</span>
             </div>
@@ -1501,7 +1568,7 @@ function getCategoryData(catId) {
             <button
               type="button"
               @click="startAddNoteInDrawer"
-              class="w-full py-2.5 px-3.5 rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-800/80 bg-purple-50/60 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+              class="w-full py-3 px-4 rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-800/80 bg-purple-50/60 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
               <i class="fa-solid fa-plus text-xs"></i>
               <span>Tambah Catatan untuk {{ chatStore.activeSession?.student_name }}</span>
@@ -1510,51 +1577,51 @@ function getCategoryData(catId) {
             <!-- State Kosong: Belum Ada Catatan -->
             <div
               v-if="activeStudentNotes.length === 0"
-              class="p-8 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 text-slate-400"
+              class="p-10 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2 text-slate-400"
             >
-              <i class="fa-solid fa-book-open text-2xl text-slate-300 dark:text-slate-600"></i>
-              <p class="text-xs">Belum ada catatan di dossier siswa ini.</p>
+              <i class="fa-solid fa-book-open text-3xl text-slate-300 dark:text-slate-600"></i>
+              <p class="text-xs sm:text-sm">Belum ada catatan di dossier siswa ini.</p>
             </div>
 
             <!-- Feed Timeline Catatan -->
-            <div v-else class="space-y-3">
+            <div v-else class="space-y-3.5">
               <div
                 v-for="note in activeStudentNotes"
                 :key="note.id"
-                class="p-3.5 rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-2xs space-y-2 text-xs"
+                class="p-4 rounded-2xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 shadow-2xs space-y-2.5 text-xs sm:text-sm"
               >
                 <div class="flex items-center justify-between gap-2">
                   <span
-                    class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shrink-0"
+                    class="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shrink-0"
                     :class="NOTE_CATEGORIES.find(c => c.id === note.category)?.badge || 'bg-slate-100 text-slate-700 border-slate-200'"
                   >
                     {{ NOTE_CATEGORIES.find(c => c.id === note.category)?.label || note.category }}
                   </span>
-                  <span class="text-[10px] text-slate-400 font-semibold">
+                  <span class="text-xs text-slate-400 font-semibold">
                     {{ new Date(note.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) }}
                   </span>
                 </div>
-                <h5 class="font-bold text-slate-900 dark:text-white text-xs leading-snug">
+                <h5 class="font-bold text-slate-900 dark:text-white text-sm sm:text-base leading-snug">
                   {{ note.title }}
                 </h5>
-                <p class="text-[11.5px] text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
+                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
                   {{ note.content }}
                 </p>
-                <div class="text-[10px] text-slate-400 flex items-center gap-1 pt-0.5">
-                  <i class="fa-solid fa-user-tie text-[9px] text-purple-600"></i>
-                  <span>{{ note.counselor_name || 'Guru BK SMADA' }}</span>
+                <div class="text-xs text-slate-400 flex items-center gap-1.5 pt-1">
+                  <i class="fa-solid fa-user-tie text-[10px] text-purple-600"></i>
+                  <span>Ditulis oleh: <strong class="text-slate-600 dark:text-slate-300">{{ note.counselor_name || 'Guru BK SMADA' }}</strong></span>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 4. Footer Drawer -->
-          <div class="p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0">
+          <div class="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
             <template v-if="isAddingNoteInDrawer">
               <button
                 type="button"
                 @click="isAddingNoteInDrawer = false"
-                class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-colors"
               >
                 Batal
               </button>
@@ -1562,7 +1629,7 @@ function getCategoryData(catId) {
                 type="button"
                 @click="handleSaveDrawerNote"
                 :disabled="isSavingNotes"
-                class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
               >
                 <i v-if="isSavingNotes" class="fa-solid fa-spinner fa-spin text-xs"></i>
                 <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
@@ -1573,7 +1640,7 @@ function getCategoryData(catId) {
               <button
                 type="button"
                 @click="navigateToFullStudentDossier"
-                class="px-3.5 py-2 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold text-xs hover:bg-purple-50 dark:hover:bg-purple-950/40 cursor-pointer flex items-center gap-1.5"
+                class="px-4 py-2.5 rounded-xl border border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-300 font-bold text-xs sm:text-sm hover:bg-purple-50 dark:hover:bg-purple-950/40 cursor-pointer flex items-center gap-2 transition-colors"
               >
                 <i class="fa-solid fa-folder-open text-xs"></i>
                 <span>Buka Buku Catatan Lengkap</span>
@@ -1581,7 +1648,7 @@ function getCategoryData(catId) {
               <button
                 type="button"
                 @click="closeNotesDrawer"
-                class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
+                class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 cursor-pointer transition-colors"
               >
                 Tutup
               </button>
