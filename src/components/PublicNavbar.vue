@@ -593,6 +593,32 @@ function handleMobileHaloBKClick() {
           <i v-else class="fa-solid fa-moon text-[#334155] text-sm" aria-hidden="true"></i>
         </button>
 
+        <!-- Tombol Pintasan Cepat HaloBK Mobile (Khusus Tampil di HP jika sudah login) -->
+        <router-link
+          v-if="authStore.isLoggedIn"
+          :to="isGuruOrAdmin ? '/admin/chat' : '/halobk'"
+          class="md:hidden relative w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#0284C7] dark:text-sky-300 border border-sky-200/90 dark:border-sky-800/80 flex items-center justify-center transition-all shrink-0 hover:scale-105 active:scale-95 shadow-2xs"
+          :class="(route.path === '/halobk' || route.path === '/admin/chat') ? 'ring-2 ring-[#0284C7] bg-sky-100 dark:bg-sky-900/60' : ''"
+          :title="isGuruOrAdmin ? 'Studio HaloBK (Guru BK)' : 'HaloBK (Konsultasi Chat BK)'"
+          aria-label="Buka Chat HaloBK"
+        >
+          <!-- Indikator Live Dot Hijau Berdenyut -->
+          <span class="absolute top-1.5 right-1.5 flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+
+          <i class="fa-solid fa-headset text-base" aria-hidden="true"></i>
+
+          <!-- Badge Counter jika ada pesan unread -->
+          <span
+            v-if="chatStore.unreadCount > 0"
+            class="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-amber-500 text-slate-950 shadow-xs border border-white dark:border-slate-900"
+          >
+            {{ chatStore.unreadCount }}
+          </span>
+        </router-link>
+
         <!-- Tombol Masuk / Login (Jika Belum Login) -->
         <router-link
           v-if="!authStore.isLoggedIn"

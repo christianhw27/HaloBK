@@ -3,7 +3,6 @@ import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from '@/components/Sidebar.vue'
 import EligibleCongratsModal from '@/components/EligibleCongratsModal.vue'
-import HaloBKChatWidget from '@/components/HaloBKChatWidget.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useEligibleStore } from '@/stores/eligible'
 
@@ -90,9 +89,6 @@ watch(
     <!-- Pop-up Ucapan Selamat Siswa Eligible Pertama Kali Login -->
     <EligibleCongratsModal />
   </div>
-
-  <!-- Widget Konsultasi Chat HaloBK (Hanya Tampil Jika Sudah Login dan Bukan Admin) -->
-  <HaloBKChatWidget v-if="authStore.isLoggedIn && authStore.userRole !== 'admin'" />
 </template>
 
 <style>
