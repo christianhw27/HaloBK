@@ -176,7 +176,24 @@ export const useAlumniStore = defineStore('alumni', () => {
           }
         }
 
-        const listAlumni = (verifiedData || []).map(mapDbToAlumni)
+        let listAlumni = (verifiedData || []).map(mapDbToAlumni)
+
+        // Deduplikasi internal tabel alumni (mencegah double entry di tabel alumni itu sendiri)
+        const normalizePersonName = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+        const seenAlumniKeys = new Set()
+        listAlumni = listAlumni.filter(a => {
+          const aNis = a.nis && a.nis !== '-' ? a.nis.trim() : ''
+          const aName = normalizePersonName(a.name)
+          const aClass = a.classRoom || ''
+          const aCohort = a.cohort || ''
+          // Jika punya NIS valid, gunakan NIS. Jika tidak punya, gunakan nama + angkatan + kelas
+          const key = aNis ? `nis:${aNis}` : `name:${aName}:${aCohort}:${aClass}`
+          if (seenAlumniKeys.has(key)) {
+            return false
+          }
+          seenAlumniKeys.add(key)
+          return true
+        })
 
         // 2. Ambil data siswa angkatan 61 (397 siswa)
         let listSiswa = []
@@ -209,17 +226,34 @@ export const useAlumniStore = defineStore('alumni', () => {
           }
 
           if (siswaData) {
-            // Filter siswa yang sudah lapor mandiri di tabel alumni agar tidak duplikat
-            const existingNisSet = new Set(listAlumni.map(a => a.nis).filter(Boolean))
+            // Deduplikasi komprehensif: jangan masukkan siswa jika sudah tercatat / dilaporkan di alumni
+            const existingNisSet = new Set(listAlumni.map(a => a.nis && a.nis !== '-' ? a.nis.trim() : null).filter(Boolean))
+            const existingNisnSet = new Set(listAlumni.map(a => a.nisn && a.nisn !== '-' ? a.nisn.trim() : null).filter(Boolean))
+            const existingNameSet = new Set(listAlumni.map(a => normalizePersonName(a.name)).filter(Boolean))
+            const existingIdSet = new Set(listAlumni.map(a => String(a.id)).filter(Boolean))
+
             listSiswa = siswaData
-              .filter(s => !existingNisSet.has(s.nis))
+              .filter(s => {
+                const sId = String(s.id)
+                const sNis = s.nis && s.nis !== '-' ? s.nis.trim() : ''
+                const sNisn = s.nisn && s.nisn !== '-' ? s.nisn.trim() : ''
+                const sName = normalizePersonName(s.nama)
+
+                const isAlreadyInAlumni =
+                  existingIdSet.has(sId) ||
+                  (sNis && existingNisSet.has(sNis)) ||
+                  (sNisn && existingNisnSet.has(sNisn)) ||
+                  (sName && existingNameSet.has(sName))
+
+                return !isAlreadyInAlumni
+              })
               .map(mapSiswaToAlumni)
           }
         } catch (errSiswa) {
           console.warn('Gagal memuat siswa ke direktori:', errSiswa)
         }
 
-        // Gabungkan: Alumni terdahulu + Siswa Aktif Angkatan 61
+        // Gabungkan: Alumni terdahulu + Siswa Aktif Angkatan 61 (Bersih dari duplikat)
         alumniList.value = [...listAlumni, ...listSiswa]
 
         // 3. Antrean pending: HANYA diambil jika pengguna terbukti Admin Guru BK!
@@ -1009,77 +1043,114 @@ export const useAlumniStore = defineStore('alumni', () => {
         }
 
         // Coba perbarui di tabel users berdasarkan ID
-        let resUser = await supabase.from('users').update(userPayload).eq('id', id).select()
+        let resUser = await supabase.from('users').update(userPayload).eq('id', id)
         if (resUser.error && (resUser.error.code === '42703' || resUser.error.message?.includes('foto_url'))) {
           delete userPayload.foto_url
-          resUser = await supabase.from('users').update(userPayload).eq('id', id).select()
+          resUser = await supabase.from('users').update(userPayload).eq('id', id)
         }
 
-        if (resUser.data && resUser.data.length > 0) {
+        if (!resUser.error && resUser.status < 300) {
           updatedInUsers = true
         } else if (form.nis && form.nis !== '-') {
           // Fallback perbarui users berdasarkan NIS
-          const resUserByNis = await supabase.from('users').update(userPayload).eq('nis', form.nis).select()
-          if (resUserByNis.data && resUserByNis.data.length > 0) {
+          const resUserByNis = await supabase.from('users').update(userPayload).eq('nis', form.nis.trim())
+          if (!resUserByNis.error && resUserByNis.status < 300) {
             updatedInUsers = true
           }
         }
 
         // 2. Siapkan payload pembaruan untuk tabel alumni
+        const targetNis = form.nis && form.nis !== '-' ? form.nis.trim() : null
+        const normFormName = (form.name || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim()
+
         const alumniPayload = {
-          nama_lengkap: form.name,
-          nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
+          nama_lengkap: form.name.trim(),
+          nis: targetNis,
           nisn: form.nisn && form.nisn !== '-' ? form.nisn.trim() : null,
           alamat_lengkap: form.alamat_lengkap && form.alamat_lengkap !== '-' ? form.alamat_lengkap.trim() : null,
           kelas_terakhir: form.classRoom && form.classRoom !== '-' ? form.classRoom : null,
           tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
           no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
           kategori: form.category || 'PTN',
-          jalur_masuk: form.pathway && form.pathway !== '-' ? form.pathway : null,
-          instansi: form.institution && form.institution !== '-' ? form.institution : null,
-          jurusan_posisi: form.major && form.major !== '-' ? form.major : null,
+          jalur_masuk: (form.category === 'Masa Tunggu' || form.category === 'Belum Lapor Diri') ? '-' : (form.pathway && form.pathway !== '-' ? form.pathway : null),
+          instansi: form.institution && form.institution !== '-' ? form.institution.trim() : null,
+          jurusan_posisi: form.major && form.major !== '-' ? form.major.trim() : null,
           pesan: form.message || null,
           foto_url: form.photo !== undefined ? (form.photo || null) : null,
           updated_at: new Date().toISOString()
         }
 
-        // Coba perbarui di tabel alumni berdasarkan ID
-        let resAlumni = await supabase.from('alumni').update(alumniPayload).eq('id', id).select()
-        if (resAlumni.error && (resAlumni.error.message?.includes('foto_url') || resAlumni.error.message?.includes('nis'))) {
-          if (resAlumni.error.message?.includes('foto_url')) delete alumniPayload.foto_url
-          if (resAlumni.error.message?.includes('nis')) delete alumniPayload.nis
-          resAlumni = await supabase.from('alumni').update(alumniPayload).eq('id', id).select()
-        }
+        // Cari row alumni yang sudah ada (berdasarkan ID, NIS, atau Nama Lengkap)
+        let existingAlumniId = null
+        let foundAlumni = alumniList.value.find(a =>
+          (!a.isSiswa && String(a.id) === String(id)) ||
+          (targetNis && !a.isSiswa && a.nis && a.nis !== '-' && a.nis.trim() === targetNis) ||
+          (!a.isSiswa && normFormName && (a.name || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim() === normFormName)
+        )
 
-        if (resAlumni.data && resAlumni.data.length > 0) {
-          updatedInAlumni = true
-        } else if (form.nis && form.nis !== '-') {
-          // Fallback perbarui alumni berdasarkan NIS
-          const resAlumniByNis = await supabase.from('alumni').update(alumniPayload).eq('nis', form.nis).select()
-          if (resAlumniByNis.data && resAlumniByNis.data.length > 0) {
-            updatedInAlumni = true
+        if (!foundAlumni) {
+          try {
+            const { data: dir } = await supabase.rpc('get_public_alumni_directory')
+            if (dir && dir.length > 0) {
+              foundAlumni = dir.find(a =>
+                String(a.id) === String(id) ||
+                (targetNis && a.nis && a.nis !== '-' && a.nis.trim() === targetNis) ||
+                (normFormName && (a.nama_lengkap || '').toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim() === normFormName)
+              )
+            }
+          } catch (e) {
+            console.warn('RPC check fallback in adminUpdateStudentOrAlumni:', e)
           }
         }
 
-        // Jika siswa lapor kuliah/karir baru (bukan 'Siswa Aktif') dan belum ada di alumni
-        if (form.category && form.category !== 'Siswa Aktif' && !updatedInAlumni && form.institution) {
-          try {
-            await supabase.from('alumni').insert({
-              nama_lengkap: form.name,
-              nis: form.nis && form.nis !== '-' ? form.nis.trim() : null,
-              kelas_terakhir: form.classRoom || 'XII',
-              tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
-              no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
-              kategori: form.category,
-              jalur_masuk: form.pathway || 'SNBP',
-              instansi: form.institution,
-              jurusan_posisi: form.major || null,
-              pesan: form.message || null,
-              foto_url: form.photo || null,
-              is_verified: true
-            })
-          } catch (e) {
-            console.warn('Gagal upsert ke alumni:', e)
+        if (foundAlumni) {
+          existingAlumniId = foundAlumni.id
+        }
+
+        if (existingAlumniId) {
+          // KASUS A: Record alumni SUDAH ADA
+          if (form.category === 'Siswa Aktif') {
+            // Jika kategori diubah kembali menjadi Siswa Aktif:
+            // Hapus dari alumni agar tidak ada duplikasi data
+            try {
+              await supabase.rpc('admin_delete_alumni', { p_id: existingAlumniId })
+            } catch (delErr) {
+              console.warn('Gagal menghapus alumni saat dikembalikan ke Siswa Aktif:', delErr)
+            }
+            updatedInAlumni = true
+          } else {
+            // Update row alumni yang ada (TANPA .select() agar tidak memicu 42501 RLS error!)
+            const resAlumni = await supabase.from('alumni').update(alumniPayload).eq('id', existingAlumniId)
+            if (!resAlumni.error) {
+              updatedInAlumni = true
+            } else {
+              console.warn('Gagal update alumni:', resAlumni.error)
+            }
+          }
+        } else {
+          // KASUS B: Record alumni BELUM ADA
+          // Siswa baru pertama kali lapor kuliah/karir (kategori bukan 'Siswa Aktif' dan ada instansi)
+          if (form.category && form.category !== 'Siswa Aktif' && form.institution) {
+            try {
+              const insertPayload = {
+                nama_lengkap: form.name.trim(),
+                nis: targetNis,
+                kelas_terakhir: form.classRoom || 'XII',
+                tahun_lulus: form.cohort ? parseInt(form.cohort) : 2027,
+                no_wa: form.phone && form.phone !== '-' ? form.phone.trim() : null,
+                kategori: form.category,
+                jalur_masuk: (form.category === 'Masa Tunggu' || form.category === 'Belum Lapor Diri') ? '-' : (form.pathway || 'SNBP'),
+                instansi: form.institution.trim(),
+                jurusan_posisi: form.major || null,
+                pesan: form.message || null,
+                foto_url: form.photo || null,
+                is_verified: true
+              }
+              await supabase.from('alumni').insert(insertPayload)
+              updatedInAlumni = true
+            } catch (e) {
+              console.warn('Gagal insert ke alumni:', e)
+            }
           }
         }
 

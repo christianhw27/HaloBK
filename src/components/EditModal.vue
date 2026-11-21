@@ -70,6 +70,7 @@ async function handlePhotoUpload(e) {
 }
 
 const pathwaysByCategory = {
+  'Siswa Aktif': ['Siswa Aktif'],
   'PTN': ['SNBP', 'SNBT', 'Mandiri PTN', 'Beasiswa KIP-Kuliah', 'Jalur Prestasi'],
   'PTS': ['Jalur Prestasi Rapor', 'Beasiswa Yayasan', 'Mandiri PTS', 'Tes Masuk PTS'],
   'Kedinasan': ['Ikatan Dinas', 'Politeknik Kedinasan', 'Beasiswa Ikatan Kerja'],
@@ -262,6 +263,7 @@ async function handleSave() {
                 @change="onCategoryChange"
                 class="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm sm:text-base text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
               >
+                <option value="Siswa Aktif">Siswa Aktif (Belum Lulus)</option>
                 <option value="PTN">PTN (Perguruan Tinggi Negeri)</option>
                 <option value="PTS">PTS (Perguruan Tinggi Swasta)</option>
                 <option value="Kedinasan">Sekolah Kedinasan</option>
