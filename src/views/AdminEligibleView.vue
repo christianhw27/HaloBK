@@ -1563,7 +1563,7 @@ const filteredRankingList = computed(() => {
                   <option value="score_asc">
                     {{ selectedRankingSubjectObj ? `Nilai ${selectedRankingSubjectObj.name} Terendah` : 'Nilai Rapor Terendah' }}
                   </option>
-                  <option value="class_asc">Kelas (XI 1 → XI 12)</option>
+                  <option value="class_asc">Kelas (XII 1 → XII 12)</option>
                   <option value="campus_asc">Kampus Pilihan 1 (A–Z)</option>
                   <option value="name_asc">Nama Siswa (A–Z)</option>
                 </select>

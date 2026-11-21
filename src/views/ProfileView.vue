@@ -85,7 +85,7 @@ function loadUserData() {
 
   form.value = {
     nama: u.nama || authStore.userName || '',
-    kelas: u.kelas || 'XI 1',
+    kelas: u.kelas || 'XII 1',
     nisn: u.nisn || authStore.userNisn || '',
     nis: u.nis || authStore.userNis || '',
     foto_url: source.foto_url !== undefined ? source.foto_url : (u.foto_url || ''),

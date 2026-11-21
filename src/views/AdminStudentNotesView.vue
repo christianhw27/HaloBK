@@ -184,7 +184,7 @@ async function fetchStudentsList() {
     }
     // Fallback jika database offline / belum terhubung
     allStudents.value = [
-      { id: 'siswa-1', nama: 'Bernadetta Andini Emanuella', kelas: 'XI 3', nis: '12345', nisn: '0071234567' },
+      { id: 'siswa-1', nama: 'Bernadetta Andini Emanuella', kelas: 'XII 3', nis: '12345', nisn: '0071234567' },
       { id: 'siswa-2', nama: 'Ahmad Faisal Rahman', kelas: 'XII MIPA 1', nis: '12346', nisn: '0061234568' },
       { id: 'siswa-3', nama: 'Dewi Lestari Putri', kelas: 'X 2', nis: '12347', nisn: '0081234569' }
     ]

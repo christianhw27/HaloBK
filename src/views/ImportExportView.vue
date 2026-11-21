@@ -1868,7 +1868,7 @@ async function handleQuickResetPassword(user) {
               <input
                 v-model="editUserForm.kelas"
                 type="text"
-                placeholder="Contoh: XI 9"
+                placeholder="Contoh: XII 9"
                 class="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:ring-2 focus:ring-[#4F46E5] focus:outline-none"
               />
             </div>
