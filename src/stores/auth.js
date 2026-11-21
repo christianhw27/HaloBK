@@ -187,21 +187,43 @@ export const useAuthStore = defineStore('auth', () => {
 
   /**
    * Autentikasi Standar Industri via Supabase Auth & Server-side Bcrypt Hashing
-   * Mendukung login menggunakan NISN, NIS, maupun Email siswa/admin
+   * Kebijakan Login:
+   * - Siswa: Hanya diizinkan menggunakan 10 digit NISN resmi dan kata sandi
+   * - Guru BK (Admin): Tetap dapat masuk menggunakan Email pengelola atau kredensial admin
    */
   async function loginWithCredentials(inputIdentifier, inputPassword) {
     const cleanId = (inputIdentifier || '').trim().toLowerCase()
     const cleanPass = (inputPassword || '').trim()
 
     if (!cleanId || !cleanPass) {
-      return { success: false, message: 'NISN / NIS / Email dan kata sandi wajib diisi.' }
+      return { success: false, message: 'NISN siswa atau Email Guru BK dan kata sandi wajib diisi.' }
     }
 
     // Sanitasi ketat identifier: hanya perbolehkan karakter alfanumerik, @, titik, dash, underscore
     // Mencegah PostgREST filter injection (operator seperti eq., or., dll.)
     const validIdentifierRegex = /^[a-zA-Z0-9@._-]+$/
     if (!validIdentifierRegex.test(cleanId) || cleanId.length > 100) {
-      return { success: false, message: 'Format NISN, NIS, atau Email tidak valid.' }
+      return { success: false, message: 'Format NISN atau Email tidak valid.' }
+    }
+
+    // Pengecualian Admin vs Siswa:
+    const isEmail = cleanId.includes('@')
+    const isAdminIdentifier = isEmail || cleanId.startsWith('admin')
+
+    // Validasi aturan: Siswa HANYA boleh login dengan 10 digit NISN (bukan NIS atau teks bebas)
+    if (!isAdminIdentifier) {
+      if (!/^\d+$/.test(cleanId)) {
+        return {
+          success: false,
+          message: 'Siswa wajib masuk menggunakan 10 digit NISN resmi (hanya angka). Untuk Guru BK, silakan gunakan Email pengelola.'
+        }
+      }
+      if (cleanId.length < 8 || cleanId.length > 12) {
+        return {
+          success: false,
+          message: 'Login siswa hanya dapat menggunakan 10 digit NISN resmi (bukan nomor NIS). Silakan periksa kembali kartu akun Anda.'
+        }
+      }
     }
 
     if (!isSupabaseConfigured || !supabase) {
@@ -215,30 +237,43 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       // 1. Dapatkan email akun resmi via RPC secure resolver di sisi database
       let targetEmail = null
-      try {
-        const { data: resolvedEmail } = await supabase.rpc('resolve_login_email', { p_identifier: cleanId })
-        if (resolvedEmail) {
-          targetEmail = resolvedEmail
-        }
-      } catch (e) {
-        console.warn('RPC resolve_login_email fallback:', e)
-      }
 
-      // Fallback resolver jika RPC SQL migrasi belum dijalankan
-      if (!targetEmail) {
+      if (isAdminIdentifier) {
+        // Jalur Admin: cari via email langsung atau RPC
         if (cleanId.includes('@')) {
           targetEmail = cleanId
         } else {
-          // Cari email / format nisn di tabel users dengan sanitasi string literal
-          const safeId = cleanId.replace(/[^a-zA-Z0-9._-]/g, '')
+          try {
+            const { data: resolvedEmail } = await supabase.rpc('resolve_login_email', { p_identifier: cleanId })
+            if (resolvedEmail) targetEmail = resolvedEmail
+          } catch (e) {
+            console.warn('RPC resolve_login_email fallback admin:', e)
+          }
+        }
+      } else {
+        // Jalur Siswa: HANYA cari berdasarkan NISN
+        try {
+          const { data: resolvedEmail } = await supabase.rpc('resolve_login_email', { p_identifier: cleanId })
+          if (resolvedEmail) {
+            targetEmail = resolvedEmail
+          }
+        } catch (e) {
+          console.warn('RPC resolve_login_email fallback student:', e)
+        }
+
+        // Fallback resolver jika RPC SQL belum update: cari HANYA di kolom nisn
+        if (!targetEmail) {
+          const safeNisn = cleanId.replace(/[^0-9]/g, '')
           const { data: userLookup } = await supabase
             .from('users')
-            .select('email, nisn, nis')
-            .or(`nisn.eq."${safeId}",nis.eq."${safeId}",email.ilike."${safeId}"`)
+            .select('email, nisn')
+            .eq('nisn', safeNisn)
             .maybeSingle()
 
           if (userLookup) {
-            targetEmail = userLookup.email || (userLookup.nisn ? `${userLookup.nisn}@siswa.smada.sch.id` : `${userLookup.nis}@siswa.smada.sch.id`)
+            targetEmail = userLookup.email || `${userLookup.nisn}@siswa.smada.sch.id`
+          } else {
+            targetEmail = `${safeNisn}@siswa.smada.sch.id`
           }
         }
       }
