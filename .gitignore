@@ -24,4 +24,10 @@ arsip/
 scripts/output_template/
 scripts/generate_sql_import_60.js
 
+# Dokumentasi & file markdown lokal (agar tidak masuk repo publik / GitHub)
+*.md
+
+# Editor & workspace local config
+.vscode/
+
 
