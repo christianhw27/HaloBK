@@ -163,10 +163,11 @@ async function handleSaveDrawerNote() {
   }
 }
 
-function navigateToFullStudentDossier() {
+function navigateToFullStudentDossier(action = '') {
   if (!chatStore.activeSession?.student_id) return
   closeNotesDrawer()
-  router.push(`/admin/catatan-siswa?studentId=${chatStore.activeSession.student_id}`)
+  const q = action ? `?studentId=${chatStore.activeSession.student_id}&action=${action}` : `?studentId=${chatStore.activeSession.student_id}`
+  router.push(`/admin/catatan-siswa${q}`)
 }
 
 // State Action Sheet (Menu Titik Tiga Desktop & Tekan Tahan Mobile)
@@ -1452,13 +1453,24 @@ function getCategoryData(catId) {
           <div v-if="isAddingNoteInDrawer" class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 text-xs sm:text-sm">
             <div class="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
               <span class="font-bold text-slate-800 dark:text-slate-200 text-sm">Tambah Catatan Baru</span>
-              <button
-                type="button"
-                @click="isAddingNoteInDrawer = false"
-                class="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
-              >
-                Kembali ke Daftar
-              </button>
+              <div class="flex items-center gap-3">
+                <button
+                  type="button"
+                  @click="navigateToFullStudentDossier('new')"
+                  class="text-purple-600 dark:text-purple-400 font-bold hover:underline text-xs flex items-center gap-1 cursor-pointer"
+                  title="Buka form catatan di halaman penuh"
+                >
+                  <i class="fa-solid fa-expand text-[10px]"></i>
+                  <span>Layar Penuh</span>
+                </button>
+                <button
+                  type="button"
+                  @click="isAddingNoteInDrawer = false"
+                  class="text-slate-400 hover:text-slate-600 text-xs font-semibold cursor-pointer"
+                >
+                  Batal
+                </button>
+              </div>
             </div>
 
             <!-- DROPDOWN KATEGORI ASESMEN -->
@@ -1565,14 +1577,26 @@ function getCategoryData(catId) {
             </div>
 
             <!-- Tombol Tambah Catatan Baru -->
-            <button
-              type="button"
-              @click="startAddNoteInDrawer"
-              class="w-full py-3 px-4 rounded-xl border-2 border-dashed border-purple-300 dark:border-purple-800/80 bg-purple-50/60 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <i class="fa-solid fa-plus text-xs"></i>
-              <span>Tambah Catatan untuk {{ chatStore.activeSession?.student_name }}</span>
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                @click="navigateToFullStudentDossier('new')"
+                class="py-3 px-3.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95"
+                title="Buka form catatan di layar penuh (full-screen workspace)"
+              >
+                <i class="fa-solid fa-expand text-xs"></i>
+                <span>Catat Layar Penuh</span>
+              </button>
+              <button
+                type="button"
+                @click="startAddNoteInDrawer"
+                class="py-3 px-3.5 rounded-xl border border-purple-300 dark:border-purple-800 bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-95"
+                title="Tulis catatan di panel ini"
+              >
+                <i class="fa-solid fa-pen text-xs"></i>
+                <span>Catat di Sidebar</span>
+              </button>
+            </div>
 
             <!-- State Kosong: Belum Ada Catatan -->
             <div

@@ -29,8 +29,10 @@ const isModalCounselorOpen = ref(false)
 const isModalCategoryOpen = ref(false)
 const isStudentComboboxOpen = ref(false)
 
-// State Modal Tambah / Edit Catatan
-const isModalOpen = ref(false)
+// State Lembar Full-Screen Workspace Tambah & Edit Catatan (Menggantikan Pop-up Modal)
+const isEditorOpen = ref(false)
+const isEditorExpanded = ref(false)
+const isPreviousNotesOpen = ref(false)
 // modalMode: 'NEW_STUDENT' (dari tombol Catat Siswa) | 'CURRENT_STUDENT' (dari tombol Tambah Catatan) | 'EDIT_NOTE'
 const modalMode = ref('CURRENT_STUDENT')
 const currentNoteId = ref(null)
@@ -75,13 +77,13 @@ function handleClickOutside(e) {
   if (!e.target.closest('#filter-category-container')) {
     isFilterCategoryOpen.value = false
   }
-  if (!e.target.closest('#modal-counselor-container')) {
+  if (!e.target.closest('#modal-counselor-container') && !e.target.closest('#editor-counselor-container')) {
     isModalCounselorOpen.value = false
   }
-  if (!e.target.closest('#modal-category-container')) {
+  if (!e.target.closest('#modal-category-container') && !e.target.closest('#editor-category-container')) {
     isModalCategoryOpen.value = false
   }
-  if (!e.target.closest('#modal-student-combobox-container')) {
+  if (!e.target.closest('#modal-student-combobox-container') && !e.target.closest('#editor-student-combobox-container')) {
     isStudentComboboxOpen.value = false
   }
 }
@@ -123,6 +125,11 @@ onMounted(async () => {
         })
       }
     }
+    if (route.query.action === 'new') {
+      openAddNoteForCurrentStudent()
+    }
+  } else if (route.query.action === 'new') {
+    openRecordNewStudentModal()
   } else if (filteredStudents.value.length > 0 && window.innerWidth >= 1024) {
     // Di desktop otomatis pilih siswa pertama yang memiliki catatan
     selectStudent(filteredStudents.value[0])
@@ -313,11 +320,28 @@ const selectableStudentsInModal = computed(() => {
 
 function selectStudent(student) {
   selectedStudent.value = student
+  isEditorOpen.value = false
+  isEditorExpanded.value = false
   mobileView.value = 'detail'
 }
 
 function handleBackToListMobile() {
+  isEditorOpen.value = false
+  isEditorExpanded.value = false
   mobileView.value = 'list'
+}
+
+function closeEditor() {
+  isEditorOpen.value = false
+  isEditorExpanded.value = false
+  isStudentComboboxOpen.value = false
+  isModalCounselorOpen.value = false
+  isModalCategoryOpen.value = false
+  if (selectedStudent.value) {
+    mobileView.value = 'detail'
+  } else {
+    mobileView.value = 'list'
+  }
 }
 
 function resetAllFilters() {
@@ -368,12 +392,17 @@ function openRecordNewStudentModal() {
     content: '',
     counselor_name: authStore.userName || COUNSELORS[0]
   }
-  isModalOpen.value = true
+  isEditorOpen.value = true
+  isEditorExpanded.value = false
+  mobileView.value = 'editor'
 }
 
 // 2. Aksi Tombol Kanan: Tambah Catatan untuk Siswa Saat Ini (Terkunci langsung ke selectedStudent)
 function openAddNoteForCurrentStudent() {
-  if (!selectedStudent.value) return
+  if (!selectedStudent.value) {
+    openRecordNewStudentModal()
+    return
+  }
   modalMode.value = 'CURRENT_STUDENT'
   currentNoteId.value = null
   targetStudentId.value = selectedStudent.value.id
@@ -387,7 +416,9 @@ function openAddNoteForCurrentStudent() {
     content: '',
     counselor_name: authStore.userName || COUNSELORS[0]
   }
-  isModalOpen.value = true
+  isEditorOpen.value = true
+  isEditorExpanded.value = false
+  mobileView.value = 'editor'
 }
 
 // 3. Aksi Edit Catatan
@@ -404,7 +435,9 @@ function openEditNoteModal(note) {
     content: note.content || '',
     counselor_name: note.counselor_name || authStore.userName || COUNSELORS[0]
   }
-  isModalOpen.value = true
+  isEditorOpen.value = true
+  isEditorExpanded.value = false
+  mobileView.value = 'editor'
 }
 
 // Sisipkan Format Asesmen BK
@@ -466,7 +499,9 @@ async function handleSubmitNote() {
       // Otomatis arahkan dan buka siswa tersebut di panel kanan
       selectStudent(student)
     }
-    isModalOpen.value = false
+    isEditorOpen.value = false
+    isEditorExpanded.value = false
+    mobileView.value = 'detail'
   } catch (err) {
     alert('Gagal menyimpan catatan: ' + (err.message || 'Error'))
   } finally {
@@ -522,8 +557,11 @@ async function confirmDeleteNote() {
         <!-- Tampil di mobile jika mobileView === 'list'                    -->
         <!-- ============================================================== -->
         <aside
-          class="flex-1 lg:flex-initial lg:col-span-4 xl:col-span-4 2xl:col-span-3 border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 h-full min-h-0"
-          :class="mobileView === 'detail' ? 'hidden lg:flex' : 'flex'"
+          class="flex-1 lg:flex-initial border-r border-slate-200 dark:border-slate-800 flex flex-col bg-white dark:bg-slate-900 h-full min-h-0 transition-all duration-200"
+          :class="[
+            mobileView === 'list' ? 'flex' : 'hidden lg:flex',
+            isEditorOpen && isEditorExpanded ? 'lg:hidden' : 'lg:col-span-4 xl:col-span-4 2xl:col-span-3'
+          ]"
         >
           <!-- Toolbar Header Kiri -->
           <div class="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 space-y-2.5 shrink-0 bg-slate-50/50 dark:bg-slate-900">
@@ -829,16 +867,564 @@ async function confirmDeleteNote() {
         </aside>
 
         <!-- ============================================================== -->
-        <!-- KOLOM KANAN: DOSSIER & TIMELINE CATATAN SISWA TERPILIH         -->
-        <!-- Tampil di mobile jika mobileView === 'detail'                  -->
+        <!-- KOLOM KANAN: WORKSPACE UTAMA (EDITOR / DOSSIER SISWA)          -->
+        <!-- Tampil di mobile jika mobileView !== 'list'                    -->
         <!-- ============================================================== -->
         <section
-          class="flex-1 lg:col-span-8 xl:col-span-8 2xl:col-span-9 flex flex-col bg-[#F8FAFC] dark:bg-slate-950 h-full min-h-0"
-          :class="mobileView === 'list' ? 'hidden lg:flex' : 'flex'"
+          class="flex-1 flex flex-col bg-[#F8FAFC] dark:bg-slate-950 h-full min-h-0 transition-all duration-200"
+          :class="[
+            mobileView === 'list' ? 'hidden lg:flex' : 'flex',
+            isEditorOpen && isEditorExpanded ? 'lg:col-span-12' : 'lg:col-span-8 xl:col-span-8 2xl:col-span-9'
+          ]"
         >
-          <!-- Empty State jika belum ada siswa terpilih -->
+          <!-- ============================================================== -->
+          <!-- 1. LEMBAR FULL-SCREEN WORKSPACE: TAMBAH / EDIT CATATAN ASESMEN -->
+          <!-- Menampilkan editor terpadu di layar penuh (bukan pop up modal) -->
+          <!-- ============================================================== -->
           <div
-            v-if="!selectedStudent"
+            v-if="isEditorOpen"
+            class="flex-1 flex flex-col h-full min-h-0 bg-[#F8FAFC] dark:bg-slate-950 animate-in fade-in duration-150"
+          >
+            <!-- HEADER WORKSPACE EDITOR -->
+            <div class="px-4 sm:px-6 py-3.5 sm:py-4 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0 shadow-2xs">
+              <div class="flex items-center justify-between gap-3">
+                
+                <!-- Left: Tombol Kembali & Info Mode Catatan -->
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                  <button
+                    type="button"
+                    @click="closeEditor"
+                    class="w-9 h-9 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                    title="Kembali (Batal Edit)"
+                  >
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                  </button>
+
+                  <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-base font-bold shrink-0 shadow-2xs">
+                    <i class="fa-solid" :class="modalMode === 'NEW_STUDENT' ? 'fa-user-plus' : (modalMode === 'EDIT_NOTE' ? 'fa-pen-to-square' : 'fa-book-bookmark')"></i>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h2 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white leading-tight truncate">
+                        <template v-if="modalMode === 'NEW_STUDENT'">
+                          Catat Siswa Baru
+                        </template>
+                        <template v-else-if="modalMode === 'EDIT_NOTE'">
+                          Edit Catatan Asesmen
+                        </template>
+                        <template v-else>
+                          Tambah Catatan Siswa
+                        </template>
+                      </h2>
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
+                        <i class="fa-solid fa-lock text-[9px] mr-1"></i>Dossier Privat BK
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                      <template v-if="modalMode === 'NEW_STUDENT'">
+                        Pilih siswa baru dari direktori sekolah dan buat lembar rekam catatan pertamanya
+                      </template>
+                      <template v-else-if="modalMode === 'EDIT_NOTE'">
+                        Perbarui lembar rekam kasus siswa: <strong class="text-slate-700 dark:text-slate-200">{{ selectedStudent?.nama }}</strong>
+                      </template>
+                      <template v-else>
+                        Menambahkan lembar catatan baru untuk: <strong class="text-purple-700 dark:text-purple-300">{{ selectedStudent?.nama }}</strong> ({{ selectedStudent?.kelas }})
+                      </template>
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Right: Action Buttons & Expand Toggle -->
+                <div class="flex items-center gap-2 shrink-0">
+                  <!-- Toggle Full-Width Focus (Desktop Only) -->
+                  <button
+                    type="button"
+                    @click="isEditorExpanded = !isEditorExpanded"
+                    class="hidden lg:flex w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 items-center justify-center transition-colors cursor-pointer"
+                    :title="isEditorExpanded ? 'Kecilkan ke 2 Kolom' : 'Fokus Layar Penuh'"
+                  >
+                    <i class="fa-solid" :class="isEditorExpanded ? 'fa-compress' : 'fa-expand'"></i>
+                  </button>
+
+                  <!-- Tombol Batal -->
+                  <button
+                    type="button"
+                    @click="closeEditor"
+                    class="px-3.5 sm:px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  >
+                    Batal
+                  </button>
+
+                  <!-- Tombol Simpan Catatan (Primary) -->
+                  <button
+                    type="button"
+                    @click="handleSubmitNote"
+                    :disabled="isSubmitting"
+                    class="px-4 sm:px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
+                    <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
+                    <span>
+                      {{ isSubmitting ? 'Menyimpan...' : (modalMode === 'NEW_STUDENT' ? 'Catat Siswa' : (modalMode === 'EDIT_NOTE' ? 'Perbarui Catatan' : 'Simpan Catatan')) }}
+                    </span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- BODY WORKSPACE EDITOR (SCROLLABLE) -->
+            <div class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-5 min-h-0 bg-[#F8FAFC] dark:bg-slate-950">
+              <div class="max-w-4xl mx-auto space-y-5">
+                
+                <!-- 1. IDENTITAS SISWA -->
+                <!-- JIKA MODE: CATAT SISWA BARU -> TAMPILKAN SEARCHABLE COMBOBOX -->
+                <div v-if="modalMode === 'NEW_STUDENT'" id="editor-student-combobox-container" class="space-y-3 p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-800/70 shadow-2xs">
+                  <div class="flex items-center justify-between">
+                    <label class="block font-bold text-slate-900 dark:text-white text-xs sm:text-sm">
+                      Pilih Siswa yang Ingin Dicatat: <span class="text-rose-500">*</span>
+                    </label>
+                    <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                      Direktori Siswa SMADA
+                    </span>
+                  </div>
+
+                  <!-- JIKA SUDAH MEMILIH SISWA -> KARTU SISWA TERPILIH DENGAN TOMBOL GANTI -->
+                  <div
+                    v-if="selectedTargetStudent"
+                    class="p-3.5 sm:p-4 rounded-2xl bg-purple-50/60 dark:bg-slate-800 border-2 border-purple-500 shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-200"
+                  >
+                    <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                        {{ selectedTargetStudent.nama ? selectedTargetStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                          <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-purple-200/80 text-purple-900 dark:bg-purple-900 dark:text-purple-200">
+                            {{ selectedTargetStudent.kelas || 'Siswa SMADA' }}
+                          </span>
+                          <span v-if="selectedTargetStudent.nisn" class="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                            NISN: {{ selectedTargetStudent.nisn }}
+                          </span>
+                          <span v-if="selectedTargetStudent.nis" class="text-xs text-slate-400 font-mono">
+                            NIS: {{ selectedTargetStudent.nis }}
+                          </span>
+                          <span class="text-xs font-semibold" :class="(studentNotesCountMap[selectedTargetStudent.id] || 0) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'">
+                            &bull; {{ (studentNotesCountMap[selectedTargetStudent.id] || 0) === 0 ? 'Belum Ada Catatan' : `${studentNotesCountMap[selectedTargetStudent.id]} Catatan Tersimpan` }}
+                          </span>
+                        </div>
+                        <h4 class="font-bold text-base text-slate-900 dark:text-white truncate mt-1">
+                          {{ selectedTargetStudent.nama }}
+                        </h4>
+                      </div>
+                    </div>
+
+                    <!-- Tombol Ganti Siswa -->
+                    <button
+                      type="button"
+                      @click="clearSelectedModalStudent"
+                      class="px-3 py-1.5 rounded-xl bg-white hover:bg-purple-100 dark:bg-slate-900 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 border border-purple-200 dark:border-purple-800 cursor-pointer active:scale-95 shadow-2xs"
+                      title="Ganti ke siswa lain"
+                    >
+                      <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                      <span>Ganti Siswa</span>
+                    </button>
+                  </div>
+
+                  <!-- JIKA BELUM MEMILIH SISWA -> INPUT PENCARIAN REAL-TIME COMBOBOX DENGAN HASIL -->
+                  <div v-else class="relative">
+                    <div class="relative">
+                      <i class="fa-solid fa-magnifying-glass text-purple-500 absolute left-3.5 top-1/2 -translate-y-1/2 text-sm"></i>
+                      <input
+                        v-model="studentSearchInModal"
+                        @focus="isStudentComboboxOpen = true"
+                        @input="isStudentComboboxOpen = true"
+                        type="text"
+                        placeholder="Ketik nama siswa, kelas, atau NISN..."
+                        class="w-full pl-10 pr-9 py-3 rounded-xl border border-purple-300 dark:border-purple-700 bg-slate-50/50 dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-medium"
+                      />
+                      <button
+                        v-if="studentSearchInModal"
+                        type="button"
+                        @click="studentSearchInModal = ''"
+                        class="w-6 h-6 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center text-xs cursor-pointer"
+                      >
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+
+                    <!-- Popover Hasil Pencarian Siswa -->
+                    <Transition
+                      enter-active-class="transition duration-150 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-100 ease-in"
+                      leave-from-class="transform scale-100 opacity-100"
+                      leave-to-class="transform scale-95 opacity-0"
+                    >
+                      <div
+                        v-if="isStudentComboboxOpen"
+                        class="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 flex flex-col max-h-72"
+                      >
+                        <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-850 flex items-center justify-between text-xs font-semibold text-slate-500 dark:text-slate-400 shrink-0">
+                          <span>Ditemukan {{ selectableStudentsInModal.length }} siswa</span>
+                          <span class="text-purple-600 dark:text-purple-400">Klik siswa untuk memilih</span>
+                        </div>
+
+                        <div class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 flex-1">
+                          <button
+                            v-for="s in selectableStudentsInModal"
+                            :key="s.id"
+                            type="button"
+                            @click="selectModalStudent(s)"
+                            class="w-full p-3 text-left flex items-center justify-between gap-3 hover:bg-purple-50/70 dark:hover:bg-purple-950/50 transition-colors cursor-pointer group"
+                          >
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                              <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                                {{ s.nama ? s.nama.slice(0, 2).toUpperCase() : 'SW' }}
+                              </div>
+                              <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                  <span class="font-bold text-sm text-slate-900 dark:text-white truncate group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                                    {{ s.nama }}
+                                  </span>
+                                  <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                                    {{ s.kelas || 'Siswa' }}
+                                  </span>
+                                </div>
+                                <p class="text-xs text-slate-400 font-mono mt-0.5 truncate">
+                                  NISN: {{ s.nisn || '-' }} &bull; NIS: {{ s.nis || '-' }}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div class="shrink-0 text-right">
+                              <span
+                                v-if="(studentNotesCountMap[s.id] || 0) === 0"
+                                class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+                              >
+                                <span>Belum Ada Catatan</span>
+                              </span>
+                              <span
+                                v-else
+                                class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                              >
+                                <span>{{ studentNotesCountMap[s.id] }} Catatan</span>
+                              </span>
+                            </div>
+                          </button>
+
+                          <div v-if="selectableStudentsInModal.length === 0" class="p-6 text-center text-slate-400 space-y-1.5">
+                            <i class="fa-solid fa-user-xmark text-2xl text-slate-300 dark:text-slate-600"></i>
+                            <p class="text-xs">Tidak ada siswa yang cocok dengan &ldquo;{{ studentSearchInModal }}&rdquo;</p>
+                          </div>
+                        </div>
+                      </div>
+                    </Transition>
+                  </div>
+                </div>
+
+                <!-- JIKA MODE: CURRENT_STUDENT ATAU EDIT_NOTE -> BANNER IDENTITAS SISWA TERPILIH -->
+                <div v-else class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between gap-4">
+                  <div class="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-base shrink-0 shadow-xs">
+                      {{ selectedStudent?.nama ? selectedStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                          {{ selectedStudent?.kelas || 'Siswa SMADA' }}
+                        </span>
+                        <span v-if="selectedStudent?.nisn" class="text-xs text-slate-400 font-mono">
+                          NISN: {{ selectedStudent.nisn }}
+                        </span>
+                        <span v-if="selectedStudent?.nis" class="text-xs text-slate-400 font-mono">
+                          NIS: {{ selectedStudent.nis }}
+                        </span>
+                      </div>
+                      <h3 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white truncate mt-1">
+                        {{ selectedStudent?.nama }}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <span class="hidden sm:inline-flex px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-800 shrink-0">
+                    {{ currentStudentNotes.length }} Catatan Tersimpan
+                  </span>
+                </div>
+
+                <!-- 2. PENGATURAN SESI: GURU BK & BIDANG LAYANAN -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  <!-- Dropdown Guru BK Penanggung Jawab -->
+                  <div id="editor-counselor-container" class="relative">
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 text-xs sm:text-sm">
+                      Guru BK Penanggung Jawab: <span class="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      @click="isModalCounselorOpen = !isModalCounselorOpen; isModalCategoryOpen = false"
+                      class="w-full px-4 py-3 rounded-2xl border bg-white dark:bg-slate-900 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
+                      :class="isModalCounselorOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800'"
+                    >
+                      <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
+                          {{ (noteForm.counselor_name || 'BK').slice(0, 2).toUpperCase() }}
+                        </div>
+                        <div class="text-left min-w-0">
+                          <span class="font-bold text-slate-900 dark:text-white block truncate">{{ noteForm.counselor_name || 'Pilih Guru BK' }}</span>
+                          <span class="text-[11px] text-slate-400 block">Guru Bimbingan Konseling</span>
+                        </div>
+                      </div>
+                      <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isModalCounselorOpen }"></i>
+                    </button>
+
+                    <!-- Popover Menu Guru BK -->
+                    <Transition
+                      enter-active-class="transition duration-150 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-100 ease-in"
+                      leave-from-class="transform scale-100 opacity-100"
+                      leave-to-class="transform scale-95 opacity-0"
+                    >
+                      <div
+                        v-if="isModalCounselorOpen"
+                        class="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden py-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                      >
+                        <button
+                          v-for="c in counselorOptions"
+                          :key="c"
+                          type="button"
+                          @click="selectModalCounselor(c)"
+                          class="w-full px-4 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer"
+                          :class="noteForm.counselor_name === c
+                            ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
+                        >
+                          <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
+                              {{ c.slice(0, 2).toUpperCase() }}
+                            </div>
+                            <div class="min-w-0">
+                              <span class="block truncate">{{ c }}</span>
+                              <span class="block text-[10px] text-slate-400 font-normal">Guru Bimbingan Konseling</span>
+                            </div>
+                          </div>
+                          <i v-if="noteForm.counselor_name === c" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-2"></i>
+                        </button>
+                      </div>
+                    </Transition>
+                  </div>
+
+                  <!-- Dropdown Kategori / Bidang Layanan -->
+                  <div id="editor-category-container" class="relative">
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1.5 text-xs sm:text-sm">
+                      Kategori / Bidang Layanan BK: <span class="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      @click="isModalCategoryOpen = !isModalCategoryOpen; isModalCounselorOpen = false"
+                      class="w-full px-4 py-3 rounded-2xl border bg-white dark:bg-slate-900 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
+                      :class="isModalCategoryOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800'"
+                    >
+                      <div class="flex items-center gap-3 min-w-0">
+                        <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border shrink-0" :class="getCategoryInfo(noteForm.category)?.badge">
+                          {{ getCategoryInfo(noteForm.category)?.label }}
+                        </span>
+                        <span class="text-xs text-slate-600 dark:text-slate-300 truncate">
+                          {{ getCategoryDescription(noteForm.category) }}
+                        </span>
+                      </div>
+                      <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isModalCategoryOpen }"></i>
+                    </button>
+
+                    <!-- Popover Menu Kategori -->
+                    <Transition
+                      enter-active-class="transition duration-150 ease-out"
+                      enter-from-class="transform scale-95 opacity-0"
+                      enter-to-class="transform scale-100 opacity-100"
+                      leave-active-class="transition duration-100 ease-in"
+                      leave-from-class="transform scale-100 opacity-100"
+                      leave-to-class="transform scale-95 opacity-0"
+                    >
+                      <div
+                        v-if="isModalCategoryOpen"
+                        class="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden py-1.5 max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800"
+                      >
+                        <button
+                          v-for="cat in NOTE_CATEGORIES"
+                          :key="cat.id"
+                          type="button"
+                          @click="selectModalCategory(cat.id)"
+                          class="w-full px-4 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer"
+                          :class="noteForm.category === cat.id
+                            ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                            : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
+                        >
+                          <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0" :class="cat.badge">
+                              {{ cat.label }}
+                            </span>
+                            <span class="text-xs text-slate-600 dark:text-slate-300 truncate">
+                              {{ getCategoryDescription(cat.id) }}
+                            </span>
+                          </div>
+                          <i v-if="noteForm.category === cat.id" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-2"></i>
+                        </button>
+                      </div>
+                    </Transition>
+                  </div>
+
+                </div>
+
+                <!-- Quick Category Selector Chips -->
+                <div class="space-y-1.5">
+                  <label class="block font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    Pilihan Cepat Kategori:
+                  </label>
+                  <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                    <button
+                      v-for="cat in NOTE_CATEGORIES"
+                      :key="cat.id"
+                      type="button"
+                      @click="noteForm.category = cat.id"
+                      class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap active:scale-95"
+                      :class="noteForm.category === cat.id
+                        ? cat.badge + ' ring-2 ring-purple-500/40 font-bold shadow-xs'
+                        : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'"
+                    >
+                      <i :class="cat.icon" class="text-xs"></i>
+                      <span>{{ cat.label }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 3. JUDUL CATATAN ASESMEN -->
+                <div class="space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+                      Judul Ringkas Asesmen / Topik Kasus: <span class="text-rose-500">*</span>
+                    </label>
+                    <span class="text-[11px] text-slate-400">Ringkasan pokok permasalahan</span>
+                  </div>
+                  <input
+                    v-model="noteForm.title"
+                    type="text"
+                    placeholder="Misal: Hasil Konseling terkait motivasi belajar & pemilihan prodi SNBP..."
+                    class="w-full px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-medium transition-colors"
+                    @keydown.ctrl.enter.prevent="handleSubmitNote"
+                    @keydown.meta.enter.prevent="handleSubmitNote"
+                  />
+                </div>
+
+                <!-- 4. ISI CATATAN & REKAM TINDAK LANJUT (SPACIOUS FULL-SCREEN TEXTAREA) -->
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between flex-wrap gap-2">
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 text-xs sm:text-sm">
+                      Detail Catatan, Observasi &amp; Rekam Tindak Lanjut: <span class="text-rose-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      @click="insertAssessmentTemplate"
+                      class="px-3 py-1.5 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                      title="Sisipkan struktur panduan asesmen standar BK"
+                    >
+                      <i class="fa-solid fa-file-lines text-xs"></i>
+                      <span>+ Format Asesmen BK</span>
+                    </button>
+                  </div>
+
+                  <textarea
+                    v-model="noteForm.content"
+                    rows="12"
+                    placeholder="Tuliskan latar belakang masalah siswa, observasi psikologis/akademik, hasil konseling tatap muka, dan kesepakatan rencana tindak lanjut..."
+                    class="w-full p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm sm:text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y shadow-2xs placeholder:text-slate-400 font-sans min-h-[260px] sm:min-h-[340px]"
+                    @keydown.ctrl.enter.prevent="handleSubmitNote"
+                    @keydown.meta.enter.prevent="handleSubmitNote"
+                  ></textarea>
+
+                  <div class="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-0.5">
+                    <span class="flex items-center gap-1.5">
+                      <i class="fa-solid fa-shield-halved text-purple-500 text-xs"></i>
+                      <span>Kerahasiaan terjamin • Hanya dapat dibaca oleh Guru BK SMADA</span>
+                    </span>
+                    <span class="font-mono hidden sm:inline">
+                      Tekan <kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[10px] font-semibold text-slate-600 dark:text-slate-300">Ctrl + Enter</kbd> untuk simpan cepat
+                    </span>
+                  </div>
+                </div>
+
+                <!-- 5. PANEL RIWAYAT CATATAN SEBELUMNYA SISWA INI (COLLAPSIBLE REFERENCE) -->
+                <div v-if="selectedStudent && currentStudentNotes.length > 0" class="border border-purple-100 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden shadow-2xs">
+                  <button
+                    type="button"
+                    @click="isPreviousNotesOpen = !isPreviousNotesOpen"
+                    class="w-full px-4 sm:px-5 py-3 flex items-center justify-between text-left text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-850 transition-colors cursor-pointer"
+                  >
+                    <div class="flex items-center gap-2.5">
+                      <i class="fa-solid fa-clock-rotate-left text-purple-600"></i>
+                      <span>Referensi Catatan Sebelumnya Siswa Ini ({{ currentStudentNotes.length }})</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-200 text-slate-400" :class="{ 'rotate-180 text-purple-600': isPreviousNotesOpen }"></i>
+                  </button>
+                  <div v-if="isPreviousNotesOpen" class="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 space-y-3 max-h-80 overflow-y-auto bg-slate-50/50 dark:bg-slate-950/40">
+                    <div
+                      v-for="pn in currentStudentNotes"
+                      :key="pn.id"
+                      class="p-3.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-2 shadow-2xs"
+                    >
+                      <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span class="font-bold text-slate-900 dark:text-white text-xs sm:text-sm">{{ pn.title }}</span>
+                        <div class="flex items-center gap-2">
+                          <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border" :class="getCategoryInfo(pn.category).badge">
+                            {{ getCategoryInfo(pn.category).label }}
+                          </span>
+                          <span class="text-slate-400 text-[11px]">{{ formatDateDisplay(pn.created_at) }}</span>
+                        </div>
+                      </div>
+                      <p class="text-slate-600 dark:text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">{{ pn.content }}</p>
+                      <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                        Ditulis oleh: {{ pn.counselor_name || 'Guru BK SMADA' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 6. FOOTER ACTION BAR -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800 pb-12">
+                  <button
+                    type="button"
+                    @click="closeEditor"
+                    class="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    @click="handleSubmitNote"
+                    :disabled="isSubmitting"
+                    class="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
+                  >
+                    <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
+                    <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
+                    <span>
+                      {{ isSubmitting ? 'Menyimpan...' : (modalMode === 'NEW_STUDENT' ? 'Catat Siswa Baru' : (modalMode === 'EDIT_NOTE' ? 'Perbarui Catatan' : 'Simpan Catatan')) }}
+                    </span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- 2. EMPTY STATE: BELUM ADA SISWA TERPILIH                       -->
+          <!-- ============================================================== -->
+          <div
+            v-else-if="!selectedStudent"
             class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-white dark:bg-slate-900"
           >
             <div class="w-16 h-16 rounded-3xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl shadow-xs">
@@ -1029,416 +1615,6 @@ async function confirmDeleteNote() {
 
       </div>
     </main>
-
-    <!-- ============================================================== -->
-    <!-- MODAL: TAMBAH / EDIT CATATAN ASESMEN SISWA                      -->
-    <!-- ============================================================== -->
-    <div
-      v-if="isModalOpen"
-      class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs"
-      @click.self="isModalOpen = false"
-    >
-      <div class="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4 max-h-[90vh] flex flex-col">
-        
-        <!-- Header Modal Dinamis -->
-        <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-base font-bold shrink-0">
-              <i class="fa-solid" :class="modalMode === 'NEW_STUDENT' ? 'fa-user-plus' : 'fa-book-bookmark'"></i>
-            </div>
-            <div>
-              <h3 class="font-bold text-base text-slate-900 dark:text-white leading-tight">
-                <template v-if="modalMode === 'NEW_STUDENT'">
-                  Catat Siswa Baru
-                </template>
-                <template v-else-if="modalMode === 'EDIT_NOTE'">
-                  Edit Catatan Asesmen
-                </template>
-                <template v-else>
-                  Tambah Catatan Siswa
-                </template>
-              </h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                <template v-if="modalMode === 'NEW_STUDENT'">
-                  Pilih siswa baru dari direktori sekolah dan buat lembar catatan pertamanya
-                </template>
-                <template v-else-if="modalMode === 'EDIT_NOTE'">
-                  Perbarui lembar rekam kasus siswa: <strong class="text-slate-700 dark:text-slate-200">{{ selectedStudent?.nama }}</strong>
-                </template>
-                <template v-else>
-                  Menambahkan lembar catatan baru untuk: <strong class="text-purple-700 dark:text-purple-300">{{ selectedStudent?.nama }}</strong> ({{ selectedStudent?.kelas }})
-                </template>
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            @click="isModalOpen = false"
-            class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <i class="fa-solid fa-xmark text-sm"></i>
-          </button>
-        </div>
-
-        <!-- Form Body -->
-        <div class="space-y-3.5 overflow-y-auto flex-1 pr-1 text-xs sm:text-sm">
-          
-          <!-- JIKA MODE: CATAT SISWA BARU -> TAMPILKAN MODERN SEARCHABLE COMBOBOX -->
-          <div v-if="modalMode === 'NEW_STUDENT'" id="modal-student-combobox-container" class="space-y-2.5 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-purple-50/90 via-purple-50/40 to-indigo-50/50 dark:from-purple-950/40 dark:via-slate-900 dark:to-indigo-950/30 border border-purple-200 dark:border-purple-800/70 shadow-2xs">
-            <div class="flex items-center justify-between">
-              <label class="block font-bold text-purple-950 dark:text-purple-200 text-xs">
-                Pilih Siswa Baru yang Ingin Dicatat:
-              </label>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-                Direktori Siswa SMADA
-              </span>
-            </div>
-
-            <!-- JIKA SUDAH MEMILIH SISWA -> TAMPILKAN KARTU SISWA PILIHAN DENGAN TOMBOL GANTI -->
-            <div
-              v-if="selectedTargetStudent"
-              class="p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-purple-500 shadow-sm flex items-center justify-between gap-3 animate-in fade-in duration-200"
-            >
-              <div class="flex items-center gap-3 min-w-0 flex-1">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                  {{ selectedTargetStudent.nama ? selectedTargetStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
-                      {{ selectedTargetStudent.kelas || 'Siswa' }}
-                    </span>
-                    <span v-if="selectedTargetStudent.nisn" class="text-[10px] text-slate-400 font-mono">
-                      NISN: {{ selectedTargetStudent.nisn }}
-                    </span>
-                    <span class="text-[10px] font-semibold" :class="(studentNotesCountMap[selectedTargetStudent.id] || 0) === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-purple-600 dark:text-purple-400'">
-                      &bull; {{ (studentNotesCountMap[selectedTargetStudent.id] || 0) === 0 ? 'Belum Ada Catatan' : `${studentNotesCountMap[selectedTargetStudent.id]} Catatan` }}
-                    </span>
-                  </div>
-                  <h4 class="font-bold text-sm text-slate-900 dark:text-white truncate mt-0.5">
-                    {{ selectedTargetStudent.nama }}
-                  </h4>
-                </div>
-              </div>
-
-              <!-- Tombol Ganti Siswa -->
-              <button
-                type="button"
-                @click="clearSelectedModalStudent"
-                class="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 border border-purple-200 dark:border-purple-800 cursor-pointer active:scale-95"
-                title="Ganti ke siswa lain"
-              >
-                <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
-                <span class="hidden sm:inline">Ganti Siswa</span>
-                <span class="sm:hidden">Ganti</span>
-              </button>
-            </div>
-
-            <!-- JIKA BELUM MEMILIH SISWA -> INPUT PENCARIAN REAL-TIME COMBOBOX DENGAN DROPDOWN HASIL -->
-            <div v-else class="relative">
-              <!-- Search Bar Input -->
-              <div class="relative">
-                <i class="fa-solid fa-magnifying-glass text-purple-500 absolute left-3.5 top-1/2 -translate-y-1/2 text-xs"></i>
-                <input
-                  v-model="studentSearchInModal"
-                  @focus="isStudentComboboxOpen = true"
-                  @input="isStudentComboboxOpen = true"
-                  type="text"
-                  placeholder="Ketik nama, kelas, atau NISN siswa..."
-                  class="w-full pl-9 pr-9 py-2.5 rounded-xl border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-medium"
-                />
-                <button
-                  v-if="studentSearchInModal"
-                  type="button"
-                  @click="studentSearchInModal = ''"
-                  class="w-6 h-6 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center text-xs"
-                >
-                  <i class="fa-solid fa-xmark"></i>
-                </button>
-                <i v-else class="fa-solid fa-chevron-down text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] pointer-events-none"></i>
-              </div>
-
-              <!-- Floating Dropdown Hasil Pencarian Siswa -->
-              <Transition
-                enter-active-class="transition duration-150 ease-out"
-                enter-from-class="transform scale-95 opacity-0"
-                enter-to-class="transform scale-100 opacity-100"
-                leave-active-class="transition duration-100 ease-in"
-                leave-from-class="transform scale-100 opacity-100"
-                leave-to-class="transform scale-95 opacity-0"
-              >
-                <div
-                  v-if="isStudentComboboxOpen"
-                  class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-purple-200 dark:border-purple-800/80 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 flex flex-col max-h-60"
-                >
-                  <div class="px-3.5 py-2 bg-slate-50/80 dark:bg-slate-850 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
-                    <span>Ditemukan {{ selectableStudentsInModal.length }} siswa</span>
-                    <span class="text-[10px] text-purple-600 dark:text-purple-400">Klik siswa untuk memilih</span>
-                  </div>
-
-                  <!-- Scrollable Items -->
-                  <div class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 flex-1">
-                    <button
-                      v-for="s in selectableStudentsInModal"
-                      :key="s.id"
-                      type="button"
-                      @click="selectModalStudent(s)"
-                      class="w-full p-2.5 text-left flex items-center justify-between gap-2.5 hover:bg-purple-50/70 dark:hover:bg-purple-950/50 transition-colors cursor-pointer group"
-                    >
-                      <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shrink-0">
-                          {{ s.nama ? s.nama.slice(0, 2).toUpperCase() : 'SW' }}
-                        </div>
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-center gap-1.5">
-                            <span class="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate group-hover:text-purple-700 dark:group-hover:text-purple-300">
-                              {{ s.nama }}
-                            </span>
-                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
-                              {{ s.kelas || 'Siswa' }}
-                            </span>
-                          </div>
-                          <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate">
-                            NISN: {{ s.nisn || '-' }} &bull; NIS: {{ s.nis || '-' }}
-                          </p>
-                        </div>
-                      </div>
-
-                      <!-- Badge Catatan -->
-                      <div class="shrink-0 text-right">
-                        <span
-                          v-if="(studentNotesCountMap[s.id] || 0) === 0"
-                          class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-                        >
-                          <i class="fa-solid fa-sparkles text-[9px]"></i>
-                          <span>Belum Ada</span>
-                        </span>
-                        <span
-                          v-else
-                          class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
-                        >
-                          <i class="fa-solid fa-book-bookmark text-[9px]"></i>
-                          <span>{{ studentNotesCountMap[s.id] }} Catatan</span>
-                        </span>
-                      </div>
-                    </button>
-
-                    <!-- Empty state jika tidak ada hasil -->
-                    <div v-if="selectableStudentsInModal.length === 0" class="p-6 text-center text-slate-400 space-y-1.5">
-                      <i class="fa-solid fa-user-xmark text-xl text-slate-300 dark:text-slate-600"></i>
-                      <p class="text-xs">Tidak ada siswa yang cocok dengan &ldquo;{{ studentSearchInModal }}&rdquo;</p>
-                    </div>
-                  </div>
-                </div>
-              </Transition>
-            </div>
-          </div>
-
-          <!-- JIKA MODE: SISWA SAAT INI ATAU EDIT -> KUNCI DENGAN IDENTITAS SISWA YANG SEDANG DIBUKA -->
-          <div v-else class="p-3 sm:p-3.5 rounded-2xl bg-purple-50/70 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/60 flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
-              {{ selectedStudent?.nama ? selectedStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2 flex-wrap">
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.2 rounded-md bg-purple-200/80 text-purple-900 dark:bg-purple-900 dark:text-purple-200">
-                  Siswa Saat Ini
-                </span>
-                <span class="text-[11px] font-semibold text-purple-700 dark:text-purple-300">
-                  {{ selectedStudent?.kelas }}
-                </span>
-                <span v-if="selectedStudent?.nisn" class="text-[10px] text-slate-400 font-mono">
-                  NISN: {{ selectedStudent.nisn }}
-                </span>
-              </div>
-              <h4 class="font-bold text-sm sm:text-base text-slate-900 dark:text-white truncate mt-0.5">
-                {{ selectedStudent?.nama }}
-              </h4>
-            </div>
-          </div>
-
-          <!-- DROPDOWN 1: GURU BK PENANGGUNG JAWAB (MODERN CUSTOM POPOVER) -->
-          <div id="modal-counselor-container" class="relative">
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
-              Guru BK Penanggung Jawab:
-            </label>
-            <button
-              type="button"
-              @click="isModalCounselorOpen = !isModalCounselorOpen; isModalCategoryOpen = false"
-              class="w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-800 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
-              :class="isModalCounselorOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-700'"
-            >
-              <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
-                  {{ (noteForm.counselor_name || 'BK').slice(0, 2).toUpperCase() }}
-                </div>
-                <div class="text-left min-w-0">
-                  <span class="font-bold text-slate-900 dark:text-white block truncate">{{ noteForm.counselor_name || 'Pilih Guru BK' }}</span>
-                  <span class="text-[10px] text-slate-400 block -mt-0.5">Guru Bimbingan Konseling</span>
-                </div>
-              </div>
-              <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isModalCounselorOpen }"></i>
-            </button>
-
-            <!-- Floating Menu Guru BK -->
-            <Transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="transform scale-95 opacity-0"
-              enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-100 ease-in"
-              leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0"
-            >
-              <div
-                v-if="isModalCounselorOpen"
-                class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden py-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60"
-              >
-                <button
-                  v-for="c in counselorOptions"
-                  :key="c"
-                  type="button"
-                  @click="selectModalCounselor(c)"
-                  class="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer"
-                  :class="noteForm.counselor_name === c
-                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
-                >
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <div class="w-7 h-7 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
-                      {{ c.slice(0, 2).toUpperCase() }}
-                    </div>
-                    <div class="min-w-0">
-                      <span class="block truncate">{{ c }}</span>
-                      <span class="block text-[10px] text-slate-400 font-normal">Guru Bimbingan Konseling</span>
-                    </div>
-                  </div>
-                  <i v-if="noteForm.counselor_name === c" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-2"></i>
-                </button>
-              </div>
-            </Transition>
-          </div>
-
-          <!-- DROPDOWN 2: KATEGORI / BIDANG LAYANAN (MODERN CUSTOM POPOVER) -->
-          <div id="modal-category-container" class="relative">
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
-              Kategori / Bidang Layanan:
-            </label>
-            <button
-              type="button"
-              @click="isModalCategoryOpen = !isModalCategoryOpen; isModalCounselorOpen = false"
-              class="w-full px-3.5 py-2.5 rounded-xl border bg-white dark:bg-slate-800 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
-              :class="isModalCategoryOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-700'"
-            >
-              <div class="flex items-center gap-2.5 min-w-0">
-                <span class="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0" :class="getCategoryInfo(noteForm.category)?.badge">
-                  {{ getCategoryInfo(noteForm.category)?.label }}
-                </span>
-                <span class="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  {{ getCategoryDescription(noteForm.category) }}
-                </span>
-              </div>
-              <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isModalCategoryOpen }"></i>
-            </button>
-
-            <!-- Floating Menu Kategori -->
-            <Transition
-              enter-active-class="transition duration-150 ease-out"
-              enter-from-class="transform scale-95 opacity-0"
-              enter-to-class="transform scale-100 opacity-100"
-              leave-active-class="transition duration-100 ease-in"
-              leave-from-class="transform scale-100 opacity-100"
-              leave-to-class="transform scale-95 opacity-0"
-            >
-              <div
-                v-if="isModalCategoryOpen"
-                class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden py-1.5 max-h-56 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60"
-              >
-                <button
-                  v-for="cat in NOTE_CATEGORIES"
-                  :key="cat.id"
-                  type="button"
-                  @click="selectModalCategory(cat.id)"
-                  class="w-full px-3.5 py-2.5 text-left text-xs sm:text-sm font-semibold flex items-center justify-between transition-colors cursor-pointer"
-                  :class="noteForm.category === cat.id
-                    ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
-                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
-                >
-                  <div class="flex items-center gap-2.5 min-w-0">
-                    <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border shrink-0" :class="cat.badge">
-                      {{ cat.label }}
-                    </span>
-                    <span class="text-xs text-slate-600 dark:text-slate-300 truncate">
-                      {{ getCategoryDescription(cat.id) }}
-                    </span>
-                  </div>
-                  <i v-if="noteForm.category === cat.id" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-2"></i>
-                </button>
-              </div>
-            </Transition>
-          </div>
-
-          <!-- Judul Catatan -->
-          <div>
-            <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1 text-xs">
-              Judul Ringkas Asesmen:
-            </label>
-            <input
-              v-model="noteForm.title"
-              type="text"
-              placeholder="Misal: Hasil Panggilan Ruang BK terkait motivasi belajar..."
-              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
-            />
-          </div>
-
-          <!-- Area Isi Catatan + Tombol Template -->
-          <div>
-            <div class="flex items-center justify-between mb-1">
-              <label class="block font-bold text-slate-700 dark:text-slate-300 text-xs">
-                Detail Catatan &amp; Tindak Lanjut:
-              </label>
-              <button
-                type="button"
-                @click="insertAssessmentTemplate"
-                class="px-2 py-0.8 rounded-lg text-[11px] font-semibold text-purple-700 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer flex items-center gap-1"
-                title="Sisipkan template panduan asesmen BK"
-              >
-                <i class="fa-solid fa-plus text-[10px]"></i>
-                <span>+ Format Asesmen BK</span>
-              </button>
-            </div>
-            <textarea
-              v-model="noteForm.content"
-              rows="6"
-              placeholder="Tuliskan dinamika permasalahan siswa, observasi perilaku, hasil asesmen, atau kesepakatan tindak lanjut..."
-              class="w-full p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none placeholder:text-slate-400"
-            ></textarea>
-          </div>
-        </div>
-
-        <!-- Footer Modal -->
-        <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
-          <button
-            type="button"
-            @click="isModalOpen = false"
-            class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
-          >
-            Batal
-          </button>
-          <button
-            type="button"
-            @click="handleSubmitNote"
-            :disabled="isSubmitting"
-            class="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95"
-          >
-            <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
-            <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
-            <span>
-              {{ isSubmitting ? 'Menyimpan...' : (modalMode === 'NEW_STUDENT' ? 'Catat Siswa Baru' : (modalMode === 'EDIT_NOTE' ? 'Perbarui Catatan' : 'Simpan Catatan')) }}
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- ============================================================== -->
     <!-- MODAL: KONFIRMASI HAPUS CATATAN                                -->
