@@ -4,6 +4,8 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { processAndUploadPhoto, isCloudinaryConfigured } from '@/lib/cloudinary'
 import { getAllSnpmbPtn } from '@/lib/snpmbService'
+import { exportEligibleToExcel, SMADA_MASTER_SUBJECTS } from '@/lib/eligibleExport'
+export { SMADA_MASTER_SUBJECTS }
 
 // Bangun katalog PTN & Prodi yang sama persis dengan Tracer Study (145 PTN, 5.140 Prodi SNPMB)
 const LOCAL_SNPMB_PTN = getAllSnpmbPtn()
@@ -33,33 +35,7 @@ const LOCAL_SNPMB_PTN = getAllSnpmbPtn()
 
 const LOCAL_PTN_BY_ID = new Map(LOCAL_SNPMB_PTN.map(p => [p.id, p]))
 
-// Daftar resmi 23 mata pelajaran standar SMA Negeri 2 Ngawi
-export const SMADA_MASTER_SUBJECTS = [
-  'Matematika',
-  'PAI (Pendidikan Agama Islam)',
-  'PKn / Pancasila',
-  'Bahasa Indonesia',
-  'Bahasa Inggris',
-  'Fisika',
-  'Biologi',
-  'PKWU (Prakarya dan Kewirausahaan)',
-  'Kimia',
-  'Bahasa Prancis',
-  'Sejarah',
-  'Geografi',
-  'Ekonomi',
-  'Seni Budaya',
-  'Penjasorkes (Pendidikan Jasmani, Olahraga, dan Kesehatan)',
-  'Sosiologi',
-  'TIK / KKA',
-  'Bahasa Jepang',
-  'Bahasa Jawa',
-  'Pendidikan Agama Katholik',
-  'Pendidikan Agama Kristen',
-  'BP/BK (Bimbingan dan Konseling)',
-  'PRODISTIK'
-]
-
+// Urutan resmi 23 mata pelajaran standar SMA Negeri 2 Ngawi
 const SUBJECT_ORDER_MAP = new Map(SMADA_MASTER_SUBJECTS.map((name, idx) => [name.toLowerCase(), idx]))
 
 const LEGACY_SUBJECT_RENAMES = {
@@ -995,6 +971,64 @@ export const useEligibleStore = defineStore('eligible', () => {
     }
   }
 
+  /**
+   * Ekspor seluruh data Siswa Eligible SNBP ke format Excel (.xlsx) untuk Guru BK / Admin.
+   * Mencakup 4 Sheet lengkap: Rekap Siswa & Pilihan PTN, Matriks 23 Mapel, Transkrip Sem 1-5, dan Sertifikat Prestasi.
+   */
+  async function exportEligibleExcel() {
+    const authStore = useAuthStore()
+    if (authStore.userRole !== 'admin') {
+      return { success: false, message: 'Akses Ditolak: Fitur Ekspor Data hanya dapat diakses oleh Admin Guru BK.' }
+    }
+
+    if (!allEligibleStudents.value || allEligibleStudents.value.length === 0) {
+      await fetchAdminEligibleList()
+    }
+
+    if (allEligibleStudents.value.length === 0) {
+      return { success: false, message: 'Belum ada data siswa eligible pada tahun ajaran ini untuk diekspor.' }
+    }
+
+    try {
+      isLoading.value = true
+
+      // Ambil seluruh sertifikat prestasi milik seluruh siswa eligible yang terdaftar
+      const studentIds = allEligibleStudents.value.map(s => s.student_id).filter(Boolean)
+      let certificates = []
+
+      if (studentIds.length > 0 && isSupabaseConfigured && supabase) {
+        const { data, error } = await supabase
+          .from('student_certificates')
+          .select('id, student_id, title, image_url, created_at')
+          .in('student_id', studentIds)
+          .order('created_at', { ascending: false })
+
+        if (!error && Array.isArray(data)) {
+          certificates = data
+        }
+      }
+
+      const fileName = exportEligibleToExcel({
+        students: allEligibleStudents.value,
+        certificates,
+        masterSubjects: masterSubjects.value,
+        academicYear: currentAcademicYear.value
+      })
+
+      return {
+        success: true,
+        fileName,
+        count: allEligibleStudents.value.length,
+        message: `Berhasil mengekspor data ${allEligibleStudents.value.length} siswa eligible ke berkas ${fileName}!`
+      }
+    } catch (e) {
+      console.error('Error export eligible to excel:', e)
+      return { success: false, message: 'Gagal mengekspor data ke Excel: ' + (e?.message || 'Error tidak diketahui') }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   return {
     currentAcademicYear,
     isLoading,
@@ -1033,6 +1067,7 @@ export const useEligibleStore = defineStore('eligible', () => {
     updateChoiceStatus,
     updateGradeStatus,
     saveSubject,
-    deleteSubject
+    deleteSubject,
+    exportEligibleExcel
   }
 })
