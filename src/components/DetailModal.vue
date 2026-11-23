@@ -178,7 +178,7 @@ function openParentWhatsApp() {
                   {{ isStudent ? 'Siswa Aktif SMA Negeri 2 Ngawi' : ('Alumni Angkatan ' + alumni.cohort) }} &bull; Kelas {{ alumni.classRoom }}
                 </p>
 
-                <div v-if="isTeacherOrAdmin && ((alumni.nisn && alumni.nisn !== '-') || (alumni.nis && alumni.nis !== '-'))" class="text-xs text-emerald-400 font-mono mt-0.5">
+                <div v-if="(alumni.nisn && alumni.nisn !== '-') || (alumni.nis && alumni.nis !== '-')" class="text-xs text-emerald-400 font-mono mt-0.5">
                   <span v-if="alumni.nisn && alumni.nisn !== '-'">NISN: {{ alumni.nisn }}</span>
                   <span v-if="alumni.nisn && alumni.nisn !== '-' && alumni.nis && alumni.nis !== '-'" class="text-slate-400 mx-1">|</span>
                   <span v-if="alumni.nis && alumni.nis !== '-'">NIS: {{ alumni.nis }}</span>

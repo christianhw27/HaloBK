@@ -363,7 +363,7 @@ function openWhatsApp(phone, name, inst) {
                   {{ alumni.name }}
                 </h2>
                 <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-                  Angkatan {{ alumni.cohort }} &bull; Kelas {{ alumni.classRoom }}<template v-if="alumni.nis && alumni.nis !== '-'"> &bull; NIS: {{ alumni.nis }}</template>
+                  Angkatan {{ alumni.cohort }} &bull; Kelas {{ alumni.classRoom }}<template v-if="alumni.nisn && alumni.nisn !== '-'"> &bull; <span class="font-mono text-sky-600 dark:text-sky-400 font-medium">NISN: {{ alumni.nisn }}</span></template><template v-if="alumni.nis && alumni.nis !== '-'"> &bull; NIS: {{ alumni.nis }}</template>
                 </p>
               </div>
             </div>
@@ -493,7 +493,10 @@ function openWhatsApp(phone, name, inst) {
             </td>
             <td class="p-3.5 text-slate-600 dark:text-slate-300 whitespace-nowrap">
               <div>{{ alumni.classRoom }} ({{ alumni.cohort }})</div>
-              <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs text-slate-400">
+              <div v-if="alumni.nisn && alumni.nisn !== '-'" class="text-xs font-mono font-medium text-sky-600 dark:text-sky-400">
+                NISN: {{ alumni.nisn }}
+              </div>
+              <div v-if="alumni.nis && alumni.nis !== '-'" class="text-xs text-slate-400 font-mono">
                 NIS: {{ alumni.nis }}
               </div>
             </td>

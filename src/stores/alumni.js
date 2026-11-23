@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
 import { normalizeMajorName } from '@/lib/snpmbService'
+import { STUDENT_NISN_MAP } from '@/lib/studentNisnMap'
 import * as XLSX from 'xlsx'
 
 export const useAlumniStore = defineStore('alumni', () => {
@@ -42,8 +43,8 @@ export const useAlumniStore = defineStore('alumni', () => {
       id: item.id,
       name: item.nama_lengkap || item.name || '',
       nis: item.nis || '-',
-      // Proteksi Privasi: NISN alumni HANYA terbuka untuk Admin Guru BK
-      nisn: isAdmin ? (item.nisn || '-') : '-',
+      // NISN alumni
+      nisn: (item.nisn && item.nisn !== '-') ? item.nisn.trim() : '-',
       classRoom: item.kelas_terakhir || item.classRoom || '-',
       cohort: String(item.tahun_lulus || item.cohort || ''),
       // Proteksi Privasi: Nomor WhatsApp alumni HANYA terbuka untuk Admin Guru BK
@@ -68,12 +69,15 @@ export const useAlumniStore = defineStore('alumni', () => {
   function mapSiswaToAlumni(item) {
     const authStore = useAuthStore()
     const isAdmin = authStore.userRole === 'admin'
+    const rawNis = item.nis && item.nis !== '-' ? String(item.nis).trim() : ''
+    const fallbackNisn = rawNis ? STUDENT_NISN_MAP[rawNis] : null
+    const finalNisn = (item.nisn && item.nisn !== '-' ? String(item.nisn).trim() : '') || fallbackNisn || '-'
 
     return {
       id: item.id,
       name: item.nama || '',
       nis: item.nis || '-',
-      nisn: isAdmin ? (item.nisn || '-') : '-',
+      nisn: finalNisn,
       classRoom: item.kelas || '-',
       cohort: String(item.tahun_lulus || 2027),
       angkatan: item.angkatan || 61,
@@ -200,21 +204,37 @@ export const useAlumniStore = defineStore('alumni', () => {
         try {
           let siswaData = null
 
-          // Coba RPC get_public_students_directory
-          try {
-            const { data: rpcStudents, error: errRpcStudents } = await supabase.rpc('get_public_students_directory')
-            if (!errRpcStudents && rpcStudents && rpcStudents.length > 0) {
-              siswaData = rpcStudents
+          // A. Jika Admin Guru BK: ambil langsung dari tabel users agar mendapatkan NISN & data biodata lengkap
+          if (isAdmin) {
+            try {
+              const { data: adminUsers, error: errAdminUsers } = await supabase
+                .from('users')
+                .select('id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url')
+                .eq('role', 'siswa')
+                .order('nama', { ascending: true })
+              if (!errAdminUsers && adminUsers && adminUsers.length > 0) {
+                siswaData = adminUsers
+              }
+            } catch (errAdmin) {
+              console.warn('Gagal query users langsung sebagai admin:', errAdmin)
             }
-          } catch (e) {
-            console.warn('RPC get_public_students_directory fallback:', e)
           }
 
-          // Fallback jika RPC siswa tidak tersedia
+          // B. Untuk non-admin atau fallback: coba RPC get_public_students_directory
           if (!siswaData || siswaData.length === 0) {
-            const studentCols = isAdmin
-              ? 'id, nama, email, role, nis, nisn, kelas, angkatan, tahun_lulus, no_wa, ttl, alamat_lengkap, jenis_tinggal, alat_transportasi, nama_ortu, pekerjaan_ortu, no_wa_ortu, asal_smp, created_at, foto_url'
-              : 'id, nama, role, nis, kelas, angkatan, tahun_lulus, created_at, foto_url'
+            try {
+              const { data: rpcStudents, error: errRpcStudents } = await supabase.rpc('get_public_students_directory')
+              if (!errRpcStudents && rpcStudents && rpcStudents.length > 0) {
+                siswaData = rpcStudents
+              }
+            } catch (e) {
+              console.warn('RPC get_public_students_directory fallback:', e)
+            }
+          }
+
+          // C. Fallback terakhir jika RPC siswa tidak tersedia
+          if (!siswaData || siswaData.length === 0) {
+            const studentCols = 'id, nama, role, nis, nisn, kelas, angkatan, tahun_lulus, created_at, foto_url'
             const { data: fallbackData } = await supabase
               .from('users')
               .select(studentCols)
@@ -331,6 +351,7 @@ export const useAlumniStore = defineStore('alumni', () => {
       result = result.filter(item => 
         (item.name && item.name.toLowerCase().includes(q)) ||
         (item.nis && item.nis.toLowerCase().includes(q)) ||
+        (item.nisn && item.nisn !== '-' && item.nisn.toLowerCase().includes(q)) ||
         (item.institution && item.institution.toLowerCase().includes(q)) ||
         (item.major && item.major !== '-' && item.major.toLowerCase().includes(q)) ||
         (item.classRoom && item.classRoom.toLowerCase().includes(q)) ||
