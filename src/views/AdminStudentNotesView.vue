@@ -567,7 +567,7 @@ async function confirmDeleteNote() {
           <div class="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 space-y-2.5 shrink-0 bg-slate-50/50 dark:bg-slate-900">
             <div class="flex items-center justify-between gap-2">
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-sm shadow-2xs font-bold shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-sm shadow-2xs font-bold shrink-0">
                   <i class="fa-solid fa-book-bookmark"></i>
                 </div>
                 <div class="min-w-0">
@@ -584,7 +584,7 @@ async function confirmDeleteNote() {
               <button
                 type="button"
                 @click="openRecordNewStudentModal"
-                class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95"
+                class="px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-2xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95"
                 title="Catat Siswa Baru (Pilih dari direktori sekolah)"
               >
                 <i class="fa-solid fa-user-plus text-[10px]"></i>
@@ -600,7 +600,7 @@ async function confirmDeleteNote() {
                 v-model="searchQuery"
                 type="search"
                 placeholder="Cari siswa tercatat..."
-                class="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-2xs"
+                class="w-full pl-9 pr-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all shadow-2xs"
               />
             </div>
 
@@ -611,7 +611,7 @@ async function confirmDeleteNote() {
                 @click="selectedGradeFilter = 'ALL'"
                 class="px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-[11px]"
                 :class="selectedGradeFilter === 'ALL'
-                  ? 'bg-purple-600 text-white font-bold shadow-2xs'
+                  ? 'bg-emerald-600 text-white font-bold shadow-2xs'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'"
               >
                 Semua
@@ -623,7 +623,7 @@ async function confirmDeleteNote() {
                 @click="selectedGradeFilter = grade"
                 class="px-2.5 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap text-[11px]"
                 :class="selectedGradeFilter === grade
-                  ? 'bg-purple-600 text-white font-bold shadow-2xs'
+                  ? 'bg-emerald-600 text-white font-bold shadow-2xs'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100'"
               >
                 Kelas {{ grade }}
@@ -637,14 +637,14 @@ async function confirmDeleteNote() {
                 <button
                   type="button"
                   @click="isFilterCounselorOpen = !isFilterCounselorOpen; isFilterCategoryOpen = false"
-                  class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border text-[11px] font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1.5 transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
-                  :class="isFilterCounselorOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : (selectedCounselorFilter !== 'ALL' ? 'border-purple-400 bg-purple-50/50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' : 'border-slate-200 dark:border-slate-700')"
+                  class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border text-[11px] font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1.5 transition-all shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-600 cursor-pointer"
+                  :class="isFilterCounselorOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : (selectedCounselorFilter !== 'ALL' ? 'border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700')"
                 >
                   <div class="flex items-center gap-1.5 min-w-0 truncate">
-                    <i class="fa-solid fa-user-tie text-[10px]" :class="selectedCounselorFilter !== 'ALL' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'"></i>
+                    <i class="fa-solid fa-user-tie text-[10px]" :class="selectedCounselorFilter !== 'ALL' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'"></i>
                     <span class="truncate">{{ selectedCounselorFilter === 'ALL' ? 'Semua Guru' : selectedCounselorFilter }}</span>
                   </div>
-                  <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200 shrink-0" :class="{ 'rotate-180 text-purple-600': isFilterCounselorOpen }"></i>
+                  <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200 shrink-0" :class="{ 'rotate-180 text-emerald-600': isFilterCounselorOpen }"></i>
                 </button>
 
                 <!-- Floating Popover Filter Guru -->
@@ -665,14 +665,14 @@ async function confirmDeleteNote() {
                       @click="selectFilterCounselor('ALL')"
                       class="w-full px-3 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer"
                       :class="selectedCounselorFilter === 'ALL'
-                        ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
                     >
                       <span class="flex items-center gap-2">
                         <i class="fa-solid fa-users text-xs text-slate-400"></i>
                         <span>Semua Guru BK</span>
                       </span>
-                      <i v-if="selectedCounselorFilter === 'ALL'" class="fa-solid fa-check text-xs text-purple-600"></i>
+                      <i v-if="selectedCounselorFilter === 'ALL'" class="fa-solid fa-check text-xs text-emerald-600"></i>
                     </button>
 
                     <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
@@ -684,16 +684,16 @@ async function confirmDeleteNote() {
                       @click="selectFilterCounselor(c)"
                       class="w-full px-3 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer"
                       :class="selectedCounselorFilter === c
-                        ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
                     >
                       <span class="truncate flex items-center gap-2 min-w-0">
-                        <span class="w-5 h-5 rounded-md bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                        <span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-[10px] font-bold shrink-0">
                           {{ c.slice(0, 1) }}
                         </span>
                         <span class="truncate">{{ c }}</span>
                       </span>
-                      <i v-if="selectedCounselorFilter === c" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-1.5"></i>
+                      <i v-if="selectedCounselorFilter === c" class="fa-solid fa-check text-xs text-emerald-600 shrink-0 ml-1.5"></i>
                     </button>
                   </div>
                 </Transition>
@@ -704,14 +704,14 @@ async function confirmDeleteNote() {
                 <button
                   type="button"
                   @click="isFilterCategoryOpen = !isFilterCategoryOpen; isFilterCounselorOpen = false"
-                  class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border text-[11px] font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1.5 transition-all shadow-2xs hover:border-purple-300 dark:hover:border-purple-600 cursor-pointer"
-                  :class="isFilterCategoryOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : (selectedCategoryFilter !== 'ALL' ? 'border-purple-400 bg-purple-50/50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300' : 'border-slate-200 dark:border-slate-700')"
+                  class="w-full px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-800 border text-[11px] font-semibold text-slate-700 dark:text-slate-200 flex items-center justify-between gap-1.5 transition-all shadow-2xs hover:border-emerald-300 dark:hover:border-emerald-600 cursor-pointer"
+                  :class="isFilterCategoryOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : (selectedCategoryFilter !== 'ALL' ? 'border-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300' : 'border-slate-200 dark:border-slate-700')"
                 >
                   <div class="flex items-center gap-1.5 min-w-0 truncate">
-                    <i class="fa-solid fa-tags text-[10px]" :class="selectedCategoryFilter !== 'ALL' ? 'text-purple-600 dark:text-purple-400' : 'text-slate-400'"></i>
+                    <i class="fa-solid fa-tags text-[10px]" :class="selectedCategoryFilter !== 'ALL' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'"></i>
                     <span class="truncate">{{ selectedCategoryFilter === 'ALL' ? 'Semua Layanan' : getCategoryInfo(selectedCategoryFilter).label }}</span>
                   </div>
-                  <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200 shrink-0" :class="{ 'rotate-180 text-purple-600': isFilterCategoryOpen }"></i>
+                  <i class="fa-solid fa-chevron-down text-[9px] text-slate-400 transition-transform duration-200 shrink-0" :class="{ 'rotate-180 text-emerald-600': isFilterCategoryOpen }"></i>
                 </button>
 
                 <!-- Floating Popover Filter Layanan -->
@@ -732,14 +732,14 @@ async function confirmDeleteNote() {
                       @click="selectFilterCategory('ALL')"
                       class="w-full px-3 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer"
                       :class="selectedCategoryFilter === 'ALL'
-                        ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
                     >
                       <span class="flex items-center gap-2">
                         <i class="fa-solid fa-layer-group text-xs text-slate-400"></i>
                         <span>Semua Layanan</span>
                       </span>
-                      <i v-if="selectedCategoryFilter === 'ALL'" class="fa-solid fa-check text-xs text-purple-600"></i>
+                      <i v-if="selectedCategoryFilter === 'ALL'" class="fa-solid fa-check text-xs text-emerald-600"></i>
                     </button>
 
                     <div class="my-1 border-t border-slate-100 dark:border-slate-800"></div>
@@ -751,14 +751,14 @@ async function confirmDeleteNote() {
                       @click="selectFilterCategory(cat.id)"
                       class="w-full px-3 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer"
                       :class="selectedCategoryFilter === cat.id
-                        ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
                         : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
                     >
                       <span class="truncate flex items-center gap-2 min-w-0">
                         <span class="w-2 h-2 rounded-full shrink-0" :class="cat.id === 'pribadi' ? 'bg-purple-500' : (cat.id === 'sosial' ? 'bg-sky-500' : (cat.id === 'belajar' ? 'bg-emerald-500' : 'bg-amber-500'))"></span>
                         <span class="truncate">{{ cat.label }}</span>
                       </span>
-                      <i v-if="selectedCategoryFilter === cat.id" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-1.5"></i>
+                      <i v-if="selectedCategoryFilter === cat.id" class="fa-solid fa-check text-xs text-emerald-600 shrink-0 ml-1.5"></i>
                     </button>
                   </div>
                 </Transition>
@@ -772,13 +772,13 @@ async function confirmDeleteNote() {
             <div v-if="isLoadingStudents" class="divide-y divide-slate-100 dark:divide-slate-800/60">
               <div v-for="i in 5" :key="i" class="p-3.5 sm:px-4 sm:py-3 flex items-center justify-between gap-3 animate-pulse">
                 <div class="flex items-center gap-3 min-w-0 flex-1">
-                  <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-950/40 shrink-0"></div>
+                  <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-950/40 shrink-0"></div>
                   <div class="space-y-1.5 min-w-0 flex-1">
                     <div class="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded"></div>
                     <div class="h-3 w-20 bg-slate-100 dark:bg-slate-800/70 rounded"></div>
                   </div>
                 </div>
-                <div class="h-5 w-8 rounded-full bg-purple-100/70 dark:bg-purple-950/40 shrink-0"></div>
+                <div class="h-5 w-8 rounded-full bg-emerald-100/70 dark:bg-emerald-950/40 shrink-0"></div>
               </div>
             </div>
 
@@ -787,7 +787,7 @@ async function confirmDeleteNote() {
               v-else-if="studentsWithNotes.length === 0"
               class="p-6 text-center text-xs text-slate-500 dark:text-slate-400 space-y-3"
             >
-              <div class="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400 mx-auto flex items-center justify-center text-xl shadow-2xs">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center text-xl shadow-2xs">
                 <i class="fa-solid fa-book-open"></i>
               </div>
               <div class="space-y-1">
@@ -799,7 +799,7 @@ async function confirmDeleteNote() {
               <button
                 type="button"
                 @click="openRecordNewStudentModal"
-                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
               >
                 <i class="fa-solid fa-user-plus text-xs"></i>
                 <span>Catat Siswa Pertama</span>
@@ -816,7 +816,7 @@ async function confirmDeleteNote() {
               <button
                 type="button"
                 @click="resetAllFilters"
-                class="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+                class="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
               >
                 Reset Semua Filter
               </button>
@@ -830,12 +830,12 @@ async function confirmDeleteNote() {
               @click="selectStudent(s)"
               class="w-full text-left p-3.5 sm:px-4 sm:py-3 transition-colors flex items-center justify-between gap-3 cursor-pointer group"
               :class="selectedStudent?.id === s.id
-                ? 'bg-purple-50/80 dark:bg-purple-950/40 border-l-4 border-purple-600 dark:border-purple-400'
+                ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-l-4 border-emerald-600 dark:border-emerald-400'
                 : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'"
             >
               <div class="flex items-center gap-3 min-w-0 flex-1">
                 <!-- Avatar Siswa -->
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                   {{ s.nama ? s.nama.slice(0, 2).toUpperCase() : 'SW' }}
                 </div>
                 <div class="min-w-0 flex-1">
@@ -845,7 +845,7 @@ async function confirmDeleteNote() {
                     </h3>
                   </div>
                   <div class="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    <span class="font-semibold text-purple-700 dark:text-purple-300">{{ s.kelas || 'Siswa' }}</span>
+                    <span class="font-semibold text-emerald-700 dark:text-emerald-300">{{ s.kelas || 'Siswa' }}</span>
                     <span v-if="s.nisn" class="text-slate-300 dark:text-slate-600">•</span>
                     <span v-if="s.nisn" class="truncate font-mono text-[10px]">NISN: {{ s.nisn }}</span>
                   </div>
@@ -855,7 +855,7 @@ async function confirmDeleteNote() {
               <!-- Badge Jumlah Catatan Siswa -->
               <div class="shrink-0 flex items-center gap-1">
                 <span
-                  class="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800"
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800"
                 >
                   <i class="fa-solid fa-book-bookmark text-[9px]"></i>
                   <span>{{ studentNotesCountMap[s.id] || 0 }}</span>
@@ -900,7 +900,7 @@ async function confirmDeleteNote() {
                     <i class="fa-solid fa-arrow-left text-sm"></i>
                   </button>
 
-                  <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-base font-bold shrink-0 shadow-2xs">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-base font-bold shrink-0 shadow-2xs">
                     <i class="fa-solid" :class="modalMode === 'NEW_STUDENT' ? 'fa-user-plus' : (modalMode === 'EDIT_NOTE' ? 'fa-pen-to-square' : 'fa-book-bookmark')"></i>
                   </div>
 
@@ -917,7 +917,7 @@ async function confirmDeleteNote() {
                           Tambah Catatan Siswa
                         </template>
                       </h2>
-                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/80">
+                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80">
                         <i class="fa-solid fa-lock text-[9px] mr-1"></i>Dossier Privat BK
                       </span>
                     </div>
@@ -929,7 +929,7 @@ async function confirmDeleteNote() {
                         Memperbarui rekam kasus: <strong class="text-slate-700 dark:text-slate-200">{{ selectedStudent?.nama }}</strong>
                       </template>
                       <template v-else>
-                        Lembar rekam asesmen bimbingan untuk: <strong class="text-purple-700 dark:text-purple-300">{{ selectedStudent?.nama }}</strong> ({{ selectedStudent?.kelas }})
+                        Lembar rekam asesmen bimbingan untuk: <strong class="text-emerald-700 dark:text-emerald-300">{{ selectedStudent?.nama }}</strong> ({{ selectedStudent?.kelas }})
                       </template>
                     </p>
                   </div>
@@ -961,7 +961,7 @@ async function confirmDeleteNote() {
                     type="button"
                     @click="handleSubmitNote"
                     :disabled="isSubmitting"
-                    class="px-4 sm:px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95 whitespace-nowrap"
+                    class="px-4 sm:px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all active:scale-95 whitespace-nowrap"
                   >
                     <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
                     <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
@@ -996,7 +996,7 @@ async function confirmDeleteNote() {
                         v-model="noteForm.title"
                         type="text"
                         placeholder="Misal: Hasil Konseling terkait motivasi belajar & pemilihan prodi SNBP..."
-                        class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-2xs font-semibold transition-colors"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850 text-sm sm:text-base text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs font-semibold transition-colors"
                         @keydown.ctrl.enter.prevent="handleSubmitNote"
                         @keydown.meta.enter.prevent="handleSubmitNote"
                       />
@@ -1011,7 +1011,7 @@ async function confirmDeleteNote() {
                         <button
                           type="button"
                           @click="insertAssessmentTemplate"
-                          class="px-3 py-1.5 rounded-xl text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/60 dark:text-purple-300 hover:bg-purple-100 border border-purple-200 dark:border-purple-800 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+                          class="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
                           title="Sisipkan struktur panduan asesmen standar BK"
                         >
                           <i class="fa-solid fa-file-lines text-xs"></i>
@@ -1023,14 +1023,14 @@ async function confirmDeleteNote() {
                         v-model="noteForm.content"
                         rows="15"
                         placeholder="Tuliskan latar belakang masalah siswa, observasi psikologis/akademik, dinamika perkembangan kasus, hasil konseling tatap muka, dan kesepakatan rencana tindak lanjut..."
-                        class="w-full p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850 text-sm sm:text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-y shadow-2xs placeholder:text-slate-400 font-sans flex-1 min-h-[360px] sm:min-h-[440px]"
+                        class="w-full p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850 text-sm sm:text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y shadow-2xs placeholder:text-slate-400 font-sans flex-1 min-h-[360px] sm:min-h-[440px]"
                         @keydown.ctrl.enter.prevent="handleSubmitNote"
                         @keydown.meta.enter.prevent="handleSubmitNote"
                       ></textarea>
 
                       <div class="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-1">
                         <span class="flex items-center gap-1.5">
-                          <i class="fa-solid fa-shield-halved text-purple-500 text-xs"></i>
+                          <i class="fa-solid fa-shield-halved text-emerald-500 text-xs"></i>
                           <span>Kerahasiaan terjamin • Privat Guru BK SMADA</span>
                         </span>
                         <span class="font-mono hidden sm:inline">
@@ -1049,10 +1049,10 @@ async function confirmDeleteNote() {
                   <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
                     <div class="flex items-center justify-between">
                       <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-user-graduate text-purple-600"></i>
+                        <i class="fa-solid fa-user-graduate text-emerald-600"></i>
                         <span>Identitas Siswa</span>
                       </span>
-                      <span v-if="selectedTargetStudent || selectedStudent" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                      <span v-if="selectedTargetStudent || selectedStudent" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                         {{ (studentNotesCountMap[(selectedTargetStudent || selectedStudent)?.id] || 0) }} Catatan
                       </span>
                     </div>
@@ -1062,15 +1062,15 @@ async function confirmDeleteNote() {
                       <!-- Sudah Pilih Siswa -->
                       <div
                         v-if="selectedTargetStudent"
-                        class="p-3 rounded-xl bg-purple-50/60 dark:bg-slate-800 border border-purple-200 dark:border-purple-800 flex items-center justify-between gap-2.5"
+                        class="p-3 rounded-xl bg-emerald-50/60 dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-2.5"
                       >
                         <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+                          <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
                             {{ selectedTargetStudent.nama ? selectedTargetStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
                           </div>
                           <div class="min-w-0 flex-1">
                             <div class="flex items-center gap-1.5 flex-wrap">
-                              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-purple-200/80 text-purple-900 dark:bg-purple-900 dark:text-purple-200">
+                              <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-200/80 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-200">
                                 {{ selectedTargetStudent.kelas || 'Siswa' }}
                               </span>
                               <span v-if="selectedTargetStudent.nisn" class="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
@@ -1086,7 +1086,7 @@ async function confirmDeleteNote() {
                         <button
                           type="button"
                           @click="clearSelectedModalStudent"
-                          class="px-2 py-1 rounded-lg bg-white hover:bg-purple-100 dark:bg-slate-900 dark:hover:bg-purple-950 text-purple-700 dark:text-purple-300 text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 border border-purple-200 dark:border-purple-800 cursor-pointer active:scale-95"
+                          class="px-2 py-1 rounded-lg bg-white hover:bg-emerald-100 dark:bg-slate-900 dark:hover:bg-emerald-950 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold transition-all flex items-center gap-1 shrink-0 border border-emerald-200 dark:border-emerald-800 cursor-pointer active:scale-95"
                           title="Ganti siswa"
                         >
                           <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
@@ -1097,14 +1097,14 @@ async function confirmDeleteNote() {
                       <!-- Belum Pilih Siswa -> Input Search Combobox -->
                       <div v-else class="relative">
                         <div class="relative">
-                          <i class="fa-solid fa-magnifying-glass text-purple-500 absolute left-3 top-1/2 -translate-y-1/2 text-xs"></i>
+                          <i class="fa-solid fa-magnifying-glass text-emerald-500 absolute left-3 top-1/2 -translate-y-1/2 text-xs"></i>
                           <input
                             v-model="studentSearchInModal"
                             @focus="isStudentComboboxOpen = true"
                             @input="isStudentComboboxOpen = true"
                             type="text"
                             placeholder="Ketik nama / kelas / NISN..."
-                            class="w-full pl-8 pr-8 py-2.5 rounded-xl border border-purple-300 dark:border-purple-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium"
+                            class="w-full pl-8 pr-8 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-slate-50 dark:bg-slate-800 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                           />
                           <button
                             v-if="studentSearchInModal"
@@ -1127,11 +1127,11 @@ async function confirmDeleteNote() {
                         >
                           <div
                             v-if="isStudentComboboxOpen"
-                            class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-purple-200 dark:border-purple-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 flex flex-col max-h-60"
+                            class="absolute top-full left-0 right-0 mt-1.5 z-50 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-emerald-200 dark:border-emerald-800 overflow-hidden divide-y divide-slate-100 dark:divide-slate-800 flex flex-col max-h-60"
                           >
                             <div class="px-3 py-1.5 bg-slate-50 dark:bg-slate-850 flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400 shrink-0">
                               <span>{{ selectableStudentsInModal.length }} siswa</span>
-                              <span class="text-purple-600 dark:text-purple-400">Pilih siswa</span>
+                              <span class="text-emerald-600 dark:text-emerald-400">Pilih siswa</span>
                             </div>
 
                             <div class="overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 flex-1">
@@ -1140,14 +1140,14 @@ async function confirmDeleteNote() {
                                 :key="s.id"
                                 type="button"
                                 @click="selectModalStudent(s)"
-                                class="w-full p-2.5 text-left flex items-center justify-between gap-2 hover:bg-purple-50 dark:hover:bg-purple-950/50 transition-colors cursor-pointer group"
+                                class="w-full p-2.5 text-left flex items-center justify-between gap-2 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 transition-colors cursor-pointer group"
                               >
                                 <div class="min-w-0 flex-1">
                                   <div class="flex items-center gap-1.5">
-                                    <span class="font-bold text-xs text-slate-900 dark:text-white truncate group-hover:text-purple-700">
+                                    <span class="font-bold text-xs text-slate-900 dark:text-white truncate group-hover:text-emerald-700">
                                       {{ s.nama }}
                                     </span>
-                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
                                       {{ s.kelas || 'Siswa' }}
                                     </span>
                                   </div>
@@ -1164,12 +1164,12 @@ async function confirmDeleteNote() {
 
                     <!-- Jika Mode: CURRENT_STUDENT / EDIT_NOTE -> Kartu Siswa Terpilih -->
                     <div v-else class="flex items-center gap-3">
-                      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
+                      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-xs">
                         {{ selectedStudent?.nama ? selectedStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-1.5 flex-wrap">
-                          <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                          <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                             {{ selectedStudent?.kelas || 'Siswa SMADA' }}
                           </span>
                           <span v-if="selectedStudent?.nisn" class="text-[11px] text-slate-400 font-mono">
@@ -1196,16 +1196,16 @@ async function confirmDeleteNote() {
                       <button
                         type="button"
                         @click="isModalCounselorOpen = !isModalCounselorOpen; isModalCategoryOpen = false"
-                        class="w-full px-3.5 py-2.5 rounded-xl border bg-slate-50/50 dark:bg-slate-850 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-purple-300 cursor-pointer"
-                        :class="isModalCounselorOpen ? 'border-purple-500 ring-2 ring-purple-500/20' : 'border-slate-200 dark:border-slate-800'"
+                        class="w-full px-3.5 py-2.5 rounded-xl border bg-slate-50/50 dark:bg-slate-850 flex items-center justify-between text-xs sm:text-sm font-medium transition-all shadow-2xs hover:border-emerald-300 cursor-pointer"
+                        :class="isModalCounselorOpen ? 'border-emerald-500 ring-2 ring-emerald-500/20' : 'border-slate-200 dark:border-slate-800'"
                       >
                         <div class="flex items-center gap-2.5 min-w-0">
-                          <div class="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300 flex items-center justify-center text-xs font-bold shrink-0">
+                          <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0">
                             {{ (noteForm.counselor_name || 'BK').slice(0, 2).toUpperCase() }}
                           </div>
                           <span class="font-bold text-slate-900 dark:text-white truncate">{{ noteForm.counselor_name || 'Pilih Guru BK' }}</span>
                         </div>
-                        <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-purple-600': isModalCounselorOpen }"></i>
+                        <i class="fa-solid fa-chevron-down text-slate-400 text-xs transition-transform duration-200 shrink-0 ml-2" :class="{ 'rotate-180 text-emerald-600': isModalCounselorOpen }"></i>
                       </button>
 
                       <Transition
@@ -1227,11 +1227,11 @@ async function confirmDeleteNote() {
                             @click="selectModalCounselor(c)"
                             class="w-full px-3.5 py-2 text-left text-xs font-semibold flex items-center justify-between transition-colors cursor-pointer"
                             :class="noteForm.counselor_name === c
-                              ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 font-bold'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold'
                               : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70'"
                           >
                             <span class="truncate">{{ c }}</span>
-                            <i v-if="noteForm.counselor_name === c" class="fa-solid fa-check text-xs text-purple-600 shrink-0 ml-1.5"></i>
+                            <i v-if="noteForm.counselor_name === c" class="fa-solid fa-check text-xs text-emerald-600 shrink-0 ml-1.5"></i>
                           </button>
                         </div>
                       </Transition>
@@ -1258,7 +1258,7 @@ async function confirmDeleteNote() {
                         @click="noteForm.category = cat.id"
                         class="px-3 py-2 rounded-xl text-xs font-semibold border text-left transition-all cursor-pointer flex items-center justify-between gap-2 active:scale-98"
                         :class="noteForm.category === cat.id
-                          ? cat.badge + ' ring-2 ring-purple-500/30 font-bold shadow-2xs'
+                          ? cat.badge + ' ring-2 ring-emerald-500/30 font-bold shadow-2xs'
                           : 'bg-slate-50/60 dark:bg-slate-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'"
                       >
                         <div class="flex items-center gap-2 min-w-0">
@@ -1274,14 +1274,14 @@ async function confirmDeleteNote() {
                   <div v-if="selectedStudent" class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
                     <div class="flex items-center justify-between">
                       <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-purple-600"></i>
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i>
                         <span>Riwayat Catatan Lalu ({{ currentStudentNotes.length }})</span>
                       </span>
                       <button
                         v-if="currentStudentNotes.length > 0"
                         type="button"
                         @click="isPreviousNotesOpen = !isPreviousNotesOpen"
-                        class="text-[11px] font-semibold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
+                        class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                       >
                         {{ isPreviousNotesOpen ? 'Tutup' : 'Lihat Semua' }}
                       </button>
@@ -1290,7 +1290,7 @@ async function confirmDeleteNote() {
                     <!-- State Kosong jika belum ada catatan -->
                     <div v-if="currentStudentNotes.length === 0" class="p-4 text-center rounded-xl bg-slate-50 dark:bg-slate-850 border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
                       <p>Belum ada catatan terdahulu.</p>
-                      <span class="text-[10px] text-purple-600 font-medium">Ini adalah lembar rekam pertama siswa ini.</span>
+                      <span class="text-[10px] text-emerald-600 font-medium">Ini adalah lembar rekam pertama siswa ini.</span>
                     </div>
 
                     <!-- List Catatan Sebelumnya -->
@@ -1315,7 +1315,7 @@ async function confirmDeleteNote() {
                       type="button"
                       @click="handleSubmitNote"
                       :disabled="isSubmitting"
-                      class="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-98"
+                      class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-98"
                     >
                       <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
                       <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
@@ -1346,7 +1346,7 @@ async function confirmDeleteNote() {
             v-else-if="!selectedStudent"
             class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-white dark:bg-slate-900"
           >
-            <div class="w-16 h-16 rounded-3xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400 flex items-center justify-center text-2xl shadow-xs">
+            <div class="w-16 h-16 rounded-3xl bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl shadow-xs">
               <i class="fa-solid fa-folder-open"></i>
             </div>
             <div class="space-y-1 max-w-sm">
@@ -1360,7 +1360,7 @@ async function confirmDeleteNote() {
             <button
               type="button"
               @click="openRecordNewStudentModal"
-              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+              class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
             >
               <i class="fa-solid fa-user-plus text-xs"></i>
               <span>Catat Siswa Baru</span>
@@ -1385,7 +1385,7 @@ async function confirmDeleteNote() {
                   </button>
 
                   <!-- Avatar Siswa -->
-                  <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm sm:text-base shrink-0 shadow-sm">
+                  <div class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center font-bold text-sm sm:text-base shrink-0 shadow-sm">
                     {{ selectedStudent.nama ? selectedStudent.nama.slice(0, 2).toUpperCase() : 'SW' }}
                   </div>
 
@@ -1396,7 +1396,7 @@ async function confirmDeleteNote() {
                       </h2>
                       <span
                         v-if="selectedStudent.kelas"
-                        class="text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                        class="text-[11px] sm:text-xs font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
                       >
                         {{ selectedStudent.kelas }}
                       </span>
@@ -1406,7 +1406,7 @@ async function confirmDeleteNote() {
                       <span v-if="selectedStudent.nisn && selectedStudent.nis" class="text-slate-300 dark:text-slate-600">•</span>
                       <span v-if="selectedStudent.nis" class="font-mono text-[11px]">NIS: {{ selectedStudent.nis }}</span>
                       <span class="text-slate-300 dark:text-slate-600">•</span>
-                      <span class="font-bold text-purple-600 dark:text-purple-400">{{ currentStudentNotes.length }} Catatan Tersimpan</span>
+                      <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ currentStudentNotes.length }} Catatan Tersimpan</span>
                     </div>
                   </div>
                 </div>
@@ -1415,7 +1415,7 @@ async function confirmDeleteNote() {
                 <button
                   type="button"
                   @click="openAddNoteForCurrentStudent"
-                  class="px-3.5 sm:px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
+                  class="px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
                   title="Tambah Catatan untuk Siswa Ini"
                 >
                   <i class="fa-solid fa-plus text-xs"></i>
@@ -1441,7 +1441,7 @@ async function confirmDeleteNote() {
                 v-if="currentStudentNotes.length === 0"
                 class="p-12 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 space-y-3"
               >
-                <div class="w-14 h-14 rounded-2xl bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-400 mx-auto flex items-center justify-center text-xl shadow-2xs">
+                <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center text-xl shadow-2xs">
                   <i class="fa-solid fa-book-open"></i>
                 </div>
                 <div class="space-y-1 max-w-sm mx-auto">
@@ -1455,7 +1455,7 @@ async function confirmDeleteNote() {
                 <button
                   type="button"
                   @click="openAddNoteForCurrentStudent"
-                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+                  class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
                 >
                   <i class="fa-solid fa-plus text-xs"></i>
                   <span>Buat Catatan Pertama</span>
@@ -1492,7 +1492,7 @@ async function confirmDeleteNote() {
                       <button
                         type="button"
                         @click="openEditNoteModal(note)"
-                        class="w-7 h-7 rounded-lg text-slate-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                        class="w-7 h-7 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
                         title="Edit Catatan"
                       >
                         <i class="fa-solid fa-pen-to-square text-xs"></i>
@@ -1521,7 +1521,7 @@ async function confirmDeleteNote() {
                   <!-- Footer Kartu: Penulis Catatan (Guru BK) -->
                   <div class="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-1 border-t border-slate-100 dark:border-slate-800">
                     <span class="flex items-center gap-1.5">
-                      <i class="fa-solid fa-user-tie text-purple-600 text-xs"></i>
+                      <i class="fa-solid fa-user-tie text-emerald-600 text-xs"></i>
                       <span>Ditulis oleh: <strong class="text-slate-700 dark:text-slate-300 font-semibold">{{ note.counselor_name || 'Guru BK SMADA' }}</strong></span>
                     </span>
                   </div>

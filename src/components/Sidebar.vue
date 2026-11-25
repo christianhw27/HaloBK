@@ -36,8 +36,8 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
-// Tutup drawer mobile secara otomatis saat rute berpindah
-watch(() => route.path, () => {
+// Tutup drawer mobile secara otomatis saat rute atau query berpindah
+watch(() => route.fullPath, () => {
   isMobileOpen.value = false
 })
 
@@ -61,24 +61,28 @@ function toggleDarkMode() {
 
 <template>
   <!-- SUB-BAR NAVIGASI KHUSUS MOBILE (< lg) DI BAWAH NAVBAR UTAMA -->
-  <div class="lg:hidden sticky top-16 sm:top-[72px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800 px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 shadow-2xs w-full max-w-full min-w-0">
+  <div class="lg:hidden sticky top-[71px] sm:top-[79px] z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-sky-200/70 dark:border-slate-800 px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shadow-2xs w-full max-w-full min-w-0">
     <button
-      @click="isMobileOpen = true"
+      @click="isMobileOpen = !isMobileOpen"
       type="button"
-      class="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/60 dark:hover:bg-sky-900/80 text-[#0284C7] dark:text-sky-300 border border-sky-200/80 dark:border-sky-800 text-xs font-bold transition-all shadow-2xs shrink-0"
+      class="group inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 min-h-[36px] rounded-xl bg-gradient-to-r from-[#0284C7] to-[#0369A1] hover:from-[#0369A1] hover:to-[#075985] text-white border border-sky-700/30 dark:border-sky-500/40 text-xs font-bold tracking-tight shadow-sm shadow-sky-600/20 hover:shadow-md hover:shadow-sky-600/25 active:scale-[0.97] transition-all shrink-0 cursor-pointer"
+      :aria-expanded="isMobileOpen"
       aria-label="Buka Menu Tracer Study"
     >
-      <i class="fa-solid fa-bars-staggered text-xs" aria-hidden="true"></i>
+      <span class="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center text-white shrink-0">
+        <i class="fa-solid fa-bars-staggered text-[11px]" aria-hidden="true"></i>
+      </span>
       <span>Menu Tracer Study</span>
+      <i class="fa-solid fa-chevron-right text-[10px] text-sky-100/90 group-hover:translate-x-0.5 transition-transform" aria-hidden="true"></i>
     </button>
 
-    <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 min-w-0 truncate">
+    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50/90 dark:bg-sky-950/50 border border-sky-200/70 dark:border-sky-800/70 text-[11px] font-semibold text-[#0369A1] dark:text-sky-300 min-w-0 truncate">
       <span class="w-2 h-2 rounded-full bg-[#0284C7] shrink-0" aria-hidden="true"></span>
       <span class="truncate">Tracer Study &amp; Karir</span>
     </div>
   </div>
 
-  <!-- BACKDROP OVERLAY UNTUK MOBILE DRAWER -->
+  <!-- BACKDROP OVERLAY UNTUK MOBILE DRAWER (DI BAWAH TOPBAR) -->
   <Transition
     enter-active-class="transition-opacity duration-200 ease-out"
     enter-from-class="opacity-0"
@@ -90,14 +94,14 @@ function toggleDarkMode() {
     <div
       v-if="isMobileOpen"
       @click="isMobileOpen = false"
-      class="lg:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm"
+      class="lg:hidden fixed inset-x-0 bottom-0 top-[71px] sm:top-[79px] z-[35] bg-slate-950/55 backdrop-blur-xs"
       aria-hidden="true"
     ></div>
   </Transition>
 
-  <!-- SIDEBAR CONTAINER (DESKTOP: FIXED ASIDE DOCKING DI BAWAH NAVBAR, MOBILE: OFF-CANVAS DRAWER) -->
+  <!-- SIDEBAR CONTAINER (DESKTOP & MOBILE: FIXED ASIDE DOCKING DI BAWAH TOPBAR) -->
   <aside
-    class="fixed top-0 lg:top-16 sm:lg:top-[72px] left-0 z-[60] lg:z-30 h-screen lg:h-[calc(100vh-4rem)] sm:lg:h-[calc(100vh-4.5rem)] w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
+    class="fixed top-[71px] sm:top-[79px] left-0 z-[38] lg:z-30 h-[calc(100dvh-71px)] sm:h-[calc(100dvh-79px)] lg:h-[calc(100vh-79px)] w-64 xl:w-72 bg-white dark:bg-slate-900 border-r border-sky-200/70 dark:border-slate-800 flex flex-col justify-between shrink-0 transition-transform duration-200 ease-out"
     :class="isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'"
     aria-label="Navigasi Samping"
   >

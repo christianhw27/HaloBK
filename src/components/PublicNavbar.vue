@@ -558,8 +558,8 @@ function handleMobileHaloBKClick() {
               @click.stop="toggleDropdown('halobk')"
               class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border cursor-pointer"
               :class="activeDropdown === 'halobk' || route.path.startsWith('/admin/chat') || route.path.startsWith('/admin/catatan-siswa')
-                ? 'bg-sky-50 dark:bg-sky-950/70 text-[#0284C7] dark:text-sky-300 border-sky-300 dark:border-sky-800 shadow-2xs'
-                : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-[#0284C7] hover:bg-slate-100 dark:hover:bg-slate-800/80'"
+                ? 'bg-amber-50 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 shadow-2xs'
+                : 'border-transparent text-slate-700 dark:text-slate-200 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50/70 dark:hover:bg-slate-800/80'"
               aria-haspopup="true"
               :aria-expanded="activeDropdown === 'halobk'"
             >
@@ -601,20 +601,20 @@ function handleMobileHaloBKClick() {
                   </span>
                 </div>
 
-                <!-- Item 1: Studio Chat Konseling -->
+                <!-- Item 1: Studio Chat Konseling (Kuning / Amber) -->
                 <router-link
                   to="/admin/chat"
                   @click="closeDropdown"
-                  class="p-3.5 rounded-xl border border-sky-200 dark:border-sky-900/60 bg-gradient-to-r from-sky-50/80 via-white to-sky-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30 hover:border-sky-400 dark:hover:border-sky-700 hover:shadow-md transition-all group block"
+                  class="p-3.5 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-amber-950/30 hover:border-amber-400 dark:hover:border-amber-700 hover:shadow-md transition-all group block"
                   role="menuitem"
                 >
                   <div class="flex items-start gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0284C7] to-[#075985] text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <i class="fa-solid fa-headset text-xl" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="font-display font-bold text-sm sm:text-base text-[#0284C7] dark:text-sky-300 group-hover:underline">
+                        <span class="font-display font-bold text-sm sm:text-base text-amber-800 dark:text-amber-300 group-hover:underline">
                           Studio Chat Konseling
                         </span>
                         <div class="flex items-center gap-1.5 shrink-0">
@@ -636,29 +636,29 @@ function handleMobileHaloBKClick() {
                     </div>
                   </div>
 
-                  <div class="mt-2.5 pt-2 border-t border-sky-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-[#0284C7] dark:text-sky-300">
+                  <div class="mt-2.5 pt-2 border-t border-amber-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                     <span>Buka Ruang Obrolan Siswa</span>
                     <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                   </div>
                 </router-link>
 
-                <!-- Item 2: Buku Catatan Siswa -->
+                <!-- Item 2: Buku Catatan Siswa (Hijau / Emerald) -->
                 <router-link
                   to="/admin/catatan-siswa"
                   @click="closeDropdown"
-                  class="p-3.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-gradient-to-r from-purple-50/80 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 hover:border-purple-400 dark:hover:border-purple-700 hover:shadow-md transition-all group block"
+                  class="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-emerald-950/30 hover:border-emerald-400 dark:hover:border-emerald-700 hover:shadow-md transition-all group block"
                   role="menuitem"
                 >
                   <div class="flex items-start gap-3.5">
-                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
                       <i class="fa-solid fa-book-bookmark text-xl" aria-hidden="true"></i>
                     </div>
                     <div class="min-w-0 flex-1">
                       <div class="flex items-center justify-between gap-2">
-                        <span class="font-display font-bold text-sm sm:text-base text-purple-900 dark:text-purple-200 group-hover:text-purple-700">
+                        <span class="font-display font-bold text-sm sm:text-base text-emerald-900 dark:text-emerald-200 group-hover:text-emerald-700">
                           Buku Catatan Siswa
                         </span>
-                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 shrink-0">
                           <i class="fa-solid fa-folder-open text-[9px]"></i>
                           Dossier BK
                         </span>
@@ -669,7 +669,7 @@ function handleMobileHaloBKClick() {
                     </div>
                   </div>
 
-                  <div class="mt-2.5 pt-2 border-t border-purple-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-purple-700 dark:text-purple-300">
+                  <div class="mt-2.5 pt-2 border-t border-emerald-100 dark:border-slate-800 flex items-center justify-between text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                     <span>Buka Rekam Kasus Siswa</span>
                     <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition-transform"></i>
                   </div>
@@ -682,8 +682,8 @@ function handleMobileHaloBKClick() {
           <router-link
             v-else
             to="/halobk"
-            class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-sky-200/90 dark:border-sky-800 bg-sky-50/70 hover:bg-sky-100 text-[#0284C7] dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-950/70 shadow-2xs"
-            :class="route.path === '/halobk' ? 'ring-2 ring-sky-500/40 bg-sky-100 dark:bg-sky-900/60' : ''"
+            class="px-3.5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 border border-amber-300/90 dark:border-amber-800 bg-amber-50/80 hover:bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/70 shadow-2xs"
+            :class="route.path === '/halobk' ? 'ring-2 ring-amber-500/40 bg-amber-100 dark:bg-amber-900/60' : ''"
             title="Buka Surat Konsultasi HaloBK"
           >
             <span class="relative flex h-2 w-2">
@@ -827,7 +827,7 @@ function handleMobileHaloBKClick() {
                     class="w-full text-left px-3.5 py-3 bg-slate-50/70 dark:bg-slate-850 text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between"
                   >
                     <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                      <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 flex items-center justify-center text-sm">
                         <i class="fa-solid fa-headset" aria-hidden="true"></i>
                       </div>
                       <div class="flex items-center gap-1.5">
@@ -850,18 +850,18 @@ function handleMobileHaloBKClick() {
                   </button>
 
                   <div v-if="mobileOpenSection === 'halobk'" class="p-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 space-y-2">
-                    <!-- Item 1: Chat Konseling -->
+                    <!-- Item 1: Chat Konseling (Kuning / Amber) -->
                     <router-link
                       to="/admin/chat"
                       @click="isMobileMenuOpen = false"
-                      class="p-2.5 rounded-xl bg-sky-50 dark:bg-sky-950/40 text-left flex items-center gap-2.5 block border border-sky-200 dark:border-sky-900/60"
+                      class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-left flex items-center gap-2.5 block border border-amber-200 dark:border-amber-900/60"
                     >
-                      <div class="w-8 h-8 rounded-lg bg-[#0284C7] text-white flex items-center justify-center shrink-0 text-xs">
+                      <div class="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 text-xs">
                         <i class="fa-solid fa-headset"></i>
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                          <span class="font-bold text-xs text-[#0284C7] dark:text-sky-300">Chat Konseling</span>
+                          <span class="font-bold text-xs text-amber-800 dark:text-amber-300">Chat Konseling</span>
                           <div class="flex items-center gap-1">
                             <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                               LIVE
@@ -880,19 +880,19 @@ function handleMobileHaloBKClick() {
                       </div>
                     </router-link>
 
-                    <!-- Item 2: Buku Catatan Siswa -->
+                    <!-- Item 2: Buku Catatan Siswa (Hijau / Emerald) -->
                     <router-link
                       to="/admin/catatan-siswa"
                       @click="isMobileMenuOpen = false"
-                      class="p-2.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 text-left flex items-center gap-2.5 block border border-purple-200 dark:border-purple-900/60"
+                      class="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-left flex items-center gap-2.5 block border border-emerald-200 dark:border-emerald-900/60"
                     >
-                      <div class="w-8 h-8 rounded-lg bg-purple-600 text-white flex items-center justify-center shrink-0 text-xs">
+                      <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 text-xs">
                         <i class="fa-solid fa-book-bookmark"></i>
                       </div>
                       <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between">
-                          <span class="font-bold text-xs text-purple-900 dark:text-purple-200">Buku Catatan Siswa</span>
-                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300">
+                          <span class="font-bold text-xs text-emerald-900 dark:text-emerald-200">Buku Catatan Siswa</span>
+                          <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                             Dossier
                           </span>
                         </div>
@@ -912,7 +912,7 @@ function handleMobileHaloBKClick() {
                     class="w-full text-left px-3.5 py-3 bg-slate-50/70 dark:bg-slate-850 hover:bg-sky-50 dark:hover:bg-slate-800 text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between transition-colors block"
                   >
                     <div class="flex items-center gap-3">
-                      <div class="w-8 h-8 rounded-lg bg-sky-100 text-[#0284C7] dark:bg-sky-950/70 dark:text-sky-300 flex items-center justify-center text-sm">
+                      <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 flex items-center justify-center text-sm">
                         <i class="fa-solid fa-headset" aria-hidden="true"></i>
                       </div>
                       <div class="flex items-center gap-1.5">

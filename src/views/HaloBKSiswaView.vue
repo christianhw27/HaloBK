@@ -475,7 +475,7 @@ function getCategoryData(catId) {
           <!-- HEADER CHAT -->
           <div class="h-16 px-4 sm:px-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
             <h1 class="font-display font-bold text-base sm:text-lg text-slate-900 dark:text-white flex items-center gap-2.5">
-              <i class="fa-solid fa-comments text-[#0284C7] text-lg"></i>
+              <i class="fa-solid fa-comments text-amber-600 text-lg"></i>
               <span>Chat BK SMADA</span>
             </h1>
             <!-- Tombol Tulis Konsultasi Baru (Batas Maksimal 2 Sesi Aktif) -->
@@ -487,7 +487,7 @@ function getCategoryData(catId) {
               :class="[
                 isMaxActiveSessionsReached
                   ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed border border-slate-300 dark:border-slate-700'
-                  : 'bg-[#0284C7] hover:bg-[#0369A1] text-white cursor-pointer active:scale-95'
+                  : 'bg-amber-500 hover:bg-amber-600 text-slate-950 cursor-pointer active:scale-95'
               ]"
               :title="isMaxActiveSessionsReached
                 ? 'Batas maksimal 2 sesi aktif tercapai. Selesaikan salah satu sesi terlebih dahulu.'
@@ -515,7 +515,7 @@ function getCategoryData(catId) {
                 v-model="searchQuery"
                 type="search"
                 placeholder="Cari guru atau topik konsultasi..."
-                class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284C7]"
+                class="w-full pl-9 pr-3.5 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-600"
               />
             </div>
 
@@ -546,8 +546,8 @@ function getCategoryData(catId) {
                 @click="activeFilter = 'ditindaklanjuti'"
                 class="px-3 py-1.5 rounded-full transition-colors whitespace-nowrap cursor-pointer"
                 :class="activeFilter === 'ditindaklanjuti'
-                  ? 'bg-sky-600 text-white font-bold'
-                  : 'bg-slate-100 text-sky-700 dark:bg-slate-800 dark:text-sky-300'"
+                  ? 'bg-amber-500 text-slate-950 font-bold'
+                  : 'bg-slate-100 text-amber-700 dark:bg-slate-800 dark:text-amber-300'"
               >
                 Diproses
               </button>
@@ -567,7 +567,7 @@ function getCategoryData(catId) {
           <!-- DAFTAR CHAT ITEM (BERSIH: TITIK TIGA DESKTOP & LONG PRESS MOBILE) -->
           <div class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/80 min-h-0">
             <div v-if="chatStore.isLoadingSessions" class="p-8 text-center text-slate-400">
-              <i class="fa-solid fa-spinner fa-spin text-xl text-[#0284C7] mb-2"></i>
+              <i class="fa-solid fa-spinner fa-spin text-xl text-amber-600 mb-2"></i>
               <p class="text-sm">Memuat pesan...</p>
             </div>
 
@@ -575,7 +575,7 @@ function getCategoryData(catId) {
               v-else-if="filteredSessions.length === 0"
               class="p-8 text-center space-y-3"
             >
-              <div class="w-14 h-14 rounded-full bg-sky-50 dark:bg-slate-800 text-[#0284C7] flex items-center justify-center mx-auto text-2xl">
+              <div class="w-14 h-14 rounded-full bg-amber-50 dark:bg-slate-800 text-amber-600 flex items-center justify-center mx-auto text-2xl">
                 <i class="fa-regular fa-comment-dots"></i>
               </div>
               <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
@@ -596,7 +596,7 @@ function getCategoryData(catId) {
               class="w-full text-left px-4 py-3.5 transition-colors flex items-center gap-3.5 cursor-pointer group relative select-none"
               :class="[
                 chatStore.activeSession?.id === s.id
-                  ? 'bg-sky-50/70 dark:bg-slate-800'
+                  ? 'bg-amber-50/70 dark:bg-slate-800'
                   : s.is_pinned_by_student
                     ? 'bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-50/70'
                     : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
@@ -604,7 +604,7 @@ function getCategoryData(catId) {
             >
               <!-- Avatar Bulat Bersih -->
               <div class="relative shrink-0 mt-0.5">
-                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#0284C7] to-sky-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center font-bold text-base shadow-xs">
                   <i class="fa-solid fa-user-tie"></i>
                 </div>
                 <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900"></span>
@@ -683,7 +683,7 @@ function getCategoryData(catId) {
             v-if="!chatStore.activeSession"
             class="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-3 bg-white dark:bg-slate-900"
           >
-            <div class="w-20 h-20 rounded-full bg-sky-50 dark:bg-slate-800 text-[#0284C7] dark:text-sky-400 flex items-center justify-center text-3xl shadow-xs">
+            <div class="w-20 h-20 rounded-full bg-amber-50 dark:bg-slate-800 text-amber-600 dark:text-amber-400 flex items-center justify-center text-3xl shadow-xs">
               <i class="fa-solid fa-headset"></i>
             </div>
             <div class="space-y-1.5 max-w-sm">
@@ -713,7 +713,7 @@ function getCategoryData(catId) {
                 </button>
 
                 <!-- Avatar Guru -->
-                <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-[#0284C7] text-white flex items-center justify-center font-bold text-xs sm:text-base shrink-0 shadow-xs">
+                <div class="w-9 h-9 sm:w-12 sm:h-12 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-xs sm:text-base shrink-0 shadow-xs">
                   <i class="fa-solid fa-user-tie"></i>
                 </div>
 
@@ -730,7 +730,7 @@ function getCategoryData(catId) {
                   <div class="flex items-center gap-1.5 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                     <span
                       class="sm:hidden font-semibold flex items-center gap-1 shrink-0"
-                      :class="chatStore.activeSession.status === 'selesai' ? 'text-emerald-600 dark:text-emerald-400' : chatStore.activeSession.status === 'ditindaklanjuti' ? 'text-sky-600 dark:text-sky-400' : 'text-amber-600 dark:text-amber-400'"
+                      :class="chatStore.activeSession.status === 'selesai' ? 'text-emerald-600 dark:text-emerald-400' : chatStore.activeSession.status === 'ditindaklanjuti' ? 'text-amber-600 dark:text-amber-400' : 'text-amber-600 dark:text-amber-400'"
                     >
                       <i :class="STATUS_CONFIG[chatStore.activeSession.status]?.icon" class="text-[10px]"></i>
                       <span>{{ STATUS_CONFIG[chatStore.activeSession.status]?.label }}</span>
@@ -767,7 +767,7 @@ function getCategoryData(catId) {
             <div class="px-3 sm:px-6 py-2 sm:py-3 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200/70 dark:border-slate-800 shrink-0">
               <div class="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/80 px-3 sm:px-4 py-1.5 sm:py-2.5 rounded-lg sm:rounded-xl border border-slate-200/60 dark:border-slate-700/60 text-[11px] sm:text-sm">
                 <div class="min-w-0 flex items-center gap-2">
-                  <span class="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-sky-100 text-[#0284C7] dark:bg-sky-950 dark:text-sky-300 shrink-0">
+                  <span class="px-2 py-0.5 rounded-md text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300 shrink-0">
                     {{ chatStore.activeSession.category }}
                   </span>
                   <span class="font-semibold text-slate-800 dark:text-slate-100 truncate">
@@ -808,7 +808,7 @@ function getCategoryData(catId) {
                     msg.is_deleted_for_everyone
                       ? 'bg-slate-100 text-slate-400 italic dark:bg-slate-800 dark:text-slate-500 rounded-lg border border-dashed border-slate-300 dark:border-slate-700'
                       : msg.sender_role === 'siswa'
-                        ? 'bg-gradient-to-br from-[#0284C7] to-[#0369A1] text-white rounded-tr-xs shadow-sm shadow-sky-200/50 dark:shadow-sky-950/60'
+                        ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 rounded-tr-xs shadow-sm shadow-amber-200/50 dark:shadow-amber-950/60'
                         : 'bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100 rounded-tl-xs border border-slate-200/80 dark:border-slate-700 shadow-2xs'
                   ]"
                 >
@@ -821,7 +821,7 @@ function getCategoryData(catId) {
                       type="button"
                       @click="openMessageMenu(msg)"
                       class="opacity-0 group-hover:opacity-100 transition-opacity text-xs cursor-pointer"
-                      :class="msg.sender_role === 'siswa' ? 'text-white/70 hover:text-white' : 'text-slate-400 hover:text-slate-700'"
+                      :class="msg.sender_role === 'siswa' ? 'text-slate-900/70 hover:text-slate-950' : 'text-slate-400 hover:text-slate-700'"
                       title="Opsi Pesan"
                     >
                       <i class="fa-solid fa-ellipsis text-xs"></i>
@@ -830,12 +830,12 @@ function getCategoryData(catId) {
 
                     <div
                       class="flex items-center gap-1.5 font-medium ml-auto"
-                      :class="msg.sender_role === 'siswa' ? 'text-white/80' : 'text-slate-400'"
+                      :class="msg.sender_role === 'siswa' ? 'text-slate-900/75' : 'text-slate-400'"
                     >
                       <span>{{ formatBubbleTime(msg.created_at) }}</span>
                       <i
                         v-if="msg.sender_role === 'siswa' && !msg.is_deleted_for_everyone"
-                        class="fa-solid fa-check-double text-[10px] text-white/90"
+                        class="fa-solid fa-check-double text-[10px] text-slate-950/90"
                       ></i>
                     </div>
                   </div>
@@ -911,12 +911,12 @@ function getCategoryData(catId) {
                   :placeholder="chatStore.activeSession.status === 'menunggu'
                     ? `Tulis pesan tambahan... (${studentOpeningMessagesCount + 1}/3)`
                     : 'Tulis pesan ke Guru BK...'"
-                  class="flex-1 bg-slate-100 dark:bg-slate-800 text-sm sm:text-base text-slate-800 dark:text-slate-100 rounded-full px-4 sm:px-5 py-2.5 sm:py-3 outline-none focus:ring-2 focus:ring-[#0284C7] placeholder:text-slate-400 transition-all font-medium border border-transparent focus:bg-white dark:focus:bg-slate-900"
+                  class="flex-1 bg-slate-100 dark:bg-slate-800 text-sm sm:text-base text-slate-800 dark:text-slate-100 rounded-full px-4 sm:px-5 py-2.5 sm:py-3 outline-none focus:ring-2 focus:ring-amber-600 placeholder:text-slate-400 transition-all font-medium border border-transparent focus:bg-white dark:focus:bg-slate-900"
                 />
                 <button
                   type="submit"
                   :disabled="!replyText.trim() || chatStore.isSending"
-                  class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#0284C7] hover:bg-[#0369A1] text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-xs cursor-pointer"
+                  class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-xs cursor-pointer"
                   title="Kirim Pesan"
                 >
                   <i v-if="chatStore.isSending" class="fa-solid fa-spinner fa-spin text-sm sm:text-base"></i>
@@ -1044,7 +1044,7 @@ function getCategoryData(catId) {
             @click="handleCopyMessageText"
             class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
           >
-            <div class="w-8 h-8 rounded-lg bg-sky-50 dark:bg-sky-950/60 text-sky-600 flex items-center justify-center text-sm shrink-0">
+            <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center text-sm shrink-0">
               <i class="fa-regular fa-copy"></i>
             </div>
             <span>Salin Teks Pesan</span>
@@ -1083,14 +1083,14 @@ function getCategoryData(catId) {
     >
       <div class="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden my-auto flex flex-col max-h-[90vh]">
         
-        <header class="bg-gradient-to-r from-[#0369A1] to-sky-600 text-white p-4 flex items-center justify-between shrink-0">
+        <header class="bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 p-4 flex items-center justify-between shrink-0">
           <div class="flex items-center gap-2.5">
             <i class="fa-solid fa-pen-nib text-sm"></i>
             <div>
               <h3 class="font-display font-bold text-base leading-tight">
                 Konsultasi Baru HaloBK
               </h3>
-              <p class="text-[11px] text-sky-100 font-normal">
+              <p class="text-[11px] text-amber-950/80 font-normal">
                 Sesi aktif saat ini: <span class="font-bold text-white">{{ activeSessionsCount }} / 2</span>
               </p>
             </div>
@@ -1125,7 +1125,7 @@ function getCategoryData(catId) {
                 title="Pilih Guru BK"
               >
                 <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-[#0284C7] to-sky-600 text-white flex items-center justify-center text-xs shrink-0 font-bold shadow-2xs">
+                  <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center text-xs shrink-0 font-bold shadow-2xs">
                     <i class="fa-solid fa-user-tie"></i>
                   </div>
                   <div class="text-left min-w-0">
@@ -1138,8 +1138,8 @@ function getCategoryData(catId) {
                   </div>
                 </div>
                 <i
-                  class="fa-solid fa-chevron-down text-xs text-slate-400 group-hover:text-[#0284C7] transition-transform duration-200 shrink-0 ml-2"
-                  :class="{ 'rotate-180 text-[#0284C7]': isFormCounselorDropdownOpen }"
+                  class="fa-solid fa-chevron-down text-xs text-slate-400 group-hover:text-amber-600 transition-transform duration-200 shrink-0 ml-2"
+                  :class="{ 'rotate-180 text-amber-600': isFormCounselorDropdownOpen }"
                 ></i>
               </button>
 
@@ -1167,7 +1167,7 @@ function getCategoryData(catId) {
                       isCounselorLocked(c)
                         ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-800/40 text-slate-400 dark:text-slate-500'
                         : formCounselor === c
-                          ? 'bg-sky-50 dark:bg-sky-950/60 text-[#0284C7] dark:text-sky-300 font-bold cursor-pointer'
+                          ? 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300 font-bold cursor-pointer'
                           : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/70 cursor-pointer'
                     ]"
                   >
@@ -1176,7 +1176,7 @@ function getCategoryData(catId) {
                         class="w-8 h-8 rounded-xl flex items-center justify-center text-xs shrink-0 font-bold shadow-2xs"
                         :class="isCounselorLocked(c)
                           ? 'bg-slate-200 text-slate-400 dark:bg-slate-700 dark:text-slate-500'
-                          : 'bg-gradient-to-br from-[#0284C7] to-sky-600 text-white'"
+                          : 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950'"
                       >
                         {{ c.split(' ')[0].slice(0, 2).toUpperCase() }}
                       </div>
@@ -1194,7 +1194,7 @@ function getCategoryData(catId) {
                       <span v-if="isCounselorLocked(c)" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold">
                         Terkunci
                       </span>
-                      <i v-else-if="formCounselor === c" class="fa-solid fa-check text-xs text-[#0284C7]"></i>
+                      <i v-else-if="formCounselor === c" class="fa-solid fa-check text-xs text-amber-600"></i>
                     </div>
                   </button>
                 </div>
@@ -1224,12 +1224,12 @@ function getCategoryData(catId) {
                   isCategoryLocked(cat.id)
                     ? 'opacity-40 cursor-not-allowed border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800/60 text-slate-400 dark:text-slate-500'
                     : formCategory === cat.id
-                      ? 'border-[#0284C7] bg-sky-50 dark:bg-sky-950/60 ring-2 ring-sky-400/30 font-bold text-[#0284C7] cursor-pointer'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-sky-300 cursor-pointer'
+                      ? 'border-amber-600 bg-amber-50 dark:bg-amber-950/60 ring-2 ring-amber-400/30 font-bold text-amber-600 cursor-pointer'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-300 cursor-pointer'
                 ]"
                 :title="isCategoryLocked(cat.id) ? `Kategori ${cat.name} sedang aktif di sesi lain.` : cat.desc"
               >
-                <i :class="[cat.icon, 'text-sm', formCategory === cat.id ? 'text-[#0284C7]' : 'text-slate-400']"></i>
+                <i :class="[cat.icon, 'text-sm', formCategory === cat.id ? 'text-amber-600' : 'text-slate-400']"></i>
                 <span class="text-[11px] leading-tight">{{ cat.name }}</span>
                 <span v-if="isCategoryLocked(cat.id)" class="text-[9px] text-amber-600 dark:text-amber-400 font-bold scale-90">
                   (Aktif)
@@ -1250,7 +1250,7 @@ function getCategoryData(catId) {
               v-model="formTitle"
               type="text"
               placeholder="Contoh: Bingung memilih jurusan kuliah, kendala belajar..."
-              class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284C7]"
+              class="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-600"
             />
           </div>
 
@@ -1263,7 +1263,7 @@ function getCategoryData(catId) {
               v-model="formInitialMessage"
               rows="4"
               :placeholder="currentCategoryPlaceholder"
-              class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0284C7] resize-none transition-all placeholder:text-slate-400"
+              class="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs sm:text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-600 resize-none transition-all placeholder:text-slate-400"
             ></textarea>
           </div>
 
@@ -1272,7 +1272,7 @@ function getCategoryData(catId) {
             <input
               v-model="formNeedsFollowup"
               type="checkbox"
-              class="w-4 h-4 rounded text-[#0284C7] focus:ring-sky-500 border-slate-300 mt-0.5"
+              class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-slate-300 mt-0.5"
             />
             <div>
               <span class="font-bold text-slate-800 dark:text-slate-200 block">
@@ -1300,7 +1300,7 @@ function getCategoryData(catId) {
           <button
             type="button"
             @click="handleProceedToReview"
-            class="px-5 py-2 rounded-xl bg-[#0284C7] hover:bg-[#0369A1] text-white font-bold text-xs sm:text-sm shadow-xs cursor-pointer"
+            class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs sm:text-sm shadow-xs cursor-pointer"
           >
             Lanjut Periksa Pesan &rarr;
           </button>
@@ -1338,7 +1338,7 @@ function getCategoryData(catId) {
           </div>
           <div class="flex justify-between">
             <span class="text-slate-400">Kategori:</span>
-            <span class="font-bold text-[#0284C7] capitalize">{{ formCategory }}</span>
+            <span class="font-bold text-amber-600 capitalize">{{ formCategory }}</span>
           </div>
           <div>
             <span class="text-slate-400 block mb-0.5">Topik:</span>
@@ -1444,7 +1444,7 @@ function getCategoryData(catId) {
           <label
             class="block p-3.5 rounded-2xl border transition-all cursor-pointer"
             :class="selectedDeleteType === 'for_me'
-              ? 'border-[#0284C7] bg-sky-50/60 dark:bg-sky-950/40 ring-2 ring-sky-400/30'
+              ? 'border-amber-600 bg-amber-50/60 dark:bg-amber-950/40 ring-2 ring-amber-400/30'
               : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50'"
           >
             <div class="flex items-start gap-3">
@@ -1453,7 +1453,7 @@ function getCategoryData(catId) {
                 name="deleteTypeStudent"
                 value="for_me"
                 v-model="selectedDeleteType"
-                class="mt-1 text-[#0284C7] focus:ring-sky-500"
+                class="mt-1 text-amber-600 focus:ring-amber-500"
               />
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between">
@@ -1555,7 +1555,7 @@ function getCategoryData(catId) {
         
         <div class="space-y-2 text-xs">
           <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800">
-            <input type="radio" value="for_me" v-model="selectedDeleteMessageType" class="mt-0.5 text-[#0284C7]" />
+            <input type="radio" value="for_me" v-model="selectedDeleteMessageType" class="mt-0.5 text-amber-600" />
             <div>
               <strong class="block text-slate-800 dark:text-slate-200">Hapus untuk Saya</strong>
               <span class="text-[11px] text-slate-400">Pesan ini hanya disembunyikan dari tampilan Anda.</span>
