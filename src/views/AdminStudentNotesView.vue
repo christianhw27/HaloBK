@@ -1,10 +1,14 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore, COUNSELORS, NOTE_CATEGORIES } from '@/stores/chat'
 import { supabase, isSupabaseConfigured } from '@/lib/supabase'
+import { renderNoteMarkdown, htmlToNoteMarkdown } from '@/lib/noteMarkdown'
+import { uploadToCloudinary } from '@/lib/cloudinary'
+import { getOptimizedImageUrl } from '@/lib/imageOptimizer'
 import PublicNavbar from '@/components/PublicNavbar.vue'
+import Toast from '@/components/Toast.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -14,7 +18,9 @@ const chatStore = useChatStore()
 // State Data Seluruh Siswa (Master Siswa Sekolah)
 const allStudents = ref([])
 const isLoadingStudents = ref(false)
+const studentsLoadError = ref('')
 const selectedStudent = ref(null)
+const toast = ref(null)
 
 // State Filter & Pencarian
 const searchQuery = ref('')
@@ -32,7 +38,15 @@ const isStudentComboboxOpen = ref(false)
 // State Lembar Full-Screen Workspace Tambah & Edit Catatan (Menggantikan Pop-up Modal)
 const isEditorOpen = ref(false)
 const isEditorExpanded = ref(false)
-const isPreviousNotesOpen = ref(false)
+const editorError = ref('')
+const richEditorRef = ref(null)
+const activeFormats = ref({
+  bold: false,
+  italic: false,
+  underline: false,
+  ul: false,
+  ol: false
+})
 // modalMode: 'NEW_STUDENT' (dari tombol Catat Siswa) | 'CURRENT_STUDENT' (dari tombol Tambah Catatan) | 'EDIT_NOTE'
 const modalMode = ref('CURRENT_STUDENT')
 const currentNoteId = ref(null)
@@ -41,11 +55,19 @@ const targetStudentId = ref('')
 const studentSearchInModal = ref('')
 
 const noteForm = ref({
+  record_type: 'catatan', // 'catatan' | 'pelanggaran'
   category: 'umum',
   title: '',
   content: '',
-  counselor_name: ''
+  counselor_name: '',
+  counseling_photo_url: '',
+  statement_photo_url: ''
 })
+
+const isUploadingCounselingPhoto = ref(false)
+const isUploadingStatementPhoto = ref(false)
+const dossierTypeFilter = ref('ALL') // 'ALL' | 'catatan' | 'pelanggaran'
+const lightboxPhoto = ref(null) // { url, label } | null
 
 // Siswa yang dipilih di dalam modal mode NEW_STUDENT
 const selectedTargetStudent = computed(() => {
@@ -173,30 +195,41 @@ function selectModalCategory(catId) {
   isModalCategoryOpen.value = false
 }
 
-// Mengambil master daftar akun siswa dari Supabase (untuk opsi tambah manual)
+// Mengambil seluruh master daftar akun siswa dari Supabase dengan pagination (menghindari batas 1.000 baris)
 async function fetchStudentsList() {
   isLoadingStudents.value = true
+  studentsLoadError.value = ''
   try {
-    if (isSupabaseConfigured && supabase) {
+    if (!isSupabaseConfigured || !supabase) {
+      allStudents.value = []
+      return
+    }
+
+    const pageSize = 1000
+    let from = 0
+    const collected = []
+
+    while (true) {
       const { data, error } = await supabase
         .from('users')
         .select('id, nama, email, nis, nisn, role, kelas, angkatan, tahun_lulus, no_wa, foto_url')
         .eq('role', 'siswa')
         .order('nama', { ascending: true })
+        .range(from, from + pageSize - 1)
 
-      if (!error && data) {
-        allStudents.value = data
-        return
+      if (error) throw error
+      if (data && data.length > 0) {
+        collected.push(...data)
       }
+      if (!data || data.length < pageSize) break
+      from += pageSize
     }
-    // Fallback jika database offline / belum terhubung
-    allStudents.value = [
-      { id: 'siswa-1', nama: 'Bernadetta Andini Emanuella', kelas: 'XII 3', nis: '12345', nisn: '0071234567' },
-      { id: 'siswa-2', nama: 'Ahmad Faisal Rahman', kelas: 'XII MIPA 1', nis: '12346', nisn: '0061234568' },
-      { id: 'siswa-3', nama: 'Dewi Lestari Putri', kelas: 'X 2', nis: '12347', nisn: '0081234569' }
-    ]
+
+    allStudents.value = collected
   } catch (err) {
-    console.warn('Gagal memuat daftar siswa:', err.message)
+    allStudents.value = []
+    studentsLoadError.value = 'Gagal memuat daftar siswa dari server: ' + (err.message || 'Terjadi kesalahan')
+    toast.value?.show(studentsLoadError.value, 'error')
   } finally {
     isLoadingStudents.value = false
   }
@@ -295,6 +328,21 @@ const currentStudentNotes = computed(() => {
   return list
 })
 
+const dossierCounts = computed(() => {
+  const list = currentStudentNotes.value
+  const pelanggaran = list.filter(n => n.record_type === 'pelanggaran').length
+  return {
+    all: list.length,
+    catatan: list.length - pelanggaran,
+    pelanggaran
+  }
+})
+
+const filteredDossierNotes = computed(() => {
+  if (dossierTypeFilter.value === 'ALL') return currentStudentNotes.value
+  return currentStudentNotes.value.filter(n => (n.record_type || 'catatan') === dossierTypeFilter.value)
+})
+
 // Daftar siswa yang dapat dipilih saat Guru BK ingin mencatat siswa baru
 const selectableStudentsInModal = computed(() => {
   const q = studentSearchInModal.value.trim().toLowerCase()
@@ -320,6 +368,7 @@ const selectableStudentsInModal = computed(() => {
 
 function selectStudent(student) {
   selectedStudent.value = student
+  dossierTypeFilter.value = 'ALL'
   isEditorOpen.value = false
   isEditorExpanded.value = false
   mobileView.value = 'detail'
@@ -377,89 +426,282 @@ function formatDateDisplay(dateStr) {
   }) + ' • ' + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB'
 }
 
+function isNoteModified(note) {
+  if (!note?.updated_at || !note?.created_at) return false
+  return Math.abs(new Date(note.updated_at).getTime() - new Date(note.created_at).getTime()) > 5000
+}
+
+function loadFormToEditor() {
+  nextTick(() => {
+    if (!richEditorRef.value) return
+    richEditorRef.value.innerHTML = noteForm.value.content
+      ? renderNoteMarkdown(noteForm.value.content)
+      : ''
+    updateActiveFormats()
+  })
+}
+
+function syncEditorToForm() {
+  if (!richEditorRef.value) return
+  noteForm.value.content = htmlToNoteMarkdown(richEditorRef.value)
+}
+
+function updateActiveFormats() {
+  try {
+    activeFormats.value = {
+      bold: document.queryCommandState('bold'),
+      italic: document.queryCommandState('italic'),
+      underline: document.queryCommandState('underline'),
+      ul: document.queryCommandState('insertUnorderedList'),
+      ol: document.queryCommandState('insertOrderedList')
+    }
+  } catch {
+    // Abaikan jika selection belum aktif
+  }
+}
+
 // 1. Aksi Tombol Kiri: Catat Siswa Baru (Mencari dan mencatat siswa yang belum tercatat)
-function openRecordNewStudentModal() {
+function openRecordNewStudentModal(type = 'catatan') {
   modalMode.value = 'NEW_STUDENT'
   currentNoteId.value = null
   targetStudentId.value = ''
   studentSearchInModal.value = ''
+  editorError.value = ''
   isStudentComboboxOpen.value = false
   isModalCounselorOpen.value = false
   isModalCategoryOpen.value = false
   noteForm.value = {
+    record_type: type === 'pelanggaran' ? 'pelanggaran' : 'catatan',
     category: 'umum',
     title: '',
     content: '',
-    counselor_name: authStore.userName || COUNSELORS[0]
+    counselor_name: authStore.userName || COUNSELORS[0],
+    counseling_photo_url: '',
+    statement_photo_url: ''
   }
   isEditorOpen.value = true
   isEditorExpanded.value = false
   mobileView.value = 'editor'
+  loadFormToEditor()
 }
 
-// 2. Aksi Tombol Kanan: Tambah Catatan untuk Siswa Saat Ini (Terkunci langsung ke selectedStudent)
-function openAddNoteForCurrentStudent() {
+// 2. Aksi Tombol Kanan: Tambah Catatan / Pelanggaran untuk Siswa Saat Ini
+function openAddNoteForCurrentStudent(type = 'catatan') {
   if (!selectedStudent.value) {
-    openRecordNewStudentModal()
+    openRecordNewStudentModal(type)
     return
   }
   modalMode.value = 'CURRENT_STUDENT'
   currentNoteId.value = null
   targetStudentId.value = selectedStudent.value.id
   studentSearchInModal.value = ''
+  editorError.value = ''
   isStudentComboboxOpen.value = false
   isModalCounselorOpen.value = false
   isModalCategoryOpen.value = false
   noteForm.value = {
+    record_type: type === 'pelanggaran' ? 'pelanggaran' : 'catatan',
     category: 'umum',
     title: '',
     content: '',
-    counselor_name: authStore.userName || COUNSELORS[0]
+    counselor_name: authStore.userName || COUNSELORS[0],
+    counseling_photo_url: '',
+    statement_photo_url: ''
   }
   isEditorOpen.value = true
   isEditorExpanded.value = false
   mobileView.value = 'editor'
+  loadFormToEditor()
 }
 
-// 3. Aksi Edit Catatan
+// 3. Aksi Edit Catatan / Pelanggaran
 function openEditNoteModal(note) {
   modalMode.value = 'EDIT_NOTE'
   currentNoteId.value = note.id
   targetStudentId.value = note.student_id
+  editorError.value = ''
   isStudentComboboxOpen.value = false
   isModalCounselorOpen.value = false
   isModalCategoryOpen.value = false
   noteForm.value = {
+    record_type: note.record_type === 'pelanggaran' ? 'pelanggaran' : 'catatan',
     category: note.category || 'umum',
     title: note.title || '',
     content: note.content || '',
-    counselor_name: note.counselor_name || authStore.userName || COUNSELORS[0]
+    counselor_name: note.counselor_name || authStore.userName || COUNSELORS[0],
+    counseling_photo_url: note.counseling_photo_url || '',
+    statement_photo_url: note.statement_photo_url || ''
   }
   isEditorOpen.value = true
   isEditorExpanded.value = false
   mobileView.value = 'editor'
+  loadFormToEditor()
+}
+
+async function handlePhotoUpload(slot, event) {
+  const file = event.target?.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    toast.value?.show('Ukuran foto maksimal 5 MB.', 'error')
+    event.target.value = ''
+    return
+  }
+
+  const isCounseling = slot === 'counseling'
+  if (isCounseling) isUploadingCounselingPhoto.value = true
+  else isUploadingStatementPhoto.value = true
+
+  try {
+    const url = await uploadToCloudinary(file, { folder: 'halobk_catatan_bk' })
+    if (isCounseling) noteForm.value.counseling_photo_url = url
+    else noteForm.value.statement_photo_url = url
+    toast.value?.show(
+      isCounseling ? 'Foto konseling berhasil diunggah.' : 'Foto surat pernyataan berhasil diunggah.',
+      'success'
+    )
+  } catch (err) {
+    toast.value?.show('Gagal mengunggah foto: ' + (err.message || 'Error'), 'error')
+  } finally {
+    if (isCounseling) isUploadingCounselingPhoto.value = false
+    else isUploadingStatementPhoto.value = false
+    if (event.target) event.target.value = ''
+  }
+}
+
+function removePhoto(slot) {
+  if (slot === 'counseling') noteForm.value.counseling_photo_url = ''
+  else noteForm.value.statement_photo_url = ''
+}
+
+function execRichCommand(command, value = null) {
+  if (!richEditorRef.value) return
+  richEditorRef.value.focus()
+  document.execCommand(command, false, value)
+  syncEditorToForm()
+  updateActiveFormats()
+}
+
+// Terapkan format langsung secara visual (WYSIWYG)
+function applyMarkdownFormat(type) {
+  switch (type) {
+    case 'bold':
+      execRichCommand('bold')
+      break
+    case 'italic':
+      execRichCommand('italic')
+      break
+    case 'underline':
+      execRichCommand('underline')
+      break
+    case 'ul':
+      execRichCommand('insertUnorderedList')
+      break
+    case 'ol':
+      execRichCommand('insertOrderedList')
+      break
+    case 'quote':
+      execRichCommand('formatBlock', 'blockquote')
+      break
+  }
+}
+
+// Shortcut keyboard & auto-konversi list ("1. " / "- ") saat mengetik
+function handleEditorKeydown(e) {
+  const isMod = e.ctrlKey || e.metaKey
+  const key = (e.key || '').toLowerCase()
+
+  if (isMod && e.key === 'Enter') {
+    e.preventDefault()
+    handleSubmitNote()
+    return
+  }
+
+  if (isMod && !e.shiftKey && key === 'b') {
+    e.preventDefault()
+    execRichCommand('bold')
+    return
+  }
+  if (isMod && !e.shiftKey && key === 'i') {
+    e.preventDefault()
+    execRichCommand('italic')
+    return
+  }
+  if (isMod && !e.shiftKey && key === 'u') {
+    e.preventDefault()
+    execRichCommand('underline')
+    return
+  }
+  if (isMod && e.shiftKey && (e.code === 'Digit7' || key === '7')) {
+    e.preventDefault()
+    execRichCommand('insertOrderedList')
+    return
+  }
+  if (isMod && e.shiftKey && (e.code === 'Digit8' || key === '8')) {
+    e.preventDefault()
+    execRichCommand('insertUnorderedList')
+    return
+  }
+
+  // Auto-konversi saat mengetik "1." / "-" / "*" / ">" diikuti Spasi
+  if (e.key === ' ' && !isMod) {
+    const sel = window.getSelection()
+    if (!sel || !sel.rangeCount || !sel.isCollapsed) return
+    const range = sel.getRangeAt(0)
+    const node = range.startContainer
+    if (node.nodeType !== 3) return
+
+    const textBeforeCaret = (node.textContent || '').slice(0, range.startOffset)
+    const trimmed = textBeforeCaret.replace(/\u00A0/g, ' ')
+
+    let cmd = null
+    let val = null
+    if (trimmed === '1.') cmd = 'insertOrderedList'
+    else if (trimmed === '-' || trimmed === '*') cmd = 'insertUnorderedList'
+    else if (trimmed === '>') {
+      cmd = 'formatBlock'
+      val = 'blockquote'
+    }
+
+    if (cmd) {
+      e.preventDefault()
+      const delRange = document.createRange()
+      delRange.setStart(node, 0)
+      delRange.setEnd(node, range.startOffset)
+      sel.removeAllRanges()
+      sel.addRange(delRange)
+      document.execCommand('delete', false, null)
+      document.execCommand(cmd, false, val)
+      syncEditorToForm()
+      updateActiveFormats()
+    }
+  }
 }
 
 // Sisipkan Format Asesmen BK
 function insertAssessmentTemplate() {
-  const template = `[Hasil Asesmen Guru BK]
-• Latar Belakang Masalah: 
-• Dinamika Psikologis/Akademik: 
-• Rencana Tindak Lanjut / Jadwal Pertemuan: `
+  syncEditorToForm()
+  const template = `**Hasil Asesmen Guru BK**
+- **Latar Belakang Masalah:** 
+- **Dinamika Psikologis/Akademik:** 
+- **Rencana Tindak Lanjut / Jadwal Pertemuan:** `
 
   if (!noteForm.value.content.trim()) {
     noteForm.value.content = template
   } else {
     noteForm.value.content += `\n\n${template}`
   }
+  loadFormToEditor()
 }
 
 // Submit Catatan (Create / Update)
 async function handleSubmitNote() {
+  syncEditorToForm()
+  editorError.value = ''
   let student = null
   if (modalMode.value === 'NEW_STUDENT') {
     if (!targetStudentId.value) {
-      alert('Mohon pilih siswa baru yang ingin dicatat terlebih dahulu.')
+      editorError.value = 'Mohon pilih siswa baru yang ingin dicatat terlebih dahulu.'
+      toast.value?.show(editorError.value, 'error')
       return
     }
     student = allStudents.value.find(s => s.id === targetStudentId.value)
@@ -469,41 +711,65 @@ async function handleSubmitNote() {
   }
 
   if (!student) {
-    alert('Data siswa tidak ditemukan.')
+    editorError.value = 'Data siswa tidak ditemukan.'
+    toast.value?.show(editorError.value, 'error')
     return
   }
   if (!noteForm.value.title.trim() || !noteForm.value.content.trim()) {
-    alert('Mohon isi judul dan isi catatan bimbingan.')
+    editorError.value = 'Mohon isi judul dan isi catatan bimbingan.'
+    toast.value?.show(editorError.value, 'error')
     return
   }
+  if (isUploadingCounselingPhoto.value || isUploadingStatementPhoto.value) {
+    editorError.value = 'Mohon tunggu proses unggah foto selesai terlebih dahulu.'
+    toast.value?.show(editorError.value, 'error')
+    return
+  }
+
+  const isViolation = noteForm.value.record_type === 'pelanggaran'
 
   isSubmitting.value = true
   try {
     if (modalMode.value === 'EDIT_NOTE' && currentNoteId.value) {
       await chatStore.updateStudentNote(currentNoteId.value, {
+        record_type: noteForm.value.record_type,
         category: noteForm.value.category,
         title: noteForm.value.title.trim(),
         content: noteForm.value.content.trim(),
-        counselor_name: noteForm.value.counselor_name
+        counselor_name: noteForm.value.counselor_name,
+        counseling_photo_url: isViolation ? noteForm.value.counseling_photo_url || null : null,
+        statement_photo_url: isViolation ? noteForm.value.statement_photo_url || null : null
       })
+      toast.value?.show(
+        isViolation ? 'Rekam pelanggaran berhasil diperbarui.' : 'Catatan asesmen berhasil diperbarui.',
+        'success'
+      )
     } else {
       await chatStore.createStudentNote({
         student_id: student.id,
         student_name: student.nama,
         student_class: student.kelas || '',
         counselor_name: noteForm.value.counselor_name || authStore.userName || 'Guru BK SMADA',
+        record_type: noteForm.value.record_type,
         category: noteForm.value.category,
         title: noteForm.value.title.trim(),
-        content: noteForm.value.content.trim()
+        content: noteForm.value.content.trim(),
+        counseling_photo_url: isViolation ? noteForm.value.counseling_photo_url || null : null,
+        statement_photo_url: isViolation ? noteForm.value.statement_photo_url || null : null
       })
       // Otomatis arahkan dan buka siswa tersebut di panel kanan
       selectStudent(student)
+      toast.value?.show(
+        isViolation ? 'Rekam pelanggaran berhasil disimpan.' : 'Catatan asesmen berhasil disimpan.',
+        'success'
+      )
     }
     isEditorOpen.value = false
     isEditorExpanded.value = false
     mobileView.value = 'detail'
   } catch (err) {
-    alert('Gagal menyimpan catatan: ' + (err.message || 'Error'))
+    editorError.value = 'Gagal menyimpan catatan: ' + (err.message || 'Error')
+    toast.value?.show(editorError.value, 'error')
   } finally {
     isSubmitting.value = false
   }
@@ -522,6 +788,7 @@ async function confirmDeleteNote() {
     await chatStore.deleteStudentNote(noteToDelete.value.id)
     isDeleteModalOpen.value = false
     noteToDelete.value = null
+    toast.value?.show('Catatan berhasil dihapus.', 'success')
 
     // Jika siswa ini sudah tidak memiliki catatan sama sekali setelah dihapus,
     // refresh pilihan jika perlu
@@ -533,7 +800,7 @@ async function confirmDeleteNote() {
       }
     }
   } catch (err) {
-    alert('Gagal menghapus catatan: ' + (err.message || 'Error'))
+    toast.value?.show('Gagal menghapus catatan: ' + (err.message || 'Error'), 'error')
   } finally {
     isDeleting.value = false
   }
@@ -900,25 +1167,40 @@ async function confirmDeleteNote() {
                     <i class="fa-solid fa-arrow-left text-sm"></i>
                   </button>
 
-                  <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 flex items-center justify-center text-base font-bold shrink-0 shadow-2xs">
-                    <i class="fa-solid" :class="modalMode === 'NEW_STUDENT' ? 'fa-user-plus' : (modalMode === 'EDIT_NOTE' ? 'fa-pen-to-square' : 'fa-book-bookmark')"></i>
+                  <div
+                    class="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold shrink-0 shadow-2xs"
+                    :class="noteForm.record_type === 'pelanggaran'
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                      : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'"
+                  >
+                    <i
+                      class="fa-solid"
+                      :class="noteForm.record_type === 'pelanggaran'
+                        ? 'fa-triangle-exclamation'
+                        : (modalMode === 'NEW_STUDENT' ? 'fa-user-plus' : (modalMode === 'EDIT_NOTE' ? 'fa-pen-to-square' : 'fa-book-bookmark'))"
+                    ></i>
                   </div>
 
                   <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2 flex-wrap">
                       <h2 class="font-bold text-base sm:text-lg text-slate-900 dark:text-white leading-tight truncate">
                         <template v-if="modalMode === 'NEW_STUDENT'">
-                          Catat Siswa Baru
+                          {{ noteForm.record_type === 'pelanggaran' ? 'Catat Pelanggaran Siswa' : 'Catat Siswa Baru' }}
                         </template>
                         <template v-else-if="modalMode === 'EDIT_NOTE'">
-                          Edit Catatan Asesmen
+                          {{ noteForm.record_type === 'pelanggaran' ? 'Edit Rekam Pelanggaran' : 'Edit Catatan Asesmen' }}
                         </template>
                         <template v-else>
-                          Tambah Catatan Siswa
+                          {{ noteForm.record_type === 'pelanggaran' ? 'Tambah Pelanggaran Siswa' : 'Tambah Catatan Siswa' }}
                         </template>
                       </h2>
-                      <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80">
-                        <i class="fa-solid fa-lock text-[9px] mr-1"></i>Dossier Privat BK
+                      <span
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                        :class="noteForm.record_type === 'pelanggaran'
+                          ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/80'
+                          : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/80'"
+                      >
+                        <i class="fa-solid fa-lock text-[9px] mr-1"></i>{{ noteForm.record_type === 'pelanggaran' ? 'Pelanggaran BK' : 'Dossier Privat BK' }}
                       </span>
                     </div>
                     <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
@@ -978,12 +1260,26 @@ async function confirmDeleteNote() {
             <div class="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6 min-h-0 bg-[#F8FAFC] dark:bg-slate-950">
               <div class="w-full lg:grid lg:grid-cols-12 gap-5 space-y-5 lg:space-y-0">
                 
-                <!-- KOLOM KIRI (UTAMA): CANVAS EDITOR (JUDUL + ISI CATATAN ASESMEN) -->
-                <div class="lg:col-span-7 xl:col-span-8 flex flex-col space-y-4">
+                <!-- KOLOM KANAN (UTAMA): CANVAS EDITOR (JUDUL + ISI CATATAN ASESMEN) -->
+                <div class="lg:col-span-7 xl:col-span-8 lg:order-2 flex flex-col space-y-4">
                   
                   <!-- KARTU EDITOR UTAMA -->
                   <div class="p-4 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-4 flex flex-col flex-1">
                     
+                    <!-- Banner Error Validasi / Simpan -->
+                    <div
+                      v-if="editorError"
+                      class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 text-xs font-semibold flex items-center justify-between gap-2"
+                    >
+                      <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600 shrink-0"></i>
+                        <span>{{ editorError }}</span>
+                      </div>
+                      <button type="button" @click="editorError = ''" class="text-rose-500 hover:text-rose-700 px-1 cursor-pointer" aria-label="Tutup pesan error">
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+
                     <!-- Judul Catatan Asesmen -->
                     <div class="space-y-1.5">
                       <div class="flex items-center justify-between">
@@ -1002,7 +1298,7 @@ async function confirmDeleteNote() {
                       />
                     </div>
 
-                    <!-- Toolbar & Textarea Isi Catatan -->
+                    <!-- Toolbar & Editor Isi Catatan (Live Rich-Text + Shortcut Keyboard) -->
                     <div class="space-y-2 flex-1 flex flex-col">
                       <div class="flex items-center justify-between flex-wrap gap-2 pt-1">
                         <label class="block font-bold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">
@@ -1019,14 +1315,79 @@ async function confirmDeleteNote() {
                         </button>
                       </div>
 
-                      <textarea
-                        v-model="noteForm.content"
-                        rows="15"
-                        placeholder="Tuliskan latar belakang masalah siswa, observasi psikologis/akademik, dinamika perkembangan kasus, hasil konseling tatap muka, dan kesepakatan rencana tindak lanjut..."
-                        class="w-full p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850 text-sm sm:text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-y shadow-2xs placeholder:text-slate-400 font-sans flex-1 min-h-[360px] sm:min-h-[440px]"
-                        @keydown.ctrl.enter.prevent="handleSubmitNote"
-                        @keydown.meta.enter.prevent="handleSubmitNote"
-                      ></textarea>
+                      <!-- Toolbar Pemformatan Langsung -->
+                      <div class="flex flex-wrap items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200 dark:border-slate-800">
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('bold')"
+                          class="w-7 h-7 rounded-lg text-xs font-bold flex items-center justify-center transition-colors cursor-pointer"
+                          :class="activeFormats.bold ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300'"
+                          title="Tebal (Ctrl + B)"
+                        >
+                          <i class="fa-solid fa-bold"></i>
+                        </button>
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('italic')"
+                          class="w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer"
+                          :class="activeFormats.italic ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300'"
+                          title="Miring (Ctrl + I)"
+                        >
+                          <i class="fa-solid fa-italic"></i>
+                        </button>
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('underline')"
+                          class="w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer"
+                          :class="activeFormats.underline ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300'"
+                          title="Garis Bawah (Ctrl + U)"
+                        >
+                          <i class="fa-solid fa-underline"></i>
+                        </button>
+                        <span class="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" aria-hidden="true"></span>
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('ul')"
+                          class="w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer"
+                          :class="activeFormats.ul ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300'"
+                          title="Poin Bullet (ketik - lalu Spasi, atau Ctrl + Shift + 8)"
+                        >
+                          <i class="fa-solid fa-list-ul"></i>
+                        </button>
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('ol')"
+                          class="w-7 h-7 rounded-lg text-xs flex items-center justify-center transition-colors cursor-pointer"
+                          :class="activeFormats.ol ? 'bg-emerald-600 text-white shadow-2xs' : 'text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300'"
+                          title="Poin Angka (ketik 1. lalu Spasi, atau Ctrl + Shift + 7)"
+                        >
+                          <i class="fa-solid fa-list-ol"></i>
+                        </button>
+                        <button
+                          type="button"
+                          @mousedown.prevent="applyMarkdownFormat('quote')"
+                          class="w-7 h-7 rounded-lg text-xs text-slate-700 dark:text-slate-200 hover:bg-emerald-100 hover:text-emerald-800 dark:hover:bg-emerald-950/60 dark:hover:text-emerald-300 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Kutipan (ketik > lalu Spasi)"
+                        >
+                          <i class="fa-solid fa-quote-left"></i>
+                        </button>
+                        <span class="ml-auto text-[10px] text-slate-400 hidden sm:inline">
+                          Ctrl+B / Ctrl+I / Ctrl+U &bull; Ketik <code class="font-mono">1.</code> + Spasi
+                        </span>
+                      </div>
+
+                      <div
+                        ref="richEditorRef"
+                        contenteditable="true"
+                        role="textbox"
+                        aria-multiline="true"
+                        data-placeholder="Tuliskan latar belakang masalah siswa, observasi psikologis/akademik, dinamika perkembangan kasus, hasil konseling tatap muka, dan kesepakatan rencana tindak lanjut..."
+                        class="w-full p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-850 text-sm sm:text-base leading-relaxed text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-2xs font-sans flex-1 min-h-[360px] sm:min-h-[440px] overflow-y-auto [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1.5 [&_blockquote]:border-l-3 [&_blockquote]:border-emerald-500 [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-slate-600 dark:[&_blockquote]:text-slate-300 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400 empty:before:pointer-events-none"
+                        @input="syncEditorToForm"
+                        @keydown="handleEditorKeydown"
+                        @keyup="updateActiveFormats"
+                        @mouseup="updateActiveFormats"
+                      ></div>
 
                       <div class="flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 pt-1">
                         <span class="flex items-center gap-1.5">
@@ -1042,9 +1403,40 @@ async function confirmDeleteNote() {
                   </div>
                 </div>
 
-                <!-- KOLOM KANAN: SIDEBAR PARAMETER, SISWA & DOSSIER REFERENCE -->
-                <div class="lg:col-span-5 xl:col-span-4 space-y-4">
+                <!-- KOLOM KIRI: SIDEBAR PARAMETER, SISWA & LAMPIRAN -->
+                <div class="lg:col-span-5 xl:col-span-4 lg:order-1 space-y-4">
                   
+                  <!-- CARD 0: PILIHAN JENIS REKAM (CATATAN VS PELANGGARAN) -->
+                  <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2.5">
+                    <span class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Jenis Rekam BK:
+                    </span>
+                    <div class="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        @click="noteForm.record_type = 'catatan'"
+                        class="px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        :class="noteForm.record_type === 'catatan'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-850 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-emerald-50/60'"
+                      >
+                        <i class="fa-solid fa-book-bookmark text-[11px]"></i>
+                        <span>Catatan BK</span>
+                      </button>
+                      <button
+                        type="button"
+                        @click="noteForm.record_type = 'pelanggaran'"
+                        class="px-3 py-2 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        :class="noteForm.record_type === 'pelanggaran'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-850 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-rose-50/60'"
+                      >
+                        <i class="fa-solid fa-triangle-exclamation text-[11px]"></i>
+                        <span>Pelanggaran</span>
+                      </button>
+                    </div>
+                  </div>
+
                   <!-- CARD 1: IDENTITAS SISWA -->
                   <div class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
                     <div class="flex items-center justify-between">
@@ -1270,66 +1662,96 @@ async function confirmDeleteNote() {
                     </div>
                   </div>
 
-                  <!-- CARD 4: REFERENSI CATATAN SEBELUMNYA SISWA INI (LIVE DOSSIER FEED) -->
-                  <div v-if="selectedStudent" class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
+                  <!-- CARD 4: LAMPIRAN FOTO BUKTI PELANGGARAN (KHUSUS MODE PELANGGARAN) -->
+                  <div
+                    v-if="noteForm.record_type === 'pelanggaran'"
+                    class="p-4 sm:p-5 rounded-2xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/60 shadow-2xs space-y-3.5"
+                  >
                     <div class="flex items-center justify-between">
-                      <span class="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i>
-                        <span>Riwayat Catatan Lalu ({{ currentStudentNotes.length }})</span>
+                      <span class="text-xs font-bold text-rose-800 dark:text-rose-200 flex items-center gap-2">
+                        <i class="fa-solid fa-camera text-rose-600"></i>
+                        <span>Lampiran Bukti Pelanggaran</span>
                       </span>
-                      <button
-                        v-if="currentStudentNotes.length > 0"
-                        type="button"
-                        @click="isPreviousNotesOpen = !isPreviousNotesOpen"
-                        class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
-                      >
-                        {{ isPreviousNotesOpen ? 'Tutup' : 'Lihat Semua' }}
-                      </button>
+                      <span class="text-[10px] font-semibold text-rose-600 dark:text-rose-300">Maks. 5 MB</span>
                     </div>
 
-                    <!-- State Kosong jika belum ada catatan -->
-                    <div v-if="currentStudentNotes.length === 0" class="p-4 text-center rounded-xl bg-slate-50 dark:bg-slate-850 border border-dashed border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
-                      <p>Belum ada catatan terdahulu.</p>
-                      <span class="text-[10px] text-emerald-600 font-medium">Ini adalah lembar rekam pertama siswa ini.</span>
-                    </div>
-
-                    <!-- List Catatan Sebelumnya -->
-                    <div v-else class="space-y-2 max-h-64 overflow-y-auto pr-1 divide-y divide-slate-100 dark:divide-slate-800">
-                      <div
-                        v-for="pn in currentStudentNotes"
-                        :key="pn.id"
-                        class="pt-2 first:pt-0 text-xs space-y-1"
-                      >
-                        <div class="flex items-center justify-between gap-1 text-[11px]">
-                          <span class="font-bold text-slate-800 dark:text-slate-200 truncate">{{ pn.title }}</span>
-                          <span class="text-slate-400 text-[10px] shrink-0">{{ formatDateDisplay(pn.created_at).split('•')[0] }}</span>
-                        </div>
-                        <p class="text-slate-500 dark:text-slate-400 text-[11px] line-clamp-2 leading-relaxed whitespace-pre-wrap">{{ pn.content }}</p>
+                    <!-- Slot 1: Foto Konseling -->
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-rose-200/70 dark:border-slate-800 space-y-2">
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-700 dark:text-slate-200">1. Foto Konseling</span>
+                        <button
+                          v-if="noteForm.counseling_photo_url"
+                          type="button"
+                          @click="removePhoto('counseling')"
+                          class="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Hapus
+                        </button>
                       </div>
-                    </div>
-                  </div>
 
-                  <!-- CARD 5: TOMBOL AKSI SIMPAN & BATAL SIDEBAR -->
-                  <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-2">
-                    <button
-                      type="button"
-                      @click="handleSubmitNote"
-                      :disabled="isSubmitting"
-                      class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all active:scale-98"
-                    >
-                      <i v-if="isSubmitting" class="fa-solid fa-spinner fa-spin text-xs"></i>
-                      <i v-else class="fa-solid fa-floppy-disk text-xs"></i>
-                      <span>
-                        {{ isSubmitting ? 'Menyimpan...' : (modalMode === 'NEW_STUDENT' ? 'Catat Siswa Baru' : (modalMode === 'EDIT_NOTE' ? 'Perbarui Catatan' : 'Simpan Catatan')) }}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      @click="closeEditor"
-                      class="w-full py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors text-center"
-                    >
-                      Batal
-                    </button>
+                      <div v-if="noteForm.counseling_photo_url" class="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <img
+                          :src="getOptimizedImageUrl(noteForm.counseling_photo_url, 600)"
+                          alt="Foto Konseling"
+                          class="w-full h-32 object-cover cursor-pointer"
+                          @click="lightboxPhoto = { url: noteForm.counseling_photo_url, label: 'Foto Konseling' }"
+                        />
+                      </div>
+
+                      <label
+                        class="w-full py-2 px-3 rounded-xl border border-dashed border-rose-300 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100/60 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                      >
+                        <i v-if="isUploadingCounselingPhoto" class="fa-solid fa-spinner fa-spin"></i>
+                        <i v-else class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>{{ isUploadingCounselingPhoto ? 'Mengunggah...' : (noteForm.counseling_photo_url ? 'Ganti Foto Konseling' : 'Unggah Foto Konseling') }}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          class="hidden"
+                          :disabled="isUploadingCounselingPhoto"
+                          @change="handlePhotoUpload('counseling', $event)"
+                        />
+                      </label>
+                    </div>
+
+                    <!-- Slot 2: Foto Surat Pernyataan / Komitmen -->
+                    <div class="p-3 rounded-xl bg-white dark:bg-slate-900 border border-rose-200/70 dark:border-slate-800 space-y-2">
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-700 dark:text-slate-200">2. Foto Surat Pernyataan / Komitmen</span>
+                        <button
+                          v-if="noteForm.statement_photo_url"
+                          type="button"
+                          @click="removePhoto('statement')"
+                          class="text-[11px] font-semibold text-rose-600 hover:underline cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+
+                      <div v-if="noteForm.statement_photo_url" class="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <img
+                          :src="getOptimizedImageUrl(noteForm.statement_photo_url, 600)"
+                          alt="Foto Surat Pernyataan / Komitmen"
+                          class="w-full h-32 object-cover cursor-pointer"
+                          @click="lightboxPhoto = { url: noteForm.statement_photo_url, label: 'Foto Surat Pernyataan / Komitmen' }"
+                        />
+                      </div>
+
+                      <label
+                        class="w-full py-2 px-3 rounded-xl border border-dashed border-rose-300 dark:border-rose-800 bg-rose-50/50 dark:bg-rose-950/30 hover:bg-rose-100/60 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer transition-colors"
+                      >
+                        <i v-if="isUploadingStatementPhoto" class="fa-solid fa-spinner fa-spin"></i>
+                        <i v-else class="fa-solid fa-file-signature"></i>
+                        <span>{{ isUploadingStatementPhoto ? 'Mengunggah...' : (noteForm.statement_photo_url ? 'Ganti Foto Surat' : 'Unggah Foto Surat Pernyataan') }}</span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          class="hidden"
+                          :disabled="isUploadingStatementPhoto"
+                          @change="handlePhotoUpload('statement', $event)"
+                        />
+                      </label>
+                    </div>
                   </div>
 
                 </div>
@@ -1411,16 +1833,27 @@ async function confirmDeleteNote() {
                   </div>
                 </div>
 
-                <!-- Tombol 2: TAMBAH CATATAN UNTUK SISWA INI (Kanan) -->
-                <button
-                  type="button"
-                  @click="openAddNoteForCurrentStudent"
-                  class="px-3.5 sm:px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap shrink-0"
-                  title="Tambah Catatan untuk Siswa Ini"
-                >
-                  <i class="fa-solid fa-plus text-xs"></i>
-                  <span>Tambah Catatan</span>
-                </button>
+                <!-- Tombol Aksi Header Dossier (Catatan & Pelanggaran) -->
+                <div class="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    @click="openAddNoteForCurrentStudent('catatan')"
+                    class="px-3 sm:px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                    title="Tambah Catatan Konseling"
+                  >
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Catatan</span>
+                  </button>
+                  <button
+                    type="button"
+                    @click="openAddNoteForCurrentStudent('pelanggaran')"
+                    class="px-3 sm:px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
+                    title="Catat Pelanggaran & Lampiran Bukti"
+                  >
+                    <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+                    <span>Pelanggaran</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -1436,9 +1869,43 @@ async function confirmDeleteNote() {
                 </div>
               </div>
 
+              <!-- Filter Ringkas Jenis Rekam (Semua / Catatan / Pelanggaran) -->
+              <div v-if="currentStudentNotes.length > 0" class="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  @click="dossierTypeFilter = 'ALL'"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer"
+                  :class="dossierTypeFilter === 'ALL'
+                    ? 'bg-slate-800 text-white border-slate-800 dark:bg-white dark:text-slate-900'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100'"
+                >
+                  Semua ({{ dossierCounts.all }})
+                </button>
+                <button
+                  type="button"
+                  @click="dossierTypeFilter = 'catatan'"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer"
+                  :class="dossierTypeFilter === 'catatan'
+                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    : 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 border-slate-200 dark:border-slate-800 hover:bg-emerald-50'"
+                >
+                  Catatan ({{ dossierCounts.catatan }})
+                </button>
+                <button
+                  type="button"
+                  @click="dossierTypeFilter = 'pelanggaran'"
+                  class="px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer"
+                  :class="dossierTypeFilter === 'pelanggaran'
+                    ? 'bg-rose-600 text-white border-rose-600'
+                    : 'bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 border-slate-200 dark:border-slate-800 hover:bg-rose-50'"
+                >
+                  Pelanggaran ({{ dossierCounts.pelanggaran }})
+                </button>
+              </div>
+
               <!-- State Kosong: Belum Ada Catatan untuk Siswa Ini -->
               <div
-                v-if="currentStudentNotes.length === 0"
+                v-if="filteredDossierNotes.length === 0"
                 class="p-12 text-center rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 bg-white/60 dark:bg-slate-900/40 space-y-3"
               >
                 <div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 mx-auto flex items-center justify-center text-xl shadow-2xs">
@@ -1446,32 +1913,42 @@ async function confirmDeleteNote() {
                 </div>
                 <div class="space-y-1 max-w-sm mx-auto">
                   <h3 class="font-bold text-sm text-slate-800 dark:text-slate-100">
-                    Belum Ada Catatan untuk {{ selectedStudent.nama }}
+                    {{ dossierTypeFilter === 'pelanggaran' ? 'Belum Ada Rekam Pelanggaran' : `Belum Ada Catatan untuk ${selectedStudent.nama}` }}
                   </h3>
                   <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Mulai rekam perkembangan, latar belakang kasus, atau hasil bimbingan tatap muka dengan mengklik tombol di bawah.
+                    Mulai rekam perkembangan, latar belakang kasus, atau pelanggaran siswa melalui tombol di kanan atas.
                   </p>
                 </div>
                 <button
                   type="button"
-                  @click="openAddNoteForCurrentStudent"
+                  @click="openAddNoteForCurrentStudent(dossierTypeFilter === 'pelanggaran' ? 'pelanggaran' : 'catatan')"
                   class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
                 >
                   <i class="fa-solid fa-plus text-xs"></i>
-                  <span>Buat Catatan Pertama</span>
+                  <span>{{ dossierTypeFilter === 'pelanggaran' ? 'Catat Pelanggaran Pertama' : 'Buat Catatan Pertama' }}</span>
                 </button>
               </div>
 
               <!-- List Kartu Catatan (Timeline Feed) -->
               <div v-else class="space-y-3.5">
                 <div
-                  v-for="note in currentStudentNotes"
+                  v-for="note in filteredDossierNotes"
                   :key="note.id"
                   class="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3 transition-all hover:shadow-sm"
+                  :class="note.record_type === 'pelanggaran' ? 'border-l-4 border-l-rose-500' : ''"
                 >
-                  <!-- Baris 1: Kategori + Waktu + Tombol Aksi -->
+                  <!-- Baris 1: Jenis Rekam + Kategori + Waktu + Tombol Aksi -->
                   <div class="flex items-start justify-between gap-2.5">
                     <div class="flex items-center gap-2 flex-wrap min-w-0">
+                      <!-- Badge Pelanggaran (jika record_type === 'pelanggaran') -->
+                      <span
+                        v-if="note.record_type === 'pelanggaran'"
+                        class="px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider bg-rose-600 text-white flex items-center gap-1 shrink-0"
+                      >
+                        <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+                        <span>Pelanggaran</span>
+                      </span>
+
                       <!-- Badge Kategori -->
                       <span
                         class="px-2.5 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 shrink-0"
@@ -1481,10 +1958,20 @@ async function confirmDeleteNote() {
                         <span>{{ getCategoryInfo(note.category).label }}</span>
                       </span>
 
-                      <!-- Waktu Dibuat -->
-                      <span class="text-xs text-slate-400 dark:text-slate-500 font-semibold tabular-nums">
-                        {{ formatDateDisplay(note.created_at) }}
-                      </span>
+                      <!-- Waktu Dibuat & Modified At -->
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs text-slate-400 dark:text-slate-500 font-semibold tabular-nums">
+                          {{ formatDateDisplay(note.created_at) }}
+                        </span>
+                        <span
+                          v-if="isNoteModified(note)"
+                          class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/70 px-2 py-0.5 rounded-md tabular-nums"
+                          title="Terakhir diperbarui"
+                        >
+                          <i class="fa-solid fa-pen text-[9px]"></i>
+                          <span>Diedit: {{ formatDateDisplay(note.updated_at) }}</span>
+                        </span>
+                      </div>
                     </div>
 
                     <!-- Tombol Edit & Hapus -->
@@ -1513,9 +2000,50 @@ async function confirmDeleteNote() {
                     {{ note.title }}
                   </h4>
 
-                  <!-- Isi Catatan -->
-                  <div class="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-wrap font-sans">
-                    {{ note.content }}
+                  <!-- Isi Catatan (Markdown Rendered) -->
+                  <div
+                    class="p-3.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed font-sans"
+                    v-html="renderNoteMarkdown(note.content)"
+                  ></div>
+
+                  <!-- Galeri Lampiran Foto Pelanggaran (jika ada) -->
+                  <div
+                    v-if="note.counseling_photo_url || note.statement_photo_url"
+                    class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1"
+                  >
+                    <button
+                      v-if="note.counseling_photo_url"
+                      type="button"
+                      @click="lightboxPhoto = { url: note.counseling_photo_url, label: 'Foto Konseling' }"
+                      class="group text-left rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-rose-400 transition-colors cursor-pointer"
+                    >
+                      <img
+                        :src="getOptimizedImageUrl(note.counseling_photo_url, 500)"
+                        alt="Foto Konseling"
+                        class="w-full h-36 object-cover group-hover:scale-[1.02] transition-transform"
+                      />
+                      <div class="px-3 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                        <span>Foto Konseling</span>
+                        <i class="fa-solid fa-magnifying-glass-plus text-slate-400 group-hover:text-rose-600"></i>
+                      </div>
+                    </button>
+
+                    <button
+                      v-if="note.statement_photo_url"
+                      type="button"
+                      @click="lightboxPhoto = { url: note.statement_photo_url, label: 'Foto Surat Pernyataan / Komitmen' }"
+                      class="group text-left rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 hover:border-rose-400 transition-colors cursor-pointer"
+                    >
+                      <img
+                        :src="getOptimizedImageUrl(note.statement_photo_url, 500)"
+                        alt="Foto Surat Pernyataan / Komitmen"
+                        class="w-full h-36 object-cover group-hover:scale-[1.02] transition-transform"
+                      />
+                      <div class="px-3 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                        <span>Foto Surat Pernyataan / Komitmen</span>
+                        <i class="fa-solid fa-magnifying-glass-plus text-slate-400 group-hover:text-rose-600"></i>
+                      </div>
+                    </button>
                   </div>
 
                   <!-- Footer Kartu: Penulis Catatan (Guru BK) -->
@@ -1575,5 +2103,30 @@ async function confirmDeleteNote() {
       </div>
     </div>
 
+    <!-- MODAL LIGHTBOX: PERBESAR FOTO BUKTI PELANGGARAN -->
+    <div
+      v-if="lightboxPhoto"
+      class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm"
+      @click.self="lightboxPhoto = null"
+    >
+      <div class="relative max-w-3xl w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800">
+        <div class="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <span class="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">{{ lightboxPhoto.label }}</span>
+          <button
+            type="button"
+            @click="lightboxPhoto = null"
+            class="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center cursor-pointer"
+            aria-label="Tutup pratinjau foto"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="p-3 bg-slate-100 dark:bg-slate-950 flex items-center justify-center max-h-[80vh] overflow-auto">
+          <img :src="lightboxPhoto.url" :alt="lightboxPhoto.label" class="max-h-[72vh] w-auto rounded-lg object-contain" />
+        </div>
+      </div>
+    </div>
+
+    <Toast ref="toast" />
   </div>
 </template>

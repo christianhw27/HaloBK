@@ -302,40 +302,58 @@ function selectTab(tabKey) {
           <button
             type="button"
             @click="selectTab('pilihan')"
-            class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border text-left"
+            class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all border text-left"
             :class="props.activeTab === 'pilihan'
               ? 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-950/70 dark:text-purple-200 dark:border-purple-800 shadow-2xs font-bold'
               : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-purple-50/70 dark:hover:bg-slate-800/80 hover:text-purple-700 dark:hover:text-purple-300'"
           >
+            <div class="flex items-center gap-3 min-w-0">
+              <span
+                class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                :class="props.activeTab === 'pilihan'
+                  ? 'bg-purple-700 text-white'
+                  : 'bg-purple-100/80 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'"
+              >
+                <i class="fa-solid fa-building-columns text-sm" aria-hidden="true"></i>
+              </span>
+              <span class="truncate">1. Pilihan PTN &amp; Prodi</span>
+            </div>
             <span
-              class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-              :class="props.activeTab === 'pilihan'
-                ? 'bg-purple-700 text-white'
-                : 'bg-purple-100/80 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'"
+              v-if="eligibleStore.myEligibleData?.choice_status === 'rejected'"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0"
             >
-              <i class="fa-solid fa-building-columns text-sm" aria-hidden="true"></i>
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+              Revisi
             </span>
-            <span>1. Pilihan PTN &amp; Prodi</span>
           </button>
 
           <!-- 2. Nilai Rapor S1-S5 -->
           <button
             type="button"
             @click="selectTab('nilai')"
-            class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-3 transition-all border text-left"
+            class="w-full px-3 py-2.5 rounded-2xl text-sm font-semibold flex items-center justify-between gap-2 transition-all border text-left"
             :class="props.activeTab === 'nilai'
               ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-950/70 dark:text-emerald-200 dark:border-emerald-800 shadow-2xs font-bold'
               : 'border-transparent text-slate-700 dark:text-slate-300 hover:bg-emerald-50/70 dark:hover:bg-slate-800/80 hover:text-emerald-700 dark:hover:text-emerald-300'"
           >
+            <div class="flex items-center gap-3 min-w-0">
+              <span
+                class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+                :class="props.activeTab === 'nilai'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'"
+              >
+                <i class="fa-solid fa-graduation-cap text-sm" aria-hidden="true"></i>
+              </span>
+              <span class="truncate">2. Nilai Rapor S1–S5</span>
+            </div>
             <span
-              class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
-              :class="props.activeTab === 'nilai'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-emerald-100/80 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'"
+              v-if="eligibleStore.myEligibleData?.grade_status === 'rejected'"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shrink-0"
             >
-              <i class="fa-solid fa-graduation-cap text-sm" aria-hidden="true"></i>
+              <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+              Revisi
             </span>
-            <span>2. Nilai Rapor S1–S5</span>
           </button>
 
           <!-- 3. Portofolio Sertifikat -->

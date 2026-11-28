@@ -825,9 +825,12 @@ export const useChatStore = defineStore('chat', () => {
       student_name: payload.student_name,
       student_class: payload.student_class || '',
       counselor_name: payload.counselor_name || authStore.userName || 'Guru BK SMADA',
+      record_type: payload.record_type === 'pelanggaran' ? 'pelanggaran' : 'catatan',
       category: payload.category || 'umum',
       title: payload.title || 'Catatan Bimbingan Siswa',
       content: payload.content || '',
+      counseling_photo_url: payload.counseling_photo_url || null,
+      statement_photo_url: payload.statement_photo_url || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -837,39 +840,39 @@ export const useChatStore = defineStore('chat', () => {
       return newNote
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('student_counseling_notes')
-        .insert({
-          student_id: newNote.student_id,
-          student_name: newNote.student_name,
-          student_class: newNote.student_class,
-          counselor_name: newNote.counselor_name,
-          category: newNote.category,
-          title: newNote.title,
-          content: newNote.content
-        })
-        .select()
-        .single()
+    const { data, error } = await supabase
+      .from('student_counseling_notes')
+      .insert({
+        student_id: newNote.student_id,
+        student_name: newNote.student_name,
+        student_class: newNote.student_class,
+        counselor_name: newNote.counselor_name,
+        record_type: newNote.record_type,
+        category: newNote.category,
+        title: newNote.title,
+        content: newNote.content,
+        counseling_photo_url: newNote.counseling_photo_url,
+        statement_photo_url: newNote.statement_photo_url
+      })
+      .select()
+      .single()
 
-      if (!error && data) {
-        allStudentNotes.value.unshift(data)
-        return data
-      }
-      allStudentNotes.value.unshift(newNote)
-      return newNote
-    } catch (err) {
-      console.warn('createStudentNote warning, using optimistic fallback:', err.message)
-      allStudentNotes.value.unshift(newNote)
-      return newNote
+    if (error) throw error
+    if (data) {
+      allStudentNotes.value.unshift(data)
+      return data
     }
+    throw new Error('Gagal menyimpan catatan ke database.')
   }
 
   async function updateStudentNote(noteId, payload) {
     const updateData = {
+      record_type: payload.record_type === 'pelanggaran' ? 'pelanggaran' : 'catatan',
       category: payload.category,
       title: payload.title,
       content: payload.content,
+      counseling_photo_url: payload.counseling_photo_url || null,
+      statement_photo_url: payload.statement_photo_url || null,
       updated_at: new Date().toISOString()
     }
     if (payload.counselor_name) {
@@ -877,50 +880,47 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     const idx = allStudentNotes.value.findIndex(n => n.id === noteId)
-    if (idx !== -1) {
-      allStudentNotes.value[idx] = { ...allStudentNotes.value[idx], ...updateData }
-    }
 
-    if (!isSupabaseConfigured || !supabase) return allStudentNotes.value[idx]
-
-    try {
-      const { data, error } = await supabase
-        .from('student_counseling_notes')
-        .update(updateData)
-        .eq('id', noteId)
-        .select()
-        .single()
-
-      if (!error && data && idx !== -1) {
-        allStudentNotes.value[idx] = data
-        return data
+    if (!isSupabaseConfigured || !supabase) {
+      if (idx !== -1) {
+        allStudentNotes.value[idx] = { ...allStudentNotes.value[idx], ...updateData }
+        return allStudentNotes.value[idx]
       }
-      return allStudentNotes.value[idx]
-    } catch (err) {
-      console.warn('updateStudentNote warning:', err.message)
-      return allStudentNotes.value[idx]
+      return null
     }
+
+    const { data, error } = await supabase
+      .from('student_counseling_notes')
+      .update(updateData)
+      .eq('id', noteId)
+      .select()
+      .single()
+
+    if (error) throw error
+    if (idx !== -1 && data) {
+      allStudentNotes.value[idx] = data
+    }
+    return data
   }
 
   async function deleteStudentNote(noteId) {
     const idx = allStudentNotes.value.findIndex(n => n.id === noteId)
+
+    if (!isSupabaseConfigured || !supabase) {
+      if (idx !== -1) allStudentNotes.value.splice(idx, 1)
+      return true
+    }
+
+    const { error } = await supabase
+      .from('student_counseling_notes')
+      .delete()
+      .eq('id', noteId)
+
+    if (error) throw error
     if (idx !== -1) {
       allStudentNotes.value.splice(idx, 1)
     }
-
-    if (!isSupabaseConfigured || !supabase) return true
-
-    try {
-      const { error } = await supabase
-        .from('student_counseling_notes')
-        .delete()
-        .eq('id', noteId)
-
-      return !error
-    } catch (err) {
-      console.warn('deleteStudentNote warning:', err.message)
-      return true
-    }
+    return true
   }
 
   return {

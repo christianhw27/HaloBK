@@ -366,6 +366,28 @@ export const useEligibleStore = defineStore('eligible', () => {
         if (errDel) throw errDel
       }
 
+      // Jika sebelumnya berstatus 'rejected' (diminta revisi), kembalikan ke 'pending' via RPC aman server-side
+      if (myEligibleData.value.choice_status === 'rejected') {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('resubmit_my_eligible_choices', {
+          p_eligible_id: eligibleId
+        })
+        if (!rpcErr && rpcRes?.success) {
+          myEligibleData.value.choice_status = rpcRes.choice_status || 'pending'
+        } else if (rpcErr && (rpcErr.code === '42883' || rpcErr.code === 'PGRST202')) {
+          const { error: statusErr } = await supabase
+            .from('eligible_students')
+            .update({
+              choice_status: 'pending',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', eligibleId)
+          if (statusErr) throw statusErr
+          myEligibleData.value.choice_status = 'pending'
+        } else if (rpcErr) {
+          throw rpcErr
+        }
+      }
+
       await fetchMyChoices(eligibleId)
       return { success: true, message: 'Pilihan jurusan berhasil disimpan!' }
     } catch (e) {
@@ -405,29 +427,68 @@ export const useEligibleStore = defineStore('eligible', () => {
         return Math.min(100, Math.max(0, n))
       }
 
-      // Upsert semua baris nilai (bilangan bulat 0-100 atau null jika tidak diambil pada semester tersebut)
+      // Deduplikasi baris berdasarkan subject_id agar upsert batch tidak konflik
+      const uniqueRowsMap = new Map()
       for (const row of gradesPayload) {
         if (!row.subject_id) continue
-        await supabase
-          .from('eligible_grades')
-          .upsert(
-            {
-              eligible_student_id: eligibleId,
-              subject_id: row.subject_id,
-              sem_1: toSafeNullableInt(row.sem_1),
-              sem_2: toSafeNullableInt(row.sem_2),
-              sem_3: toSafeNullableInt(row.sem_3),
-              sem_4: toSafeNullableInt(row.sem_4),
-              sem_5: toSafeNullableInt(row.sem_5)
-            },
-            { onConflict: 'eligible_student_id,subject_id' }
-          )
+        uniqueRowsMap.set(row.subject_id, {
+          eligible_student_id: eligibleId,
+          subject_id: row.subject_id,
+          sem_1: toSafeNullableInt(row.sem_1),
+          sem_2: toSafeNullableInt(row.sem_2),
+          sem_3: toSafeNullableInt(row.sem_3),
+          sem_4: toSafeNullableInt(row.sem_4),
+          sem_5: toSafeNullableInt(row.sem_5)
+        })
       }
 
-      // Hitung rata-rata keseluruhan (rata-rata dari seluruh mata pelajaran yang terisi)
-      const refreshedGrades = await fetchMyGrades(eligibleId)
-      if (refreshedGrades.length > 0) {
-        const validSubjectAverages = refreshedGrades.map(g => {
+      const rowsToUpsert = Array.from(uniqueRowsMap.values())
+      const activeSubjectIds = new Set(uniqueRowsMap.keys())
+
+      // 1. Hapus baris nilai di database yang sudah dihapus/diganti siswa dari formulir
+      const { data: existingGradeRows, error: existingErr } = await supabase
+        .from('eligible_grades')
+        .select('id, subject_id')
+        .eq('eligible_student_id', eligibleId)
+
+      if (existingErr) throw existingErr
+
+      const idsToDelete = (existingGradeRows || [])
+        .filter(r => !activeSubjectIds.has(r.subject_id))
+        .map(r => r.id)
+
+      if (idsToDelete.length > 0) {
+        const { error: deleteErr } = await supabase
+          .from('eligible_grades')
+          .delete()
+          .in('id', idsToDelete)
+
+        if (deleteErr) throw deleteErr
+      }
+
+      // 2. Upsert seluruh baris nilai aktif secara batch (bilangan bulat 0-100 atau null)
+      if (rowsToUpsert.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from('eligible_grades')
+          .upsert(rowsToUpsert, { onConflict: 'eligible_student_id,subject_id' })
+
+        if (upsertErr) throw upsertErr
+      }
+
+      // 3. Hitung ulang rata-rata keseluruhan di server via RPC aman (anti-tampering)
+      await fetchMyGrades(eligibleId)
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('sync_my_eligible_grades_summary', {
+        p_eligible_id: eligibleId
+      })
+
+      if (!rpcErr && rpcRes?.success) {
+        myEligibleData.value.overall_average = Number(rpcRes.overall_average ?? 0)
+        if (rpcRes.grade_status) {
+          myEligibleData.value.grade_status = rpcRes.grade_status
+        }
+      } else if (rpcErr && (rpcErr.code === '42883' || rpcErr.code === 'PGRST202')) {
+        // Fallback jika migrasi RPC belum dijalankan
+        const validSubjectAverages = myGrades.value.map(g => {
           const filled = [g.sem_1, g.sem_2, g.sem_3, g.sem_4, g.sem_5]
             .filter(v => v !== null && v !== undefined && v !== '' && !isNaN(Number(v)))
             .map(Number)
@@ -435,20 +496,33 @@ export const useEligibleStore = defineStore('eligible', () => {
           return Number((filled.reduce((a, b) => a + b, 0) / filled.length).toFixed(2))
         }).filter(avg => avg !== null)
 
-        if (validSubjectAverages.length > 0) {
-          const totalAvg = validSubjectAverages.reduce((sum, avg) => sum + avg, 0)
-          const overallAvg = Number((totalAvg / validSubjectAverages.length).toFixed(2))
+        const overallAvg = validSubjectAverages.length > 0
+          ? Number((validSubjectAverages.reduce((sum, avg) => sum + avg, 0) / validSubjectAverages.length).toFixed(2))
+          : 0
 
-          await supabase
-            .from('eligible_students')
-            .update({
-              overall_average: overallAvg,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', eligibleId)
-
-          myEligibleData.value.overall_average = overallAvg
+        const updatePayload = {
+          overall_average: overallAvg,
+          updated_at: new Date().toISOString()
         }
+        if (myEligibleData.value.grade_status === 'rejected') {
+          updatePayload.grade_status = 'pending'
+        }
+
+        const { error: updateErr } = await supabase
+          .from('eligible_students')
+          .update(updatePayload)
+          .eq('id', eligibleId)
+
+        if (updateErr) throw updateErr
+
+        myEligibleData.value.overall_average = overallAvg
+        if (updatePayload.grade_status) {
+          myEligibleData.value.grade_status = 'pending'
+        }
+      } else if (rpcErr) {
+        throw rpcErr
+      } else if (rpcRes && !rpcRes.success) {
+        throw new Error(rpcRes.message || 'Gagal menyinkronkan ringkasan nilai.')
       }
 
       return { success: true, message: 'Nilai rapor berhasil disimpan!' }

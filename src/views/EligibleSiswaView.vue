@@ -440,6 +440,24 @@ const selectedSubjectIds = computed(() => {
   return new Set(gradesRows.value.map(r => r.subject_id).filter(Boolean))
 })
 
+// Deteksi perubahan nilai/mapel yang belum disimpan ke database
+const hasUnsavedGradeChanges = computed(() => {
+  if (!eligibleStore.canEditGrades) return false
+  const normalize = (list) =>
+    (list || [])
+      .map(r => ({
+        subject_id: String(r.subject_id || ''),
+        sem_1: parseGradeOrNull(r.sem_1),
+        sem_2: parseGradeOrNull(r.sem_2),
+        sem_3: parseGradeOrNull(r.sem_3),
+        sem_4: parseGradeOrNull(r.sem_4),
+        sem_5: parseGradeOrNull(r.sem_5)
+      }))
+      .sort((a, b) => a.subject_id.localeCompare(b.subject_id))
+
+  return JSON.stringify(normalize(gradesRows.value)) !== JSON.stringify(normalize(eligibleStore.myGrades))
+})
+
 // Kalkulasi rata-rata per baris mapel (horizontal) — HANYA dibagi dengan total berapa kali nilainya muncul (semester yang terisi)
 function calculateRowAverage(row) {
   const filled = [1, 2, 3, 4, 5]
@@ -524,6 +542,7 @@ async function submitGrades() {
   isSavingGrades.value = false
 
   if (res.success) {
+    initGradesForm()
     gradeFeedback.value = { type: 'success', text: res.message }
     if (toast.value) toast.value.show(res.message, 'success')
   } else {
@@ -628,10 +647,19 @@ async function handleDeleteCert(id) {
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
                 :class="eligibleStore.myEligibleData?.choice_status === 'approved'
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60'"
+                  : (eligibleStore.myEligibleData?.choice_status === 'rejected'
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/80 dark:border-rose-800'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60')"
               >
-                <i :class="eligibleStore.myEligibleData?.choice_status === 'approved' ? 'fa-solid fa-check-double' : 'fa-solid fa-clock'"></i>
-                <span>{{ eligibleStore.myEligibleData?.choice_status === 'approved' ? 'ACC Guru BK' : 'Belum ACC' }}</span>
+                <span v-if="eligibleStore.myEligibleData?.choice_status === 'rejected'" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <i v-else :class="eligibleStore.myEligibleData?.choice_status === 'approved' ? 'fa-solid fa-check-double' : 'fa-solid fa-clock'"></i>
+                <span>
+                  {{
+                    eligibleStore.myEligibleData?.choice_status === 'approved'
+                      ? 'ACC Guru BK'
+                      : (eligibleStore.myEligibleData?.choice_status === 'rejected' ? 'Perlu Revisi' : 'Belum ACC')
+                  }}
+                </span>
               </span>
             </div>
 
@@ -643,10 +671,19 @@ async function handleDeleteCert(id) {
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
                 :class="eligibleStore.myEligibleData?.grade_status === 'approved'
                   ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60'"
+                  : (eligibleStore.myEligibleData?.grade_status === 'rejected'
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-300/80 dark:border-rose-800'
+                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60')"
               >
-                <i :class="eligibleStore.myEligibleData?.grade_status === 'approved' ? 'fa-solid fa-lock' : 'fa-solid fa-pen-to-square'"></i>
-                <span>{{ eligibleStore.myEligibleData?.grade_status === 'approved' ? 'ACC & Terkunci' : 'Belum ACC' }}</span>
+                <span v-if="eligibleStore.myEligibleData?.grade_status === 'rejected'" class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                <i v-else :class="eligibleStore.myEligibleData?.grade_status === 'approved' ? 'fa-solid fa-lock' : 'fa-solid fa-pen-to-square'"></i>
+                <span>
+                  {{
+                    eligibleStore.myEligibleData?.grade_status === 'approved'
+                      ? 'ACC & Terkunci'
+                      : (eligibleStore.myEligibleData?.grade_status === 'rejected' ? 'Perlu Revisi' : 'Belum ACC')
+                  }}
+                </span>
               </span>
             </div>
 
@@ -658,6 +695,56 @@ async function handleDeleteCert(id) {
                 {{ Number(eligibleStore.myEligibleData?.overall_average || calculatedOverallAverage || 0).toFixed(2) }}
               </span>
             </div>
+          </div>
+        </div>
+
+        <!-- BANNER PERINGATAN REVISI DARI GURU BK -->
+        <div
+          v-if="eligibleStore.myEligibleData?.choice_status === 'rejected' || eligibleStore.myEligibleData?.grade_status === 'rejected'"
+          class="mt-4 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+          role="alert"
+        >
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 sm:mt-0">
+              <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+            </div>
+            <div class="text-xs sm:text-sm text-rose-900 dark:text-rose-200 space-y-0.5">
+              <p class="font-bold">
+                Permintaan Revisi dari Guru BK
+              </p>
+              <p class="text-rose-800/90 dark:text-rose-300/90 leading-relaxed">
+                Guru BK menandai
+                <strong v-if="eligibleStore.myEligibleData?.choice_status === 'rejected' && eligibleStore.myEligibleData?.grade_status === 'rejected'">
+                  Pilihan PTN &amp; Prodi serta Nilai Rapor S1–S5
+                </strong>
+                <strong v-else-if="eligibleStore.myEligibleData?.choice_status === 'rejected'">
+                  Pilihan PTN &amp; Prodi
+                </strong>
+                <strong v-else>
+                  Nilai Rapor S1–S5
+                </strong>
+                Anda perlu diperbaiki. Silakan periksa kembali lalu klik tombol <strong>Simpan</strong> untuk mengajukan validasi ulang.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              v-if="eligibleStore.myEligibleData?.choice_status === 'rejected' && activeTab !== 'pilihan'"
+              type="button"
+              @click="activeTab = 'pilihan'"
+              class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+            >
+              Periksa Pilihan PTN
+            </button>
+            <button
+              v-if="eligibleStore.myEligibleData?.grade_status === 'rejected' && activeTab !== 'nilai'"
+              type="button"
+              @click="activeTab = 'nilai'"
+              class="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer"
+            >
+              Periksa Nilai Rapor
+            </button>
           </div>
         </div>
       </section>
@@ -1023,6 +1110,10 @@ async function handleDeleteCert(id) {
             <div v-if="!eligibleStore.canEditGrades" class="text-xs text-emerald-600 font-bold flex items-center gap-1.5 order-2 sm:order-1 text-center sm:text-left justify-center sm:justify-start">
               <i class="fa-solid fa-lock shrink-0"></i>
               <span>Nilai telah disetujui (ACC) oleh Guru BK dan terkunci dari perubahan.</span>
+            </div>
+            <div v-else-if="hasUnsavedGradeChanges" class="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-3 py-1.5 rounded-xl font-semibold order-2 sm:order-1 text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
+              <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xs shrink-0"></i>
+              <span>Ada perubahan nilai atau mapel yang belum disimpan. Klik <strong>Simpan Tabel Nilai</strong>.</span>
             </div>
             <div v-else class="text-xs text-slate-500 dark:text-slate-400 order-2 sm:order-1 text-center sm:text-left flex items-center justify-center sm:justify-start gap-1.5">
               <i class="fa-solid fa-circle-info text-sky-500 text-xs shrink-0"></i>
